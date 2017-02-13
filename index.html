@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <title>3ML</title>
+        <link rel="stylesheet" type="text/css" href="my3ml.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="innerheader">
+                <div id="logo"><img src="img/logo.png"></div>
+            </div>
+        </div>
+        <div id="container">
+            <div id="my3ml"></div>
+        </div>
+    </body>
+    <script src="my3ml.js"></script>
+    <script>
+        var node = document.getElementById('my3ml');
+        var app = Elm.Main.embed(node);
+   </script>
+</html>

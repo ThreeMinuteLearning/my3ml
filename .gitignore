@@ -1,0 +1,4 @@
+target
+.atomist.yml
+elm-stuff
+node_modules

@@ -1,0 +1,42 @@
+html {
+    font-size: 1em;
+    line-height: 1.4;
+    font-family: 'Exo 2', sans-serif;
+}
+
+body {
+    background: #ccc;
+}
+
+#header {
+    background: #2696a8;
+    width: 100%;
+    min-width: 1024px;
+    height: 65px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 10;
+}
+
+#innerheader {
+    max-width: 1024px;
+    margin: 0 auto;
+}
+
+#logo {
+    padding-top: 10px;
+    float: left;
+}
+
+#container {
+    max-width: 1024px;
+    margin: 0 auto;
+    margin-top: 20px;
+}
+
+.login {
+}
+
+.login .error {
+    color: red;
+}
