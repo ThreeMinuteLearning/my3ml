@@ -1,7 +1,8 @@
 module Main exposing (main)
 
-import Html exposing (Html, div, program, text)
-import Html.Attributes exposing (id)
+import Html exposing (Html, button, div, h1, program, text)
+import Html.Attributes exposing (id, class, disabled)
+import Html.Events exposing (onClick)
 import Login exposing (User(..))
 import Navigation exposing (..)
 import Routing exposing (..)
@@ -9,6 +10,7 @@ import Routing exposing (..)
 
 type Msg
     = ChangePage Page
+    | Navigate Page
     | LoginMsg Login.Msg
 
 
@@ -68,6 +70,9 @@ update msg m =
             in
                 ( { m | page = newPage }, cmd )
 
+        Navigate page ->
+            ( m, Navigation.newUrl <| pageToUrl page )
+
         LoginMsg msg ->
             let
                 ( loginModel, cmd, user ) =
@@ -82,8 +87,6 @@ update msg m =
 subscriptions : Model -> Sub Msg
 subscriptions m =
     let
-        -- leaderBoardSub =
-        --     LeaderBoard.subscriptions m.leaderBoard
         loginSubs =
             Login.subscriptions m.login
     in
@@ -102,12 +105,42 @@ view m =
 
                 _ ->
                     div []
-                        [ text "Haven't implemented this page yet"
+                        [ dashBoard m
+                        , text "Haven't implemented this page yet"
                         , text (toString m)
                         ]
     in
         div [ id "root" ]
             [ pageContent ]
+
+
+dashBoard : Model -> Html Msg
+dashBoard m =
+    div [ id "dashboard", class "section" ]
+        [ h1 [] [ text "Dashboard" ]
+        , div [ id "innerdash" ]
+            [ nav m
+            ]
+        ]
+
+
+nav : Model -> Html Msg
+nav m =
+    let
+        btn page txt =
+            button
+                [ onClick (Navigate page)
+                , disabled (page == m.page)
+                ]
+                [ text txt ]
+    in
+        div [ id "nav" ]
+            [ btn HomePage "Home"
+            , btn FindStoryPage "Find a story"
+            , btn AccountPage "My 3ML"
+            , btn LeaderBoardPage "Leader board"
+            , btn TrailsPage "Trails"
+            ]
 
 
 main : Program Never Model Msg
