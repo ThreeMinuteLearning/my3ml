@@ -45,7 +45,7 @@ matchers =
         [ map HomePage top
         , map LoginPage (s "login")
         , map FindStoryPage (s "findstory")
-        , map AccountPage (s "findstory")
+        , map AccountPage (s "account")
         , map TrailsPage (s "trails")
         , map LeaderBoardPage (s "leaderboard")
         ]
