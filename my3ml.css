@@ -6,6 +6,18 @@ html {
 
 body {
     background: #ccc;
+    margin: 0;
+}
+
+#dashboard {
+    background-image: url(../img/robot.png);
+    background-position: left bottom;
+    background-repeat: no-repeat;
+    min-height: 150px;
+}
+
+#innerdash {
+    padding-left: 130px;
 }
 
 #header {
@@ -14,13 +26,14 @@ body {
     min-width: 1024px;
     height: 65px;
     margin: 0 auto;
-    position: relative;
-    z-index: 10;
 }
 
 #innerheader {
     max-width: 1024px;
     margin: 0 auto;
+}
+
+#nav {
 }
 
 #logo {
@@ -32,6 +45,20 @@ body {
     max-width: 1024px;
     margin: 0 auto;
     margin-top: 20px;
+}
+
+#container h1 {
+    background: #56a826;
+    color: white;
+    font-size: 18px;
+    padding: 5px 10px;
+
+}
+
+.section {
+    background: white;
+    margin-bottom: 15px;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .login {
