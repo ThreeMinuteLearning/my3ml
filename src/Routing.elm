@@ -7,6 +7,7 @@ import Navigation exposing (Location)
 type Page
     = HomePage
     | FindStoryPage
+    | StoryPage String
     | AccountPage
     | LeaderBoardPage
     | TrailsPage
@@ -23,8 +24,11 @@ pageToUrl page =
         LoginPage ->
             "#/login"
 
+        StoryPage id ->
+            "#/stories/" ++ id
+
         FindStoryPage ->
-            "#/findstory"
+            "#/stories"
 
         AccountPage ->
             "#/account"
@@ -44,7 +48,8 @@ matchers =
     oneOf
         [ map HomePage top
         , map LoginPage (s "login")
-        , map FindStoryPage (s "findstory")
+        , map StoryPage (s "stories" </> string)
+        , map FindStoryPage (s "stories")
         , map AccountPage (s "account")
         , map TrailsPage (s "trails")
         , map LeaderBoardPage (s "leaderboard")

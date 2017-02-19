@@ -9,17 +9,6 @@ body {
     margin: 0;
 }
 
-#dashboard {
-    background-image: url(../img/robot.png);
-    background-position: left bottom;
-    background-repeat: no-repeat;
-    min-height: 150px;
-}
-
-#innerdash {
-    padding-left: 130px;
-}
-
 #header {
     background: #2696a8;
     width: 100%;
@@ -33,13 +22,6 @@ body {
     margin: 0 auto;
 }
 
-#nav {
-}
-
-#logo {
-    padding-top: 10px;
-    float: left;
-}
 
 #container {
     max-width: 1024px;
@@ -48,7 +30,7 @@ body {
 }
 
 #container h1 {
-    background: #56a826;
+    background: #2696a8;
     color: white;
     font-size: 18px;
     padding: 5px 10px;
@@ -61,9 +43,38 @@ body {
     box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+#dashboard {
+    background-image: url(../img/robot.png);
+    background-position: left bottom;
+    background-repeat: no-repeat;
+    min-height: 150px;
+}
+
+#dashboard h1 {
+    background: #56a826;
+}
+
+#innerdash {
+    padding-left: 130px;
+}
+
+#nav {
+}
+
+#logo {
+    padding-top: 10px;
+    float: left;
+}
+
+
 .login {
 }
 
 .login .error {
     color: red;
+}
+
+table {
+    width: 100%;
+    padding: 0 20px;
 }
