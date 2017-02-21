@@ -1,12 +1,13 @@
 module Main exposing (main)
 
 import Date exposing (Date)
-import Html exposing (Html, button, div, h1, p, program, text)
+import Html exposing (Html, button, div, h1, h3, p, program, text)
 import Html.Attributes exposing (id, class, disabled)
 import Html.Events exposing (onClick)
 import Http exposing (..)
 import Json.Decode as JD
 import Login exposing (User(..))
+import Markdown
 import Navigation exposing (..)
 import RemoteData exposing (..)
 import Routing exposing (..)
@@ -23,11 +24,13 @@ type Msg
 
 type alias Story =
     { id : String
+    , img : String
     , title : String
-    , content : String
     , tags : List String
     , level : Int
+    , words : List String
     , date : Date
+    , content : String
     }
 
 
@@ -58,18 +61,20 @@ storiesDecoder : JD.Decoder (List Story)
 storiesDecoder =
     JD.field "stories" <|
         JD.list <|
-            JD.map6 Story
+            JD.map8 Story
                 (JD.field "id" JD.string)
+                (JD.field "img" JD.string)
                 (JD.field "title" JD.string)
-                (JD.field "content" JD.string)
                 (JD.field "tags" (JD.list JD.string))
                 (JD.field "level" JD.int)
+                (JD.field "defineWords" (JD.list JD.string))
                 (JD.field "date" dateDecoder)
+                (JD.field "content" JD.string)
 
 
 getStories : Cmd Msg
 getStories =
-    Http.get "http://localhost:8000/stories.json" storiesDecoder
+    Http.get "http://localhost:8000/allstories.json" storiesDecoder
         |> RemoteData.sendRequest
         |> Cmd.map StoriesResponse
 
@@ -161,6 +166,11 @@ view m =
     let
         pageContent =
             case m.page of
+                HomePage ->
+                    div []
+                        [ dashBoard m
+                        , storyTiles m
+                        ]
                 LoginPage ->
                     Html.map LoginMsg (Login.view m.login)
 
@@ -185,6 +195,37 @@ view m =
     in
         div [ id "root" ]
             [ pageContent ]
+
+
+mapStories : (List Story -> Html Msg) -> WebData (List Story) -> Html Msg
+mapStories f stories =
+    case stories of
+        NotAsked ->
+            text "Unexpected state (no stories asked for)"
+
+        Loading ->
+            text "Loading stories ..."
+
+        Failure err ->
+            text ("Error loading stories: " ++ toString err)
+
+        Success stories ->
+            f stories
+
+
+storyTiles : Model -> Html Msg
+storyTiles m =
+    let
+        stories_ = mapStories mkTiles m.stories
+        mkTiles stories = div [ class "storytiles" ] (List.map storyTile stories)
+
+        storyTile s =
+            Html.a [ class "storytile", Html.Attributes.href (pageToUrl (StoryPage s.id))] [ h3 [] [ text s.title ]]
+    in
+        div [ id "stories", class "section" ]
+            [ h1 [] [ text "Stories" ]
+            , stories_
+            ]
 
 
 viewStories : Model -> Html Msg
@@ -224,23 +265,10 @@ viewStories m =
                 [ button [ onClick (Navigate (StoryPage s.id)) ] [ text "View" ]
                 ]
 
-        stories_ =
-            case m.stories of
-                NotAsked ->
-                    text "Unexpected state (no stories asked for)"
-
-                Loading ->
-                    text "Loading stories ..."
-
-                Failure err ->
-                    text ("Error loading stories: " ++ toString err)
-
-                Success stories ->
-                    Table.view cfg m.tableState stories
     in
         div [ id "stories", class "section" ]
             [ h1 [] [ text "Stories" ]
-            , stories_
+            , mapStories (Table.view cfg m.tableState) m.stories
             ]
 
 
@@ -252,7 +280,7 @@ viewStory m id =
                 s :: _ ->
                     div [ class "section" ]
                         [ h1 [] [ text s.title ]
-                        , p [] [ text s.content ]
+                        , Markdown.toHtml [] s.content
                         ]
 
                 _ ->
