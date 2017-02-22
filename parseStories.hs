@@ -87,6 +87,14 @@ parseContent ts = go ("", []) (drop 1 ts)
                 _ -> case head ts of
                     TagOpen "span" _ -> go acc (tail ts) -- style span within strong
                     _ -> error ("open strong tag with weird successors" ++ show (head ts))
+            TagOpen "img" _ ->
+                let
+                    src = fromAttrib "src" t
+                    img = "![fixme](" ++ src ++ ")"
+                in
+                    go (content ++ img, defs) (tail ts)
+
+            TagClose "img" -> go acc ts
             TagOpen "ul" _ -> go acc (dropWhile (~/= "<li>") ts)
             TagOpen "li" _ ->
                 let
