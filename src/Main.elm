@@ -1,15 +1,16 @@
 module Main exposing (main)
 
 import Date exposing (Date)
-import Html exposing (Html, button, div, h1, h3, p, program, text)
-import Html.Attributes exposing (id, class, disabled)
-import Html.Events exposing (onClick)
+import Html exposing (Html, button, div, img, h1, h3, p, program, text, label, input)
+import Html.Attributes exposing (id, class, disabled, src, type_, value)
+import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
 import Json.Decode as JD
 import Login exposing (User(..))
 import Markdown
 import Navigation exposing (..)
 import RemoteData exposing (..)
+import Regex
 import Routing exposing (..)
 import Table
 
@@ -19,6 +20,7 @@ type Msg
     | Navigate Page
     | StoriesResponse (WebData (List Story))
     | LoginMsg Login.Msg
+    | StoryFilterInput String
     | SetTableState Table.State
 
 
@@ -39,6 +41,7 @@ type alias Model =
     , user : Login.User
     , page : Page
     , stories : WebData (List Story)
+    , storyFilter : String
     , tableState : Table.State
     }
 
@@ -93,6 +96,7 @@ init location =
             , user = Guest
             , page = page
             , stories = Loading
+            , storyFilter = ""
             , tableState = Table.initialSort "Title"
             }
     in
@@ -149,6 +153,9 @@ update msg m =
         SetTableState t ->
             { m | tableState = t } ! []
 
+        StoryFilterInput f ->
+            { m | storyFilter = f } ! []
+
 
 subscriptions : Model -> Sub Msg
 subscriptions m =
@@ -171,6 +178,7 @@ view m =
                         [ dashBoard m
                         , storyTiles m
                         ]
+
                 LoginPage ->
                     Html.map LoginMsg (Login.view m.login)
 
@@ -216,14 +224,17 @@ mapStories f stories =
 storyTiles : Model -> Html Msg
 storyTiles m =
     let
-        stories_ = mapStories mkTiles m.stories
-        mkTiles stories = div [ class "storytiles" ] (List.map storyTile stories)
+        stories_ =
+            mapStories (mkTiles << List.take 18) m.stories
+
+        mkTiles stories =
+            div [ class "storytiles" ] (List.map storyTile stories)
 
         storyTile s =
-            Html.a [ class "storytile", Html.Attributes.href (pageToUrl (StoryPage s.id))] [ h3 [] [ text s.title ]]
+            Html.a [ class "storytile", Html.Attributes.href (pageToUrl (StoryPage s.id)) ] [ h3 [] [ text s.title ] ]
     in
         div [ id "stories", class "section" ]
-            [ h1 [] [ text "Stories" ]
+            [ h1 [] [ text "Starter Stories" ]
             , stories_
             ]
 
@@ -264,22 +275,48 @@ viewStories m =
             Table.HtmlDetails []
                 [ button [ onClick (Navigate (StoryPage s.id)) ] [ text "View" ]
                 ]
-
     in
         div [ id "stories", class "section" ]
             [ h1 [] [ text "Stories" ]
-            , mapStories (Table.view cfg m.tableState) m.stories
+            , div []
+                [ label [] [ text "Search" ]
+                , input
+                    [ type_ "text"
+                    , value m.storyFilter
+                    , onInput StoryFilterInput
+                    ]
+                    []
+                ]
+            , mapStories (Table.view cfg m.tableState << filterStories m.storyFilter) m.stories
             ]
 
 
+filterStories : String -> List Story -> List Story
+filterStories storyFilter stories =
+    if String.length storyFilter < 3 then
+        stories
+    else
+        let
+            r =
+                Regex.caseInsensitive (Regex.regex storyFilter)
+
+            match story =
+                Regex.contains r story.title || Regex.contains r story.content
+        in
+            List.filter match stories
+
+
 viewStory : Model -> String -> Html Msg
-viewStory m id =
+viewStory m id_ =
     case m.stories of
         Success stories ->
-            case List.filter (\s -> s.id == id) stories of
+            case List.filter (\s -> s.id == id_) stories of
                 s :: _ ->
                     div [ class "section" ]
                         [ h1 [] [ text s.title ]
+                        , div [ id "storypic" ]
+                            [ img [ src ("/pix/" ++ s.img) ] []
+                            ]
                         , Markdown.toHtml [] s.content
                         ]
 
