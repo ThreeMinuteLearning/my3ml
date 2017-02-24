@@ -38,10 +38,14 @@ type alias Story =
     , title : String
     , tags : List String
     , level : Int
-    , words : List String
+    , words : List Definition
     , date : Date
     , content : String
     }
+
+
+type Definition
+    = Definition String Int
 
 
 type alias Model =
@@ -69,6 +73,13 @@ dateDecoder =
             )
 
 
+definitionDecoder : JD.Decoder Definition
+definitionDecoder =
+    JD.map2 Definition
+        (JD.field "word" JD.string)
+        (JD.field "index" JD.int)
+
+
 storiesDecoder : JD.Decoder (List Story)
 storiesDecoder =
     JD.field "stories" <|
@@ -79,7 +90,7 @@ storiesDecoder =
                 (JD.field "title" JD.string)
                 (JD.field "tags" (JD.list JD.string))
                 (JD.field "level" JD.int)
-                (JD.field "defineWords" (JD.list JD.string))
+                (JD.field "definitions" (JD.list definitionDecoder))
                 (JD.field "date" dateDecoder)
                 (JD.field "content" JD.string)
 
