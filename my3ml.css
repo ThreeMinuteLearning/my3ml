@@ -133,6 +133,14 @@ table {
 
 
 /* Story content styling */
+#storycontainer {
+}
+
+#storycontainer:after {
+    content:" ";
+    display:block;
+    clear:both;
+}
 
 #storypic {
     float: right;

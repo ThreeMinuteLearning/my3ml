@@ -452,11 +452,14 @@ viewStory m id_ =
                             [ h1 [] [ text s.title ]
                             , drawerButtons
                             ]
-                        , div [ id "storypic" ]
-                            [ img [ src ("/pix/" ++ s.img) ] []
-                            ]
-                        , div [ id "storycontent" ]
-                            [ Markdown.toHtml [] s.content
+                        , div
+                            [ id "storycontainer" ]
+                            [ div [ id "storypic" ]
+                                [ img [ src ("/pix/" ++ s.img) ] []
+                                ]
+                            , div [ id "storycontent" ]
+                                [ Markdown.toHtml [] s.content
+                                ]
                             ]
                         ]
 
