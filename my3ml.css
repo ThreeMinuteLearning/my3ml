@@ -142,6 +142,11 @@ table {
     clear:both;
 }
 
+#storyfooter {
+    font-size: 12px;
+    padding: 20px;
+}
+
 #storypic {
     float: right;
     margin: 20px;

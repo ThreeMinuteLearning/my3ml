@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Date exposing (Date)
-import Html exposing (Html, button, div, img, h1, h3, p, program, text, ul, li, label, input)
+import Html exposing (Html, button, br, div, img, h1, h3, p, program, text, ul, li, label, input)
 import Html.Attributes exposing (id, class, checked, disabled, src, style, type_, value, width)
 import Html.Events exposing (onClick, onCheck, onInput)
 import Http exposing (..)
@@ -459,6 +459,9 @@ viewStory m id_ =
                                 ]
                             , div [ id "storycontent" ]
                                 [ Markdown.toHtml [] s.content
+                                ]
+                            , div [ id "storyfooter" ]
+                                [ p [] [ text (String.join ", " s.tags), br [] [], text ("Level: " ++ toString s.level) ]
                                 ]
                             ]
                         ]
