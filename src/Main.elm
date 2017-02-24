@@ -354,8 +354,11 @@ storyTiles m =
         mkTiles stories =
             div [ class "storytiles" ] (List.map storyTile stories)
 
+        storyStyle s =
+            style [ ( "background", "url(pix/" ++ s.img ++ ")" ), ( "background-size", "cover" ) ]
+
         storyTile s =
-            Html.a [ class "storytile", Html.Attributes.href (pageToUrl (StoryPage s.id)) ] [ h3 [] [ text s.title ] ]
+            Html.a [ class "storytile", storyStyle s, Html.Attributes.href (pageToUrl (StoryPage s.id)) ] [ h3 [] [ text s.title ] ]
     in
         div [ id "stories", class "section" ]
             [ sectionHeading [ h1 [] [ text "Starter Stories" ] ]

@@ -7,6 +7,15 @@ html {
 body {
     background: #ccc;
     margin: 0;
+    height: 100%;
+}
+
+label {
+    padding-right: 10px;
+}
+
+button {
+    text-decoration: none;
 }
 
 #header {
@@ -14,7 +23,6 @@ body {
     width: 100%;
     min-width: 1024px;
     height: 65px;
-    margin: 0 auto;
 }
 
 #innerheader {
@@ -89,6 +97,38 @@ table {
 
 #storyfilter {
     padding: 20px;
+}
+
+
+/* Story tiles view */
+
+.storytiles {
+    padding: 20px 30px;
+    margin-bottom: 20px;
+}
+
+.storytile {
+    width: 150px;
+    height: 135px;
+    display: inline-block;
+    position: relative;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.storytile h3 {
+    position: relative;
+    padding: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    text-align: left;
+    background: none;
+    color: #fff;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
 }
 
 
