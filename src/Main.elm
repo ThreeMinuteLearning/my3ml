@@ -1,9 +1,9 @@
 module Main exposing (main)
 
 import Date exposing (Date)
-import Html exposing (Html, button, div, img, h1, h3, p, program, text, label, input)
-import Html.Attributes exposing (id, class, disabled, src, type_, value)
-import Html.Events exposing (onClick, onInput)
+import Html exposing (Html, button, div, img, h1, h3, p, program, text, ul, li, label, input)
+import Html.Attributes exposing (id, class, checked, disabled, src, style, type_, value, width)
+import Html.Events exposing (onClick, onCheck, onInput)
 import Http exposing (..)
 import Json.Decode as JD
 import Login exposing (User(..))
@@ -22,6 +22,14 @@ type Msg
     | LoginMsg Login.Msg
     | StoryFilterInput String
     | SetTableState Table.State
+    | ToggleDrawer Drawer
+
+
+type Drawer
+    = Connect
+    | Question
+    | Summarise
+    | Clarify
 
 
 type alias Story =
@@ -43,6 +51,7 @@ type alias Model =
     , stories : WebData (List Story)
     , storyFilter : String
     , tableState : Table.State
+    , showDrawer : Maybe Drawer
     }
 
 
@@ -98,6 +107,7 @@ init location =
             , stories = Loading
             , storyFilter = ""
             , tableState = Table.initialSort "Title"
+            , showDrawer = Nothing
             }
     in
         ( initialModel, Cmd.batch [ cmd, Cmd.map LoginMsg loginCmd, getStories ] )
@@ -132,7 +142,7 @@ update msg m =
                 ( newPage, cmd ) =
                     authRedirect page m.user
             in
-                ( { m | page = newPage }, cmd )
+                ( { m | page = newPage, showDrawer = Nothing }, cmd )
 
         Navigate page ->
             ( m, Navigation.newUrl <| pageToUrl page )
@@ -155,6 +165,12 @@ update msg m =
 
         StoryFilterInput f ->
             { m | storyFilter = f } ! []
+
+        ToggleDrawer d ->
+            if m.showDrawer == Just d then
+                { m | showDrawer = Nothing } ! []
+            else
+                { m | showDrawer = Just d } ! []
 
 
 subscriptions : Model -> Sub Msg
@@ -192,6 +208,7 @@ view m =
                     div []
                         [ dashBoard m
                         , viewStory m id
+                        , drawer m
                         ]
 
                 _ ->
@@ -203,6 +220,113 @@ view m =
     in
         div [ id "root" ]
             [ pageContent ]
+
+
+drawerButtons : Html Msg
+drawerButtons =
+    div [ id "drawerbuttons" ]
+        [ button [ class "connectbutton", onClick (ToggleDrawer Connect) ] []
+        , button [ class "questionbutton", onClick (ToggleDrawer Question) ] []
+        , button [ class "summarisebutton", onClick (ToggleDrawer Summarise) ] []
+        , button [ class "clarifybutton", onClick (ToggleDrawer Clarify) ] []
+        ]
+
+
+drawer : Model -> Html Msg
+drawer m =
+    let
+        currentDrawer =
+            Maybe.withDefault Connect m.showDrawer
+
+        listItem s =
+            li [] [ text s ]
+
+        mkList is =
+            List.map listItem is
+                |> ul []
+
+        drawerHeader =
+            div [ class "panelheader" ]
+                [ img [ src ("/img/" ++ hdrImage), width 25 ] []
+                , h1 []
+                    [ text (toString currentDrawer)
+                    ]
+                , Html.a [ class "closebutton", onClick (ToggleDrawer currentDrawer) ]
+                    [ img [ src "img/closeblack.png" ] [] ]
+                ]
+
+        ( content, hdrImage, panelStyle ) =
+            case currentDrawer of
+                Connect ->
+                    (,,)
+                        [ mkList
+                            [ "Do I know something about this already?"
+                            , "Has something like this ever happened to me?"
+                            , "Have I read about something like this?"
+                            , "What does this remind me of in the real world?"
+                            ]
+                        ]
+                        "connectblack.png"
+                        "connectpanel"
+
+                Summarise ->
+                    (,,)
+                        [ p [] [ text "We want one sentence on what this story is all about." ]
+                        , p [] [ text "It doesn't have to be your own words. If there's a sentence in the story that does the job, copy and paste it. Here's what to do if there isn't:" ]
+                        , mkList
+                            [ "Skim the story fast, looking for good words or phrases."
+                            , "Write them down."
+                            , "Make a sentence by putting the words together with words of your own."
+                            , "Read your sentence aloud. If it doesn't make sense, change it to make it better."
+                            , "Take a last look at the story to see if you've missed any important point."
+                            ]
+                        ]
+                        "summariseblack.png"
+                        "summarisepanel"
+
+                Question ->
+                    (,,)
+                        [ p [] [ text "Here are a few questions you could ask when you're reading. Feel free to think up more of your own." ]
+                        , mkList
+                            [ "What does that sentence mean?"
+                            , "Does this part make sense to me?"
+                            , "How does the writer know that?"
+                            , "Is that fact or opinion?"
+                            , "How did they do that?"
+                            , "Why did they do that?"
+                            , "What if they had done it this way instead?"
+                            , "What question is this person trying to answer?"
+                            , "What happens next?"
+                            ]
+                        ]
+                        "questionblack.png"
+                        "questionpanel"
+
+                Clarify ->
+                    (,,)
+                        [ p [] [ text "Try to figure out what the word means using these methods:" ]
+                        , mkList
+                            [ "Read a line or two around the word, looking for clues."
+                            , "Look for parts of words or whole words in the unknown word."
+                            , "Imagine the word isn&#39;t there and try another word or words in its place."
+                            ]
+                        ]
+                        "clarifyblack.png"
+                        "clarifypanel"
+    in
+        div []
+            [ input
+                [ type_ "checkbox"
+                , id "toggle-drawer"
+                , onCheck (\_ -> ToggleDrawer currentDrawer)
+                , checked (m.showDrawer /= Nothing)
+                ]
+                []
+            , div [ id "drawer", class panelStyle ]
+                [ drawerHeader
+                , div [ id "drawercontent" ] content
+                ]
+            ]
 
 
 mapStories : (List Story -> Html Msg) -> WebData (List Story) -> Html Msg
@@ -234,9 +358,14 @@ storyTiles m =
             Html.a [ class "storytile", Html.Attributes.href (pageToUrl (StoryPage s.id)) ] [ h3 [] [ text s.title ] ]
     in
         div [ id "stories", class "section" ]
-            [ h1 [] [ text "Starter Stories" ]
+            [ sectionHeading [ h1 [] [ text "Starter Stories" ] ]
             , stories_
             ]
+
+
+sectionHeading : List (Html Msg) -> Html Msg
+sectionHeading =
+    div [ class "sectionheading" ]
 
 
 viewStories : Model -> Html Msg
@@ -277,8 +406,11 @@ viewStories m =
                 ]
     in
         div [ id "stories", class "section" ]
-            [ h1 [] [ text "Stories" ]
-            , div []
+            [ sectionHeading
+                [ h1 [] [ text "Stories" ]
+                  --, drawerButtons
+                ]
+            , div [ id "storyfilter" ]
                 [ label [] [ text "Search" ]
                 , input
                     [ type_ "text"
@@ -313,11 +445,16 @@ viewStory m id_ =
             case List.filter (\s -> s.id == id_) stories of
                 s :: _ ->
                     div [ class "section" ]
-                        [ h1 [] [ text s.title ]
+                        [ sectionHeading
+                            [ h1 [] [ text s.title ]
+                            , drawerButtons
+                            ]
                         , div [ id "storypic" ]
                             [ img [ src ("/pix/" ++ s.img) ] []
                             ]
-                        , Markdown.toHtml [] s.content
+                        , div [ id "storycontent" ]
+                            [ Markdown.toHtml [] s.content
+                            ]
                         ]
 
                 _ ->
