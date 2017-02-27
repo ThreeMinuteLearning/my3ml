@@ -1,9 +1,9 @@
 module Main exposing (main)
 
 import Date exposing (Date)
-import Html exposing (Html, button, br, div, img, h1, h3, p, program, text, ul, li, label, input)
-import Html.Attributes exposing (id, class, checked, disabled, src, style, type_, value, width)
-import Html.Events exposing (onClick, onCheck, onInput)
+import Html exposing (Html, button, br, div, fieldset, img, h1, h3, p, program, text, textarea, ul, li, label, input)
+import Html.Attributes exposing (id, class, checked, disabled, name, src, style, type_, value, width)
+import Html.Events exposing (onClick, onCheck, onInput, onSubmit)
 import Http exposing (..)
 import Json.Decode as JD
 import Login exposing (User(..))
@@ -23,6 +23,19 @@ type Msg
     | StoryFilterInput String
     | SetTableState Table.State
     | ToggleDrawer Drawer
+    | AnswersMsg AnswersChange
+    | SubmitAnswers
+
+
+type AnswersChange
+    = ConnectInput String
+    | QuestionInput String
+    | SummariseInput String
+    | ClarifyInput String
+
+
+
+-- TODO refactor connect etc into a separate type since they are used in several places
 
 
 type Drawer
@@ -56,6 +69,25 @@ type alias Model =
     , storyFilter : String
     , tableState : Table.State
     , showDrawer : Maybe Drawer
+    , answers : Answers
+    }
+
+
+type ClarifyWord
+    = ClarifyWord String
+
+
+type ClarifyMethod
+    = ReadAround
+    | BreakDown
+    | Substitution
+
+
+type alias Answers =
+    { connectAnswer : String
+    , questionAnswer : String
+    , summary : String
+    , clarification : { word : ClarifyWord, method : Maybe ClarifyMethod, answer : String }
     }
 
 
@@ -119,6 +151,7 @@ init location =
             , storyFilter = ""
             , tableState = Table.initialSort "Title"
             , showDrawer = Nothing
+            , answers = Answers "" "" "" { word = ClarifyWord "", method = Nothing, answer = "" }
             }
     in
         ( initialModel, Cmd.batch [ cmd, Cmd.map LoginMsg loginCmd, getStories ] )
@@ -183,6 +216,35 @@ update msg m =
             else
                 { m | showDrawer = Just d } ! []
 
+        AnswersMsg aMsg ->
+            { m | answers = updateAnswers aMsg m.answers } ! []
+
+        SubmitAnswers ->
+            m ! []
+
+
+updateAnswers : AnswersChange -> Answers -> Answers
+updateAnswers msg a =
+    case msg of
+        ConnectInput s ->
+            { a | connectAnswer = s }
+
+        QuestionInput s ->
+            { a | questionAnswer = s }
+
+        SummariseInput s ->
+            { a | summary = s }
+
+        ClarifyInput s ->
+            let
+                c =
+                    a.clarification
+
+                newC =
+                    { word = c.word, method = c.method, answer = s }
+            in
+                { a | clarification = newC }
+
 
 subscriptions : Model -> Sub Msg
 subscriptions m =
@@ -219,6 +281,7 @@ view m =
                     div []
                         [ dashBoard m
                         , viewStory m id
+                        , activities
                         , drawer m
                         ]
 
@@ -231,6 +294,33 @@ view m =
     in
         div [ id "root" ]
             [ pageContent ]
+
+
+activities : Html Msg
+activities =
+    let
+        answerField f nm lbl =
+            Html.map AnswersMsg <|
+                div []
+                    [ label [] [ text lbl ]
+                    , textarea [ id (nm ++ "answer"), name (nm ++ "answer"), onInput f ] []
+                    ]
+    in
+        div [ id "activities", class "section" ]
+            [ sectionHeading [ h1 [] [ text "Answers" ] ]
+            , Html.form [ onSubmit SubmitAnswers ]
+                [ fieldset []
+                    [ answerField ConnectInput "connect" "Connect this story with yourself or something you know about."
+                    , answerField QuestionInput "question" "Think of a question the story makes you want to ask and type it here."
+                    , answerField SummariseInput "summarise" "Write one sentence that captures the main idea."
+                    , answerField ClarifyInput "clarify" "Work through the clarify methods, then type what you think the word means."
+                    , div []
+                        [ label [] []
+                        , button [ type_ "submit" ] [ text "Submit your answers" ]
+                        ]
+                    ]
+                ]
+            ]
 
 
 drawerButtons : Html Msg

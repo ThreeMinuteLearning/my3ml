@@ -257,3 +257,22 @@ table {
 .clarifypanel {
     background: rgba(96,125,203,1);
 }
+
+/* Story activities section */
+
+#activities label {
+    display: block;
+    float: right;
+    clear: right;
+}
+#activities textarea {
+    min-height: 100px;
+    width: 500px;
+    max-width: 500px;
+    float: right;
+    clear: both;
+    margin-bottom: 15px;
+}
+#activities button {
+    float: right;
+}
