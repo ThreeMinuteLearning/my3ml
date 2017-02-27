@@ -56,7 +56,7 @@ type Msg
 
 url : String
 url =
-    "http://localhost:5000/authenticate"
+    "/authenticate"
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe User )

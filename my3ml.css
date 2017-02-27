@@ -58,7 +58,7 @@ button {
 }
 
 #dashboard {
-    background-image: url(../img/robot.png);
+    background-image: url(img/robot.png);
     background-position: left bottom;
     background-repeat: no-repeat;
     min-height: 150px;
@@ -181,19 +181,19 @@ table {
 }
 
 .connectbutton {
-    background: #FFA830 url(../img/connect.png); background-size: cover; border: 5px solid #FFA830;
+    background: #FFA830 url(img/connect.png); background-size: cover; border: 5px solid #FFA830;
 }
 
 .questionbutton {
-    background: #EE5E56 url(../img/question.png); background-size: cover; border: 5px solid #EE5E56;
+    background: #EE5E56 url(img/question.png); background-size: cover; border: 5px solid #EE5E56;
 }
 
 .summarisebutton {
-    background: #0A182B url(../img/summarise.png); background-size: cover; border: 5px solid #0A182B;
+    background: #0A182B url(img/summarise.png); background-size: cover; border: 5px solid #0A182B;
 }
 
 .clarifybutton {
-    background: #607DCB url(../img/clarify.png); background-size: cover; border: 5px solid #607DCB;
+    background: #607DCB url(img/clarify.png); background-size: cover; border: 5px solid #607DCB;
 }
 
 

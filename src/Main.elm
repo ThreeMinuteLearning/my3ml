@@ -97,7 +97,7 @@ storiesDecoder =
 
 getStories : Cmd Msg
 getStories =
-    Http.get "http://localhost:8000/allstories.json" storiesDecoder
+    Http.get "allstories.json" storiesDecoder
         |> RemoteData.sendRequest
         |> Cmd.map StoriesResponse
 
@@ -258,7 +258,7 @@ drawer m =
 
         drawerHeader =
             div [ class "panelheader" ]
-                [ img [ src ("/img/" ++ hdrImage), width 25 ] []
+                [ img [ src ("img/" ++ hdrImage), width 25 ] []
                 , h1 []
                     [ text (toString currentDrawer)
                     ]
@@ -466,7 +466,7 @@ viewStory m id_ =
                         , div
                             [ id "storycontainer" ]
                             [ div [ id "storypic" ]
-                                [ img [ src ("/pix/" ++ s.img) ] []
+                                [ img [ src ("pix/" ++ s.img) ] []
                                 ]
                             , div [ id "storycontent" ]
                                 [ Markdown.toHtml [] s.content
