@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
     <head>
         <meta charset="UTF-8">
@@ -8,16 +9,16 @@
     <body>
         <div id="header">
             <div id="innerheader">
-                <div id="logo"><img src="img/logo.png"></div>
+                <div id="logo"><img alt="3ML Logo" src="img/logo.png"></div>
             </div>
         </div>
         <div id="container">
             <div id="my3ml"></div>
         </div>
+        <script src="my3ml.js"></script>
+        <script>
+            var node = document.getElementById('my3ml');
+            var app = Elm.Main.embed(node);
+        </script>
     </body>
-    <script src="my3ml.js"></script>
-    <script>
-        var node = document.getElementById('my3ml');
-        var app = Elm.Main.embed(node);
-   </script>
 </html>
