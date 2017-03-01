@@ -1,15 +1,18 @@
 module Main exposing (main)
 
 import Date exposing (Date)
-import Html exposing (Html, button, br, div, fieldset, img, h1, h3, p, program, text, textarea, ul, li, label, input)
-import Html.Attributes exposing (id, class, checked, disabled, name, src, style, type_, value, width)
+import Form exposing (Form)
+import Form.Input as Input
+import Form.Validate as Validate exposing (..)
+import Html exposing (Html, button, br, div, fieldset, img, h1, h2, h3, p, program, text, textarea, ul, li, label, input)
+import Html.Attributes exposing (attribute, id, class, checked, disabled, for, name, src, style, type_, value, width)
 import Html.Events exposing (onClick, onCheck, onInput, onSubmit)
 import Http exposing (..)
 import Json.Decode as JD
 import Login exposing (User(..))
 import Markdown
 import Navigation exposing (..)
-import RemoteData exposing (..)
+import RemoteData exposing (WebData)
 import Regex
 import Routing exposing (..)
 import Table
@@ -23,15 +26,7 @@ type Msg
     | StoryFilterInput String
     | SetTableState Table.State
     | ToggleDrawer Drawer
-    | AnswersMsg AnswersChange
-    | SubmitAnswers
-
-
-type AnswersChange
-    = ConnectInput String
-    | QuestionInput String
-    | SummariseInput String
-    | ClarifyInput String
+    | FormMsg Form.Msg
 
 
 
@@ -69,7 +64,7 @@ type alias Model =
     , storyFilter : String
     , tableState : Table.State
     , showDrawer : Maybe Drawer
-    , answers : Answers
+    , answersForm : Form CustomError Answers
     }
 
 
@@ -83,11 +78,16 @@ type ClarifyMethod
     | Substitution
 
 
+type CustomError
+    = InvalidClarifyMethod
+
+
 type alias Answers =
     { connectAnswer : String
     , questionAnswer : String
     , summary : String
-    , clarification : { word : ClarifyWord, method : Maybe ClarifyMethod, answer : String }
+    , clarification : String
+    , clarificationMethod : ClarifyMethod
     }
 
 
@@ -147,11 +147,11 @@ init location =
             { login = loginModel
             , user = Guest
             , page = page
-            , stories = Loading
+            , stories = RemoteData.Loading
             , storyFilter = ""
             , tableState = Table.initialSort "Title"
             , showDrawer = Nothing
-            , answers = Answers "" "" "" { word = ClarifyWord "", method = Nothing, answer = "" }
+            , answersForm = Form.initial [] answerFormValidation
             }
     in
         ( initialModel, Cmd.batch [ cmd, Cmd.map LoginMsg loginCmd, getStories ] )
@@ -216,34 +216,45 @@ update msg m =
             else
                 { m | showDrawer = Just d } ! []
 
-        AnswersMsg aMsg ->
-            { m | answers = updateAnswers aMsg m.answers } ! []
-
-        SubmitAnswers ->
-            m ! []
+        FormMsg formMsg ->
+            { m | answersForm = Form.update answerFormValidation formMsg m.answersForm } ! []
 
 
-updateAnswers : AnswersChange -> Answers -> Answers
-updateAnswers msg a =
-    case msg of
-        ConnectInput s ->
-            { a | connectAnswer = s }
+clarifyMethods : List String
+clarifyMethods =
+    [ "ReadAround", "BreakDown", "Substitution" ]
 
-        QuestionInput s ->
-            { a | questionAnswer = s }
 
-        SummariseInput s ->
-            { a | summary = s }
+answerFormValidation : Validation CustomError Answers
+answerFormValidation =
+    let
+        nonEmptyString =
+            string |> andThen nonEmpty
 
-        ClarifyInput s ->
-            let
-                c =
-                    a.clarification
+        validateClarifyMethod =
+            customValidation
+                string
+                (\s ->
+                    case s of
+                        "ReadAround" ->
+                            Ok ReadAround
 
-                newC =
-                    { word = c.word, method = c.method, answer = s }
-            in
-                { a | clarification = newC }
+                        "BreakDown" ->
+                            Ok BreakDown
+
+                        "Substitution" ->
+                            Ok Substitution
+
+                        _ ->
+                            Err (customError InvalidClarifyMethod)
+                )
+    in
+        Validate.map5 Answers
+            (field "connect" nonEmptyString)
+            (field "question" nonEmptyString)
+            (field "summarise" nonEmptyString)
+            (field "clarify" nonEmptyString)
+            (field "clarifyMethod" validateClarifyMethod)
 
 
 subscriptions : Model -> Sub Msg
@@ -277,11 +288,14 @@ view m =
                         , viewStories m
                         ]
 
-                StoryPage id ->
+                StoryPage id_ ->
                     div []
                         [ dashBoard m
-                        , viewStory m id
-                        , activities
+                        , viewStory m id_
+                        , div [ id "activities", class "section" ]
+                            [ sectionHeading [ h2 [] [ text "Answers" ] ]
+                            , (Html.map FormMsg (answersFormView m.answersForm))
+                            ]
                         , drawer m
                         ]
 
@@ -296,36 +310,50 @@ view m =
             [ pageContent ]
 
 
-activities : Html Msg
-activities =
+answersFormView : Form CustomError Answers -> Html Form.Msg
+answersFormView form =
     let
-        answerField f nm lbl =
-            Html.map AnswersMsg <|
-                div []
-                    [ label [] [ text lbl ]
-                    , textarea [ id (nm ++ "answer"), name (nm ++ "answer"), onInput f ] []
-                    ]
-    in
-        div [ id "activities", class "section" ]
-            [ sectionHeading [ h1 [] [ text "Answers" ] ]
-            , Html.form [ onSubmit SubmitAnswers ]
-                [ fieldset []
-                    [ answerField ConnectInput "connect" "Connect this story with yourself or something you know about."
-                    , answerField QuestionInput "question" "Think of a question the story makes you want to ask and type it here."
-                    , answerField SummariseInput "summarise" "Write one sentence that captures the main idea."
-                    , answerField ClarifyInput "clarify" "Work through the clarify methods, then type what you think the word means."
-                    , div []
-                        [ label [] []
-                        , button [ type_ "submit" ] [ text "Submit your answers" ]
+        answerField nm lbl =
+            Form.getFieldAsString nm form
+                |> \fld ->
+                    div [ class (errorClass fld.liveError)]
+                        [ label [ for (nm ++ "Input") ] [ text lbl ]
+                        , Input.textArea fld [ class "form-control", id (nm ++ "Input")]
                         ]
+
+        clarifyMethodOptions =
+            ( "", "Which clarify method worked best for you?" ) :: List.map (\s -> ( s, s )) clarifyMethods
+
+        errorClass maybeError =
+            Maybe.map (\_ -> "has-error") maybeError |> Maybe.withDefault ""
+    in
+        Html.form [ ]
+            [ div [ class "form-group" ]
+                [ answerField "connect" "Connect this story with yourself or something you know about."
+                , answerField "question" "Think of a question the story makes you want to ask and type it here."
+                , answerField "summarise" "Write one sentence that captures the main idea."
+                , answerField "clarify" "Work through the clarify methods, then type what you think the word means."
+                , div []
+                    [ label [] []
+                    , Input.selectInput clarifyMethodOptions (Form.getFieldAsString "clarifyMethod" form) [ class "form-control" ]
                     ]
+                , button [ class "btn btn-primary", type_ "submit", onClick Form.Submit ] [ text "Submit your answers" ]
                 ]
             ]
 
 
 drawerButtons : Html Msg
 drawerButtons =
-    div [ id "drawerbuttons" ]
+    div [ class "btn-group" ]
+        [ button [ class "connectbutton", onClick (ToggleDrawer Connect) ] []
+        , button [ class "questionbutton", onClick (ToggleDrawer Question) ] []
+        , button [ class "summarisebutton", onClick (ToggleDrawer Summarise) ] []
+        , button [ class "clarifybutton", onClick (ToggleDrawer Clarify) ] []
+        ]
+
+drawerButtons2 : Html Msg
+drawerButtons2 =
+    div [ class "btn-group" ]
         [ button [ class "connectbutton", onClick (ToggleDrawer Connect) ] []
         , button [ class "questionbutton", onClick (ToggleDrawer Question) ] []
         , button [ class "summarisebutton", onClick (ToggleDrawer Summarise) ] []
@@ -433,16 +461,16 @@ drawer m =
 mapStories : (List Story -> Html Msg) -> WebData (List Story) -> Html Msg
 mapStories f stories =
     case stories of
-        NotAsked ->
+        RemoteData.NotAsked ->
             text "Unexpected state (no stories asked for)"
 
-        Loading ->
+        RemoteData.Loading ->
             text "Loading stories ..."
 
-        Failure err ->
+        RemoteData.Failure err ->
             text ("Error loading stories: " ++ toString err)
 
-        Success stories ->
+        RemoteData.Success stories ->
             f stories
 
 
@@ -545,7 +573,7 @@ filterStories storyFilter stories =
 viewStory : Model -> String -> Html Msg
 viewStory m id_ =
     case m.stories of
-        Success stories ->
+        RemoteData.Success stories ->
             case List.filter (\s -> s.id == id_) stories of
                 s :: _ ->
                     div [ class "section" ]
