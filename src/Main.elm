@@ -4,13 +4,14 @@ import Date exposing (Date)
 import Form exposing (Form)
 import Form.Input as Input
 import Form.Validate as Validate exposing (..)
-import Html exposing (Html, button, br, div, fieldset, img, h1, h2, h3, p, program, text, textarea, ul, li, label, input)
-import Html.Attributes exposing (attribute, id, class, checked, disabled, for, name, src, style, type_, value, width)
+import Html exposing (Html, button, br, div, fieldset, img, h1, h2, h3, p, program, span, text, textarea, ul, li, label, input)
+import Html.Attributes exposing (attribute, id, class, checked, disabled, for, href, name, src, style, type_, value, width)
 import Html.Events exposing (onClick, onCheck, onInput, onSubmit)
 import Http exposing (..)
 import Json.Decode as JD
 import Login exposing (User(..))
 import Markdown
+import Nav
 import Navigation exposing (..)
 import RemoteData exposing (WebData)
 import Regex
@@ -271,43 +272,69 @@ subscriptions m =
 view : Model -> Html Msg
 view m =
     let
+        panelClass =
+            class "panel panel-default"
+
         pageContent =
             case m.page of
                 HomePage ->
-                    div []
-                        [ dashBoard m
-                        , storyTiles m
-                        ]
+                    [ dashBoard m
+                    , div [ id "stories", panelClass ]
+                        ((h2 [] [ text "Starter Stories" ]) :: (storyTiles m))
+                    ]
 
                 LoginPage ->
-                    Html.map LoginMsg (Login.view m.login)
+                    [ Html.map LoginMsg (Login.view m.login) ]
 
                 FindStoryPage ->
-                    div []
-                        [ dashBoard m
-                        , viewStories m
-                        ]
+                    [ dashBoard m
+                    , div [ id "stories", panelClass ]
+                        ((h2 [] [ text "Stories" ]) :: (viewStories m))
+                    ]
 
                 StoryPage id_ ->
-                    div []
-                        [ dashBoard m
-                        , viewStory m id_
-                        , div [ id "activities", class "section" ]
-                            [ sectionHeading [ h2 [] [ text "Answers" ] ]
-                            , (Html.map FormMsg (answersFormView m.answersForm))
-                            ]
-                        , drawer m
+                    [ dashBoard m
+                    , viewStory m id_
+                    , div [ id "activities", panelClass ]
+                        [ h2 [] [ text "Answers" ]
+                        , (Html.map FormMsg (answersFormView m.answersForm))
                         ]
+                    , drawer m
+                    ]
 
                 _ ->
-                    div []
-                        [ dashBoard m
-                        , text "Haven't implemented this page yet"
-                        , text (toString m)
-                        ]
+                    [ dashBoard m
+                    , text "Haven't implemented this page yet"
+                    , text (toString m)
+                    ]
     in
-        div [ id "root" ]
-            [ pageContent ]
+        div []
+            [ Nav.navbar (navbarLinks m)
+            , div [ class "container" ]
+                pageContent
+            ]
+
+
+navbarLinks : Model -> List (Html Msg)
+navbarLinks m =
+    let
+        activeAttr page =
+            if page == m.page then
+                [ class "active" ]
+            else
+                []
+
+        btn page txt =
+            li (activeAttr page)
+                [ Html.a [ href (pageToUrl page) ] [ text txt ]
+                ]
+    in
+        [ btn HomePage "Home"
+        , btn FindStoryPage "Find a story"
+        , btn AccountPage "My 3ML"
+        , btn LeaderBoardPage "Leader board"
+        , btn TrailsPage "Trails"
+        ]
 
 
 answersFormView : Form CustomError Answers -> Html Form.Msg
@@ -316,9 +343,9 @@ answersFormView form =
         answerField nm lbl =
             Form.getFieldAsString nm form
                 |> \fld ->
-                    div [ class (errorClass fld.liveError)]
+                    div [ class (errorClass fld.liveError) ]
                         [ label [ for (nm ++ "Input") ] [ text lbl ]
-                        , Input.textArea fld [ class "form-control", id (nm ++ "Input")]
+                        , Input.textArea fld [ class "form-control", id (nm ++ "Input") ]
                         ]
 
         clarifyMethodOptions =
@@ -327,7 +354,7 @@ answersFormView form =
         errorClass maybeError =
             Maybe.map (\_ -> "has-error") maybeError |> Maybe.withDefault ""
     in
-        Html.form [ ]
+        Html.form []
             [ div [ class "form-group" ]
                 [ answerField "connect" "Connect this story with yourself or something you know about."
                 , answerField "question" "Think of a question the story makes you want to ask and type it here."
@@ -340,25 +367,6 @@ answersFormView form =
                 , button [ class "btn btn-primary", type_ "submit", onClick Form.Submit ] [ text "Submit your answers" ]
                 ]
             ]
-
-
-drawerButtons : Html Msg
-drawerButtons =
-    div [ class "btn-group" ]
-        [ button [ class "connectbutton", onClick (ToggleDrawer Connect) ] []
-        , button [ class "questionbutton", onClick (ToggleDrawer Question) ] []
-        , button [ class "summarisebutton", onClick (ToggleDrawer Summarise) ] []
-        , button [ class "clarifybutton", onClick (ToggleDrawer Clarify) ] []
-        ]
-
-drawerButtons2 : Html Msg
-drawerButtons2 =
-    div [ class "btn-group" ]
-        [ button [ class "connectbutton", onClick (ToggleDrawer Connect) ] []
-        , button [ class "questionbutton", onClick (ToggleDrawer Question) ] []
-        , button [ class "summarisebutton", onClick (ToggleDrawer Summarise) ] []
-        , button [ class "clarifybutton", onClick (ToggleDrawer Clarify) ] []
-        ]
 
 
 drawer : Model -> Html Msg
@@ -474,11 +482,11 @@ mapStories f stories =
             f stories
 
 
-storyTiles : Model -> Html Msg
+storyTiles : Model -> List (Html Msg)
 storyTiles m =
     let
         stories_ =
-            mapStories (mkTiles << List.take 18) m.stories
+            mapStories (mkTiles << List.take 20) m.stories
 
         mkTiles stories =
             div [ class "storytiles" ] (List.map storyTile stories)
@@ -489,18 +497,10 @@ storyTiles m =
         storyTile s =
             Html.a [ class "storytile", storyStyle s, Html.Attributes.href (pageToUrl (StoryPage s.id)) ] [ h3 [] [ text s.title ] ]
     in
-        div [ id "stories", class "section" ]
-            [ sectionHeading [ h1 [] [ text "Starter Stories" ] ]
-            , stories_
-            ]
+        [ stories_ ]
 
 
-sectionHeading : List (Html Msg) -> Html Msg
-sectionHeading =
-    div [ class "sectionheading" ]
-
-
-viewStories : Model -> Html Msg
+viewStories : Model -> List (Html Msg)
 viewStories m =
     let
         tag i s =
@@ -534,25 +534,24 @@ viewStories m =
         viewStoryLink : Story -> Table.HtmlDetails Msg
         viewStoryLink s =
             Table.HtmlDetails []
-                [ button [ onClick (Navigate (StoryPage s.id)) ] [ text "View" ]
+                [ button [ class "btn btn-default", onClick (Navigate (StoryPage s.id)) ] [ text "View" ]
                 ]
     in
-        div [ id "stories", class "section" ]
-            [ sectionHeading
-                [ h1 [] [ text "Stories" ]
-                  --, drawerButtons
-                ]
-            , div [ id "storyfilter" ]
-                [ label [] [ text "Search" ]
+        [ div []
+            [ div [ class "form-group" ]
+                [ label [ for "storyfilter" ] [ text "Search" ]
                 , input
                     [ type_ "text"
                     , value m.storyFilter
                     , onInput StoryFilterInput
+                    , id "storyfilter"
                     ]
                     []
+                , div [ class "cols-xs-4" ] []
                 ]
-            , mapStories (Table.view cfg m.tableState << filterStories m.storyFilter) m.stories
             ]
+        , mapStories (Table.view cfg m.tableState << filterStories m.storyFilter) m.stories
+        ]
 
 
 filterStories : String -> List Story -> List Story
@@ -576,22 +575,14 @@ viewStory m id_ =
         RemoteData.Success stories ->
             case List.filter (\s -> s.id == id_) stories of
                 s :: _ ->
-                    div [ class "section" ]
-                        [ sectionHeading
-                            [ h1 [] [ text s.title ]
-                            , drawerButtons
+                    div [ class "panel panel-default" ]
+                        [ h2 [] [ text s.title ]
+                        , div [ id "storypic" ]
+                            [ img [ src ("pix/" ++ s.img) ] []
                             ]
-                        , div
-                            [ id "storycontainer" ]
-                            [ div [ id "storypic" ]
-                                [ img [ src ("pix/" ++ s.img) ] []
-                                ]
-                            , div [ id "storycontent" ]
-                                [ Markdown.toHtml [] s.content
-                                ]
-                            , div [ id "storyfooter" ]
-                                [ p [] [ text (String.join ", " s.tags), br [] [], text ("Level: " ++ toString s.level) ]
-                                ]
+                        , Markdown.toHtml [ id "storycontent" ] s.content
+                        , div [ id "storyfooter" ]
+                            [ p [] [ text (String.join ", " s.tags), br [] [], text ("Level: " ++ toString s.level) ]
                             ]
                         ]
 
@@ -604,31 +595,9 @@ viewStory m id_ =
 
 dashBoard : Model -> Html Msg
 dashBoard m =
-    div [ id "dashboard", class "section" ]
-        [ h1 [] [ text "Dashboard" ]
-        , div [ id "innerdash" ]
-            [ nav m
-            ]
+    div [ id "dashboard", class "panel panel-default" ]
+        [ img [ src "img/robot.png" ] []
         ]
-
-
-nav : Model -> Html Msg
-nav m =
-    let
-        btn page txt =
-            button
-                [ onClick (Navigate page)
-                , disabled (page == m.page)
-                ]
-                [ text txt ]
-    in
-        div [ id "nav" ]
-            [ btn HomePage "Home"
-            , btn FindStoryPage "Find a story"
-            , btn AccountPage "My 3ML"
-            , btn LeaderBoardPage "Leader board"
-            , btn TrailsPage "Trails"
-            ]
 
 
 main : Program Never Model Msg
