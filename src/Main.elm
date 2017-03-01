@@ -190,7 +190,16 @@ update msg m =
                 ( { m | page = newPage, showDrawer = Nothing }, cmd )
 
         Navigate page ->
-            ( m, Navigation.newUrl <| pageToUrl page )
+            let
+                answers =
+                    case page of
+                        StoryPage _ ->
+                            Form.initial [] answerFormValidation
+
+                        _ ->
+                            m.answersForm
+            in
+                ( { m | answersForm = answers }, Navigation.newUrl <| pageToUrl page )
 
         LoginMsg msg ->
             let
