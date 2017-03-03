@@ -5,16 +5,16 @@ import Drawer exposing (drawer)
 import Form exposing (Form)
 import Form.Input as Input
 import Form.Validate as Validate exposing (..)
-import Html exposing (Html, button, br, div, fieldset, img, h1, h2, h3, p, program, span, text, textarea, ul, li, label, input)
+import Html exposing (Html, button, br, div, fieldset, img, h1, h2, h3, p, program, span, text, textarea, tr, ul, li, label, input)
 import Html.Attributes exposing (attribute, id, class, checked, disabled, for, href, name, src, style, type_, value, width)
-import Html.Events exposing (onClick, onCheck, onInput, onSubmit)
+import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
 import Login exposing (User(..))
 import Markdown
 import Nav
 import Navigation exposing (..)
-import RemoteData exposing (WebData)
 import Regex
+import RemoteData exposing (WebData)
 import Routing exposing (..)
 import Table
 import Types exposing (..)
@@ -307,6 +307,19 @@ storyTiles m =
 viewStories : Model -> List (Html Msg)
 viewStories m =
     let
+        c =
+            Table.defaultCustomizations
+
+        myThead =
+            c.thead
+                >> .children
+                >> tr []
+                >> List.singleton
+                >> Table.HtmlDetails []
+
+        tableCustomizations =
+            { c | thead = myThead, tableAttrs = [ class "table table-striped" ] }
+
         tag i s =
             s.tags
                 |> List.drop (i - 1)
@@ -314,31 +327,41 @@ viewStories m =
                 |> Maybe.withDefault ""
 
         cfg =
-            Table.config
+            Table.customConfig
                 { toId = .id
                 , toMsg = SetTableState
                 , columns =
-                    [ Table.stringColumn "Title" .title
+                    [ storyTitleColumn
                     , Table.stringColumn "Tag1" (tag 1)
                     , Table.stringColumn "Tag2" (tag 2)
                     , Table.stringColumn "Tag3" (tag 3)
-                    , Table.intColumn "Level" .level
-                    , storyLinkColumn
+                    , levelColumn
                     ]
+                , customizations = tableCustomizations
                 }
 
-        storyLinkColumn : Table.Column Story Msg
-        storyLinkColumn =
+        -- This is needed to make the level column wide enough so the heading and arrow
+        -- don't wrap
+        levelColumn : Table.Column Story Msg
+        levelColumn =
             Table.veryCustomColumn
-                { name = ""
+                { name = "Level"
+                , viewData = \s -> Table.HtmlDetails [ style [ ( "width", "6em" ) ] ] [ Html.text (toString s.level) ]
+                , sorter = Table.increasingOrDecreasingBy .level
+                }
+
+        storyTitleColumn : Table.Column Story Msg
+        storyTitleColumn =
+            Table.veryCustomColumn
+                { name = "title"
                 , viewData = viewStoryLink
-                , sorter = Table.unsortable
+                , sorter = Table.increasingOrDecreasingBy .title
                 }
 
         viewStoryLink : Story -> Table.HtmlDetails Msg
         viewStoryLink s =
             Table.HtmlDetails []
-                [ button [ class "btn btn-default", onClick (Navigate (StoryPage s.id)) ] [ text "View" ]
+                [ Html.a [ Html.Attributes.href (pageToUrl (StoryPage s.id)) ] [ text s.title ]
                 ]
     in
         [ div []
@@ -354,7 +377,8 @@ viewStories m =
                 , div [ class "cols-xs-4" ] []
                 ]
             ]
-        , mapStories (Table.view cfg m.tableState << filterStories m.storyFilter) m.stories
+        , div [ class "table-responsive" ]
+            [ mapStories (Table.view cfg m.tableState << filterStories m.storyFilter) m.stories ]
         ]
 
 
