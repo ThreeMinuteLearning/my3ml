@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
-    "summary": "myapp does cool stuff",
-    "repository": "https://github.com/tekul/myapp.git",
+    "summary": "Three Minute Learning application",
+    "repository": "https://github.com/ThreeMinuteLearning/my3ml.git",
     "license": "BSD3",
     "source-directories": [
         "src"
