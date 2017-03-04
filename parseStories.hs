@@ -1,12 +1,19 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, RecordWildCards, TupleSections #-}
+import Control.Monad (join)
 import GHC.Generics
+import Data.Char (ord)
 import Prelude hiding (id)
+import qualified Data.Csv as Csv
 import Text.HTML.TagSoup
+import qualified Data.HashMap.Strict as M
 import qualified Data.Text as T
-import qualified Data.ByteString.Lazy as B
-import Data.List (nub, elemIndex)
+import qualified Data.Text.IO as TIO
+import qualified Data.ByteString.Lazy.Char8 as B
+import Data.List (nub, elemIndex, sortOn, sort)
+import Data.Vector (toList)
 import qualified Data.Aeson as J
 
+import Debug.Trace
 
 data Story = Story
     { id :: String
@@ -22,9 +29,9 @@ data Story = Story
     } deriving (Show, Generic)
 
 data Definition = Definition
-    { word :: String
+    { word_ :: String
     , index :: Int
-    } deriving (Eq, Show, Generic)
+    } deriving (Eq, Ord, Show, Generic)
 
 instance J.ToJSON Story where
     toJSON     = J.genericToJSON J.defaultOptions
@@ -53,7 +60,7 @@ parseDefinition :: String -> [Tag String] -> Maybe Definition
 parseDefinition d ts = case d `elemIndex` ["define","define2","define3","define4"] of
     Just i -> case innerText $ takeWhile (~/= TagClose "span") ts of
         "Words in pop-ups" -> Nothing -- There is one story where this happens
-        txt -> Just $ Definition txt i
+        txt -> Just $ Definition (trim txt) i
     Nothing -> error ("Unhandled span class " ++ d)
 
 
@@ -89,7 +96,7 @@ parseContent ts = go ("", [], []) (drop 1 ts)
                 let
                     newAcc = case parseDefinition d ts of
                         Nothing -> acc
-                        Just defn -> (content ++ word defn, defn : defs, popups)
+                        Just defn -> (content ++ word_ defn, defn : defs, popups)
                 in
                     go newAcc (dropWhile (~/= TagClose "span") ts)
             TagOpen "span" [] -> go acc ts
@@ -151,13 +158,108 @@ findStartOfStories = dropWhile (~/= TagOpen "tr" []) . dropWhile (~/= TagOpen "t
 
 parseSections = partitions (~== "<tr>") . findStartOfStories . parseTags
 
-main :: IO ()
-main = do
+decodeStories = do
     htmlStories <- readFile "allstories.txt"
     let secs = parseSections htmlStories
+    return $ map parseSection secs
 
-        stories = map parseSection secs
-        printStory s = B.putStr s >> putStrLn ","
-    putStrLn "{ \"stories\": ["
-    mapM_ (printStory . J.encode) stories
-    putStrLn "\n]\n}"
+printStories stories = do
+    putStrLn "{ \"stories\": "
+    B.putStr $ J.encode stories
+    putStrLn "\n}"
+
+
+main :: IO ()
+main = do
+    dict <- makeSciDict
+    stories <- decodeStories
+    let subDefs = mergeDuplicates $ nub $ sort $ join $ map (subDefinitions dict) stories
+        newDict = sortOn (T.toLower . fst) $ addSubDefsToDict subDefs (M.toList dict)
+
+    B.putStr $ J.encode $ M.fromList newDict
+
+
+addSubDefsToDict :: [(Definition, [Definition])] -> [(T.Text, [T.Text])] -> [(T.Text, [(T.Text, [(T.Text, Int)])])]
+addSubDefsToDict _ [] = []
+addSubDefsToDict defs ((w, ds):rem) =
+    let
+        toTuple d = (T.pack $ word_ d, index d)
+        matchingDefs = map (map toTuple . snd) $ filter ((== w) . T.pack . word_ . fst) defs
+    in
+        (w, zip ds (matchingDefs ++ [[],[],[],[],[]] )) : addSubDefsToDict defs rem
+
+
+mergeDuplicates :: [(Definition, [Definition])] -> [(Definition, [Definition])]
+mergeDuplicates [] = []
+mergeDuplicates [d] = [d]
+mergeDuplicates (x@(d,ds):y@(d1,d1s):rem) =
+    if d == d1
+        then mergeDuplicates $ (d, nub (ds ++ d1s)) : rem
+        else x : mergeDuplicates (y : rem)
+
+subDefinitions :: M.HashMap T.Text [T.Text] -> Story -> [(Definition, [Definition])]
+subDefinitions dict story = filter (not . null . snd) $ defPopups ++ popupsForPopups
+  where
+    defPopups = map (`popupsForDefinition` storyPopups) (definitions story)
+    storyPopups = popups story
+
+    go d = popupsForDefinition d storyPopups
+
+    popupsForPopups =  map (\p -> popupsForDefinition p (filter (/= p) storyPopups)) storyPopups
+
+    popupsForDefinition d ps =
+        let
+            wordToLookup = T.pack (word_ d)
+            dictEntry = case M.lookup wordToLookup dict of
+                Nothing -> error $ "No dict entry for " ++ show (word_ d)
+                Just e  -> if index d >= length e
+                    then error $ "There is no entry for " ++ show (word_ d) ++ " at index " ++ show (index d) ++ " in " ++ show e
+                    else e !! index d
+            dPopups = filter (\p -> T.pack (word_ p) `T.isInfixOf` dictEntry) ps
+        in
+            (d, dPopups)
+
+myCSVOptions = Csv.defaultDecodeOptions {
+      Csv.decDelimiter = fromIntegral (ord '\t')
+    }
+
+makeSciDict = do
+    bytes <- B.readFile "scidict.txt"
+    return $ case Csv.decodeWith myCSVOptions Csv.NoHeader bytes of
+        Left e -> error e
+        Right v -> foldl insertDef M.empty (Data.List.sortOn word (toList v))
+
+
+insertDef :: M.HashMap T.Text [T.Text] -> Def -> M.HashMap T.Text [T.Text]
+insertDef dict Def {..} =
+    let
+        word' = T.strip word
+        (w, i) = case T.unpack $ T.takeEnd 2 word' of
+            " 2" -> (T.dropEnd 2 word', 1)
+            " 3" -> (T.dropEnd 2 word', 2)
+            " 4" -> (T.dropEnd 2 word', 3)
+            " 5" -> (T.dropEnd 2 word', 4)
+            _   -> (word', 0)
+        entry = M.lookup w dict
+    in
+        case entry of
+            Just [] -> error $ "Empty dict entry for " ++ T.unpack w
+            Nothing ->
+                if i > 0
+                    then error $ "non zero index defn but no existing entry for " ++ (show word) ++ (show def)
+                    else M.insert w [def] dict
+            Just ds ->
+                if i > 0 && length ds == i
+                    then M.insert w (reverse $ def : reverse ds) dict
+                    else if i == 0 && length ds == 1
+                            then M.insert w [def] dict -- overwrite the existing entry
+                            else error $ "Not enough preceding entries for " ++ T.unpack w ++ " " ++ show i ++ (show ds)
+
+data Def = Def
+    { word :: T.Text
+    , def :: T.Text
+    } deriving (Eq, Show, Generic)
+
+instance Csv.FromRecord Def
+instance Csv.ToRecord Def
+instance J.FromJSON Def
