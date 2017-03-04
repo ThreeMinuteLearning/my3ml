@@ -1,6 +1,8 @@
-module Decode exposing (storiesDecoder)
+module Decode exposing (storiesDecoder, wordDictDecoder)
 
+import Array exposing (Array)
 import Date exposing (Date)
+import Dict exposing (Dict)
 import Json.Decode as JD
 import Types exposing (..)
 
@@ -19,9 +21,9 @@ dateDecoder =
             )
 
 
-definitionDecoder : JD.Decoder Definition
-definitionDecoder =
-    JD.map2 Definition
+dictEntryDecoder : JD.Decoder DictEntry
+dictEntryDecoder =
+    JD.map2 DictEntry
         (JD.field "word" JD.string)
         (JD.field "index" JD.int)
 
@@ -36,6 +38,22 @@ storiesDecoder =
                 (JD.field "title" JD.string)
                 (JD.field "tags" (JD.list JD.string))
                 (JD.field "level" JD.int)
-                (JD.field "definitions" (JD.list definitionDecoder))
+                (JD.field "definitions" (JD.list dictEntryDecoder))
                 (JD.field "date" dateDecoder)
                 (JD.field "content" JD.string)
+
+
+wordDictDecoder : JD.Decoder (Dict String (Array Definition))
+wordDictDecoder =
+    let
+        defnArrayDecoder =
+            JD.array (defnDecoder)
+
+        dictEntryDecoder =
+            JD.map2 DictEntry (JD.index 0 JD.string) (JD.index 1 JD.int)
+
+        defnDecoder =
+            JD.list <|
+                JD.map2 (,) (JD.index 0 JD.string) (JD.index 1 (JD.list dictEntryDecoder))
+    in
+        JD.dict (defnArrayDecoder)

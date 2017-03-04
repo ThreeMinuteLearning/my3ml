@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Decode exposing (storiesDecoder)
+import Decode exposing (storiesDecoder, wordDictDecoder)
 import Drawer exposing (drawer)
 import Form exposing (Form)
 import Form.Input as Input
@@ -27,6 +27,13 @@ getStories =
         |> Cmd.map StoriesResponse
 
 
+getDictionary : Cmd Msg
+getDictionary =
+    Http.get "dict.json" wordDictDecoder
+        |> RemoteData.sendRequest
+        |> Cmd.map DictResponse
+
+
 init : Location -> ( Model, Cmd Msg )
 init location =
     let
@@ -45,9 +52,10 @@ init location =
             , tableState = Table.initialSort "Title"
             , showDrawer = Nothing
             , answersForm = Form.initial [] answerFormValidation
+            , wordDict = RemoteData.Loading
             }
     in
-        ( initialModel, Cmd.batch [ cmd, Cmd.map LoginMsg loginCmd, getStories ] )
+        ( initialModel, Cmd.batch [ cmd, Cmd.map LoginMsg loginCmd, getDictionary, getStories ] )
 
 
 authRequired : ( Page, User ) -> Bool
@@ -105,6 +113,9 @@ update msg m =
 
         StoriesResponse s ->
             { m | stories = s } ! []
+
+        DictResponse d ->
+            { m | wordDict = d } ! []
 
         SetTableState t ->
             { m | tableState = t } ! []

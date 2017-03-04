@@ -1,6 +1,8 @@
-module Types exposing (Model, Msg(..), Answers, Story, ClarifyMethod(..), CustomError(..), Definition(..), DrawerType(..))
+module Types exposing (..)
 
+import Array exposing (Array)
 import Date exposing (Date)
+import Dict exposing (Dict)
 import Form exposing (Form)
 import Login exposing (User(..))
 import RemoteData exposing (WebData)
@@ -12,6 +14,7 @@ type Msg
     = ChangePage Page
     | Navigate Page
     | StoriesResponse (WebData (List Story))
+    | DictResponse (WebData WordDict)
     | LoginMsg Login.Msg
     | StoryFilterInput String
     | SetTableState Table.State
@@ -36,14 +39,22 @@ type alias Story =
     , title : String
     , tags : List String
     , level : Int
-    , words : List Definition
+    , words : List DictEntry
     , date : Date
     , content : String
     }
 
 
-type Definition
-    = Definition String Int
+type DictEntry
+    = DictEntry String Int
+
+
+type alias Definition =
+    List ( String, List DictEntry )
+
+
+type alias WordDict =
+    Dict String (Array Definition)
 
 
 type alias Model =
@@ -55,6 +66,7 @@ type alias Model =
     , tableState : Table.State
     , showDrawer : Maybe DrawerType
     , answersForm : Form CustomError Answers
+    , wordDict : WebData WordDict
     }
 
 
