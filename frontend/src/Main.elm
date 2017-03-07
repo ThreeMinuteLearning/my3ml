@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Decode exposing (storiesDecoder, wordDictDecoder)
+import Dict
 import Drawer exposing (drawer)
 import Form exposing (Form)
 import Form.Input as Input
@@ -133,32 +134,28 @@ update msg m =
             { m | answersForm = Form.update answerFormValidation formMsg m.answersForm } ! []
 
 
-clarifyMethods : List String
-clarifyMethods =
-    [ "ReadAround", "BreakDown", "Substitution" ]
-
-
 answerFormValidation : Validation CustomError Answers
 answerFormValidation =
     let
         nonEmptyString =
             string |> andThen nonEmpty
 
+        options =
+            Dict.fromList
+                [ ( toString ReadAround, ReadAround )
+                , ( toString BreakDown, BreakDown )
+                , ( toString Substitution, Substitution )
+                ]
+
         validateClarifyMethod =
             customValidation
                 string
                 (\s ->
-                    case s of
-                        "ReadAround" ->
-                            Ok ReadAround
+                    case Dict.get s options of
+                        Just cm ->
+                            Ok cm
 
-                        "BreakDown" ->
-                            Ok BreakDown
-
-                        "Substitution" ->
-                            Ok Substitution
-
-                        _ ->
+                        Nothing ->
                             Err (customError InvalidClarifyMethod)
                 )
     in
@@ -261,7 +258,11 @@ answersFormView form =
                         ]
 
         clarifyMethodOptions =
-            ( "", "Which clarify method worked best for you?" ) :: List.map (\s -> ( s, s )) clarifyMethods
+            [ ( "", "Please choose one" )
+            , ( toString ReadAround, "Read a line or two around the word, looking for clues." )
+            , ( toString BreakDown, "Look for parts of words or whole words in the unknown word." )
+            , ( toString Substitution, "Imagine the word isn't there and try another word or words in its place." )
+            ]
 
         errorClass maybeError =
             Maybe.map (\_ -> "has-error") maybeError |> Maybe.withDefault ""
@@ -273,7 +274,7 @@ answersFormView form =
                 , answerField "summarise" "Write one sentence that captures the main idea."
                 , answerField "clarify" "Work through the clarify methods, then type what you think the word means."
                 , div []
-                    [ label [] []
+                    [ label [] [ text "Which clarify method worked best for you?" ]
                     , Input.selectInput clarifyMethodOptions (Form.getFieldAsString "clarifyMethod" form) [ class "form-control" ]
                     ]
                 , button [ class "btn btn-primary", type_ "submit", onClick Form.Submit ] [ text "Submit your answers" ]
