@@ -1,4 +1,7 @@
 target
+data
+.stack-work
 .atomist.yml
 elm-stuff
+assets/pix
 node_modules
