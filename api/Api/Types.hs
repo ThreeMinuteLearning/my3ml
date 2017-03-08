@@ -1,16 +1,25 @@
 {-# LANGUAGE DataKinds     #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Api.Types
     ( Api
+    , SchoolsApi
     , StoriesApi
     , DictApi
     , Story (..)
     , DictEntry (..)
     , DB (..)
+    , School (..)
+    , Class (..)
+    , Student (..)
+    , Teacher (..)
+    , ClassId
+    , SchoolId
     , StoryId
+    , StudentId
     ) where
 
 import           Data.Aeson (FromJSON, ToJSON)
@@ -39,10 +48,39 @@ data DictEntry = DictEntry
 
 type StoryId = Text
 
-
 type WordDefinition = (Text, [(Text, Int)])
 
 type WordDictionary = Map.Map Text [WordDefinition]
+
+data School = School
+    { id :: SchoolId
+    , name :: Text
+    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
+type SchoolId = Text
+
+data Class = Class
+    { id :: ClassId
+    , name :: Text
+    , schoolId :: SchoolId
+    , students :: [StudentId]
+    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
+type ClassId = Text
+
+data Teacher = Teacher
+    { id :: Text
+    , name :: Text
+    , schoolId :: SchoolId
+    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
+data Student = Student
+    { id :: StudentId
+    , name :: Text
+    , schoolId :: SchoolId
+    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
+type StudentId = Text
 
 data DB = DB
     { stories :: Map.Map StoryId Story
@@ -62,4 +100,15 @@ type DictApi =
         :<|> Capture "word" Text :> Get '[JSON] [WordDefinition]
         )
 
-type Api = StoriesApi :<|> DictApi
+type SchoolsApi =
+    "schools" :>
+        (    Get '[JSON] [School]
+        :<|> Capture "schoolId" SchoolId :>
+             ( "classes" :>
+                 (    Get '[JSON] [Class]
+                 :<|> Capture "classId" ClassId :> Get '[JSON] Class
+                 )
+             )
+        )
+
+type Api = StoriesApi :<|> DictApi :<|> SchoolsApi

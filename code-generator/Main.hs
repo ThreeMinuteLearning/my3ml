@@ -19,16 +19,19 @@ elmOpts =
 specs :: [Spec]
 specs =
     [ Spec ["Api"]
-           (  "import Dict exposing (Dict)"
-            : defElmImports
-            : toElmTypeSource    (Proxy :: Proxy Story)
-            : toElmDecoderSource (Proxy :: Proxy Story)
-            : toElmEncoderSource (Proxy :: Proxy Story)
-            : toElmTypeSource    (Proxy :: Proxy DictEntry)
-            : toElmDecoderSource (Proxy :: Proxy DictEntry)
-            : toElmEncoderSource (Proxy :: Proxy DictEntry)
-            : generateElmForAPIWith elmOpts  (Proxy :: Proxy Api))
+        (
+            [  "import Dict exposing (Dict)"
+            ,  defElmImports
+            ]
+            <> sourceFor (Proxy :: Proxy Story)
+            <> sourceFor (Proxy :: Proxy DictEntry)
+            <> sourceFor (Proxy :: Proxy School)
+            <> sourceFor (Proxy :: Proxy Class)
+            <> generateElmForAPIWith elmOpts (Proxy :: Proxy Api)
+        )
     ]
+  where
+    sourceFor t = [ toElmTypeSource t, toElmDecoderSource t, toElmEncoderSource t ]
 
 main :: IO ()
 main = specsToDir specs "frontend/src"
