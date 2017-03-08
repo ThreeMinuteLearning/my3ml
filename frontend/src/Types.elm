@@ -1,5 +1,6 @@
 module Types exposing (..)
 
+import Api exposing (Story, DictEntry)
 import Array exposing (Array)
 import Date exposing (Date)
 import Dict exposing (Dict)
@@ -33,28 +34,12 @@ type DrawerType
     | Clarify
 
 
-type alias Story =
-    { id : String
-    , img : String
-    , title : String
-    , tags : List String
-    , level : Int
-    , words : List DictEntry
-    , date : Date
-    , content : String
-    }
-
-
-type DictEntry
-    = DictEntry String Int
-
-
 type alias Definition =
-    List ( String, List DictEntry )
+    ( String, List ( String, Int ) )
 
 
 type alias WordDict =
-    Dict String (Array Definition)
+    Dict String (List Definition)
 
 
 type alias Model =

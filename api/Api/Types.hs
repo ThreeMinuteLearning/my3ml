@@ -5,6 +5,8 @@
 
 module Api.Types
     ( Api
+    , StoriesApi
+    , DictApi
     , Story (..)
     , DictEntry (..)
     , DB (..)
@@ -17,7 +19,7 @@ import           Data.Text (Text)
 import           Elm (ElmType)
 import           GHC.Generics (Generic)
 import           Prelude hiding (id)
-import           Servant ((:<|>), (:>), ReqBody, Post, Get, JSON)
+import           Servant ((:<|>), (:>), Capture, ReqBody, Post, Get, JSON)
 
 data Story = Story
     { id :: Maybe StoryId
@@ -33,15 +35,31 @@ data Story = Story
 data DictEntry = DictEntry
     { word :: Text
     , index :: Int
-    } deriving (Eq, Ord, Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 type StoryId = Text
 
+
+type WordDefinition = (Text, [(Text, Int)])
+
+type WordDictionary = Map.Map Text [WordDefinition]
+
 data DB = DB
     { stories :: Map.Map StoryId Story
+    , dictionary :: WordDictionary
     }
 
-type Api =
-    "stories" :> ( Get '[JSON] [Story]
-              :<|> ReqBody '[JSON] Story :> Post '[JSON] Story
-                 )
+type StoriesApi =
+    "stories" :>
+        (    Get '[JSON] [Story]
+        :<|> Capture "storyId" Text :> Get '[JSON] Story
+        :<|> ReqBody '[JSON] Story :> Post '[JSON] Story
+        )
+
+type DictApi =
+    "dictionary" :>
+        (    Get '[JSON] WordDictionary
+        :<|> Capture "word" Text :> Get '[JSON] [WordDefinition]
+        )
+
+type Api = StoriesApi :<|> DictApi

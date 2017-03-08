@@ -4,6 +4,7 @@
 
 module Main where
 
+import           Data.Monoid ((<>))
 import           Data.Proxy  (Proxy (Proxy))
 import           Elm (Spec (Spec), specsToDir, toElmTypeSource, toElmDecoderSource, toElmEncoderSource)
 import           Servant.Elm (ElmOptions (..), defElmImports, defElmOptions, generateElmForAPIWith, UrlPrefix (Static))
@@ -18,7 +19,8 @@ elmOpts =
 specs :: [Spec]
 specs =
     [ Spec ["Api"]
-           (defElmImports
+           (  "import Dict exposing (Dict)"
+            : defElmImports
             : toElmTypeSource    (Proxy :: Proxy Story)
             : toElmDecoderSource (Proxy :: Proxy Story)
             : toElmEncoderSource (Proxy :: Proxy Story)

@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Decode exposing (storiesDecoder, wordDictDecoder)
+import Api exposing (Story)
 import Dict
 import Drawer exposing (drawer)
 import Form exposing (Form)
@@ -23,14 +23,14 @@ import Types exposing (..)
 
 getStories : Cmd Msg
 getStories =
-    Http.get "allstories.json" storiesDecoder
+    Api.getStories
         |> RemoteData.sendRequest
         |> Cmd.map StoriesResponse
 
 
 getDictionary : Cmd Msg
 getDictionary =
-    Http.get "dict.json" wordDictDecoder
+    Api.getDictionary
         |> RemoteData.sendRequest
         |> Cmd.map DictResponse
 
@@ -311,7 +311,7 @@ storyTiles m =
             style [ ( "background", "url(pix/" ++ s.img ++ ")" ), ( "background-size", "cover" ) ]
 
         storyTile s =
-            Html.a [ class "storytile", storyStyle s, Html.Attributes.href (pageToUrl (StoryPage s.id)) ] [ h3 [] [ text s.title ] ]
+            Html.a [ class "storytile", storyStyle s, Html.Attributes.href (pageToUrl (StoryPage (Maybe.withDefault "1" s.id))) ] [ h3 [] [ text s.title ] ]
     in
         [ stories_ ]
 
@@ -340,7 +340,7 @@ viewStories m =
 
         cfg =
             Table.customConfig
-                { toId = .id
+                { toId = Maybe.withDefault "" << .id
                 , toMsg = SetTableState
                 , columns =
                     [ storyTitleColumn
@@ -373,7 +373,7 @@ viewStories m =
         viewStoryLink : Story -> Table.HtmlDetails Msg
         viewStoryLink s =
             Table.HtmlDetails []
-                [ Html.a [ Html.Attributes.href (pageToUrl (StoryPage s.id)) ] [ text s.title ]
+                [ Html.a [ Html.Attributes.href (pageToUrl (StoryPage (Maybe.withDefault "1" s.id))) ] [ text s.title ]
                 ]
     in
         [ div []
@@ -413,7 +413,7 @@ viewStory : Model -> String -> Html Msg
 viewStory m id_ =
     case m.stories of
         RemoteData.Success stories ->
-            case List.filter (\s -> s.id == id_) stories of
+            case List.filter (\s -> s.id == Just id_) stories of
                 s :: _ ->
                     div [ class "panel panel-default" ]
                         [ h2 [] [ text s.title ]

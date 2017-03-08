@@ -35,11 +35,21 @@ app db = serve siteApi (server db)
 
 main :: IO ()
 main = do
-  storyFile <- B.readFile "data/allstories.json"
+  storyFile <- B.readFile "./data/allstories.json"
+  dictFile <- B.readFile "./data/dict.json"
   let port = 8000
-      Just stories' = J.decodeStrict storyFile
+      stories' = case J.eitherDecodeStrict storyFile of
+          Right s -> s
+          Left e -> error $ "Failed to decode stories " ++ show e
+
+      dict = case J.eitherDecodeStrict dictFile of
+          Right d -> d
+          Left e -> error $ "Failed to decode dictionary" ++ show e
       storyIds = map (fromJust . id) stories'
-      db = DB { stories = Map.fromList (zip storyIds stories') }
+      db = DB
+          { stories = Map.fromList (zip storyIds stories')
+          , dictionary = dict
+          }
   tDB <- newTVarIO db
   putStrLn $ "Serving on port " ++ show port ++ "..."
   run port (app tDB)
