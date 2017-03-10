@@ -15,12 +15,52 @@ import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Prelude hiding (id)
 import qualified Prelude
-import           Servant ((:<|>) ((:<|>)), Server, err404, errBody, Handler)
+import           Servant ((:<|>) ((:<|>)), Server, err401, err404, errBody, Handler)
 
 import           Api.Types
 
 server :: TVar DB -> Server Api
-server tDb = storyServer tDb :<|> dictServer tDb :<|> schoolsServer
+server tDb = storyServer tDb :<|> dictServer tDb :<|> schoolsServer :<|> loginServer
+
+loginServer :: Server LoginApi
+loginServer authReq = case lookup (username (authReq :: LoginRequest), password authReq) users of
+    Nothing -> throwError err401
+    Just r -> return r
+  where
+    users =
+        [ (("admin", "admin"), Login "aid" "admin" "Dr Admin" admin (AccessToken "admin"))
+        , (("editor", "editor"), Login "eid" "editor" "Mr Ed" editor (AccessToken "editor"))
+        , (("teacher", "teacher"), Login "tid1" "teacher" "Captain Teach" teacher (AccessToken "teacher:4"))
+        , (("mammy", "mammy"), Login "tid2" "mammy" "Mammy Two Shoes" teacher (AccessToken "teacher:3"))
+        , (("jerry", "jerry"), Login "uid1" "jerry" "Jerry Mouse" student (AccessToken "student:3"))
+        , (("tom", "tom"), Login "uid2" "tom" "Tom Cat" student (AccessToken "student:3"))
+        , (("jack", "jack"), Login "uid3" "jack" "Jack Sparrow" student (AccessToken "student:4"))
+        ]
+
+schools :: [School]
+schools =
+    [ School "3" "T&J Academy"
+    , School "4" "Pirate School"
+    ]
+
+classes :: [Class]
+classes =
+    [ Class "1" "A1" "3" []
+    , Class "2" "A2" "3" []
+    , Class "3" "B1" "3" []
+    , Class "4" "P1" "4" []
+    , Class "5" "P2" "4" []
+    ]
+
+students :: [Student]
+students =
+    [ Student "1" "Jerry Mouse" "3"
+    , Student "2" "Tom Cat" "3"
+    , Student "3" "Butch" "3"
+    , Student "4" "Nibbles" "3"
+    , Student "5" "Tyke" "3"
+    , Student "6" "Jack Sparrow" "4"
+    ]
 
 storyServer :: TVar DB -> Server StoriesApi
 storyServer tDb =
@@ -64,28 +104,8 @@ schoolsServer = getSchools :<|> serveSchool
     getClass sid cid =
         maybe (throwError err404) return $ find (\c -> id (c :: Class) == cid) (classesInSchool sid)
 
-    schools =
-        [ School "1" "Dog High"
-        , School "2" "Cat School"
-        , School "3" "Mouse Academy"
-        ]
-
     classesInSchool sid = filter (\c -> schoolId (c :: Class) == sid) classes
 
-    classes :: [Class]
-    classes =
-        [ Class "1" "A1" "3" []
-        , Class "2" "A2" "3" []
-        , Class "3" "B1" "3" []
-        , Class "4" "A1" "2" []
-        , Class "5" "A1" "1" []
-        ]
-
-    students =
-        [ Student "1" "Jerry Mouse" "3"
-        , Student "2" "Tom Cat" "2"
-        , Student "3" "Butch the Dog" "1"
-        ]
 
 dictServer :: TVar DB -> Server DictApi
 dictServer tDb =

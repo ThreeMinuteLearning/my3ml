@@ -1,20 +1,23 @@
 module Login exposing (..)
 
+import Api
 import Html exposing (..)
-import Html.Events exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events exposing (..)
 import Http
-import Json.Encode as JE
-import Json.Decode as JD exposing (field)
 import Navigation
-
-
--- model
 
 
 type User
     = Guest
-    | User
+    | User String UserType String
+
+
+type UserType
+    = Student
+    | Teacher
+    | Editor
+    | Admin
 
 
 type alias Model =
@@ -37,26 +40,12 @@ init =
     ( initModel, Cmd.none )
 
 
-userDecoder : JD.Decoder User
-userDecoder =
-    JD.succeed User
-
-
-
--- update
-
-
 type Msg
     = UsernameInput String
     | PasswordInput String
     | Submit
     | Error String
-    | LoginResponse (Result Http.Error User)
-
-
-url : String
-url =
-    "/authenticate"
+    | LoginResponse (Result Http.Error Api.Login)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe User )
@@ -70,16 +59,8 @@ update msg model =
 
         Submit ->
             let
-                body =
-                    JE.object
-                        [ ( "username", JE.string model.username )
-                        , ( "password", JE.string model.password )
-                        ]
-                        |> JE.encode 4
-                        |> Http.stringBody "application/json"
-
                 request =
-                    Http.post url body userDecoder
+                    Api.postAuthenticate (Api.LoginRequest model.username model.password)
 
                 cmd =
                     Http.send LoginResponse request
@@ -89,8 +70,8 @@ update msg model =
         Error error ->
             ( { model | error = Just error }, Cmd.none, Nothing )
 
-        LoginResponse (Ok token) ->
-            ( initModel, Navigation.newUrl "#/", Just token )
+        LoginResponse (Ok lr) ->
+            ( initModel, Navigation.newUrl "#/", Just (loginResponseToUser lr) )
 
         LoginResponse (Err err) ->
             let
@@ -110,8 +91,24 @@ update msg model =
                 ( { model | error = Just errMsg }, Cmd.none, Nothing )
 
 
+loginResponseToUser : Api.Login -> User
+loginResponseToUser login =
+    let
+        userType =
+            case .userType login.role of
+                "Teacher" ->
+                    Teacher
 
--- view
+                "Editor" ->
+                    Editor
+
+                "Admin" ->
+                    Admin
+
+                _ ->
+                    Student
+    in
+        User login.name userType (.accessToken login.token)
 
 
 view : Model -> Html Msg

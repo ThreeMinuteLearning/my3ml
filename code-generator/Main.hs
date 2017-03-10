@@ -27,6 +27,10 @@ specs =
             <> sourceFor (Proxy :: Proxy DictEntry)
             <> sourceFor (Proxy :: Proxy School)
             <> sourceFor (Proxy :: Proxy Class)
+            <> sourceFor (Proxy :: Proxy Login)
+            <> sourceFor (Proxy :: Proxy UserType)
+            <> sourceFor (Proxy :: Proxy AccessToken)
+            <> sourceFor (Proxy :: Proxy LoginRequest)
             <> generateElmForAPIWith elmOpts (Proxy :: Proxy Api)
         )
     ]

@@ -1,26 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds     #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Api.Types
-    ( Api
-    , SchoolsApi
-    , StoriesApi
-    , DictApi
-    , Story (..)
-    , DictEntry (..)
-    , DB (..)
-    , School (..)
-    , Class (..)
-    , Student (..)
-    , Teacher (..)
-    , ClassId
-    , SchoolId
-    , StoryId
-    , StudentId
-    ) where
+module Api.Types where
 
 import           Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Map.Strict as Map
@@ -82,10 +67,41 @@ data Student = Student
 
 type StudentId = Text
 
+data LoginRequest = LoginRequest
+    { username :: Text
+    , password :: Text
+    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
+data Login = Login
+    { sub :: SubjectId
+    , username :: Text
+    , name :: Text
+    , role :: UserType
+    , token :: AccessToken
+    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
+type SubjectId = Text
+
+newtype AccessToken = AccessToken {accessToken :: Text}
+    deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
+-- Change this to an ADT when elm-export support lands
+newtype UserType = UserType {userType :: Text }
+    deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
+student, teacher, editor, admin :: UserType
+student = UserType "Student"
+teacher = UserType "Teacher"
+editor = UserType "Editor"
+admin = UserType "Admin"
+
 data DB = DB
     { stories :: Map.Map StoryId Story
     , dictionary :: WordDictionary
     }
+
+type LoginApi =
+    "authenticate" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] Login
 
 type StoriesApi =
     "stories" :>
@@ -111,4 +127,4 @@ type SchoolsApi =
              )
         )
 
-type Api = StoriesApi :<|> DictApi :<|> SchoolsApi
+type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> LoginApi
