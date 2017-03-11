@@ -1,7 +1,7 @@
 module Drawer exposing (drawer)
 
 import Html exposing (Html, div, img, h1, p, text, ul, li, input)
-import Html.Attributes exposing (id, class, checked, disabled, for, href, name, src, style, type_, value, width)
+import Html.Attributes exposing (id, class, checked, src, type_, width)
 import Html.Events exposing (onClick, onCheck)
 import Types exposing (..)
 

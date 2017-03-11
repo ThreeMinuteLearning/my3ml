@@ -129,5 +129,5 @@ errorPanel error =
 
 
 subscriptions : Model -> Sub (Msg u)
-subscriptions model =
+subscriptions _ =
     Sub.none

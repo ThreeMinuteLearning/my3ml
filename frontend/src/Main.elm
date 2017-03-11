@@ -6,13 +6,13 @@ import Drawer exposing (drawer)
 import Form exposing (Form)
 import Form.Input as Input
 import Form.Validate as Validate exposing (..)
-import Html exposing (Html, button, br, div, fieldset, img, h1, h2, h3, p, program, span, text, textarea, tr, ul, li, label, input)
-import Html.Attributes exposing (attribute, id, class, checked, disabled, for, href, name, src, style, type_, value, width)
+import Html exposing (Html, button, br, div, img, h2, h3, p, text, tr, li, label, input)
+import Html.Attributes exposing (id, class, for, href, src, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Login
 import Markdown
 import Nav
-import Navigation exposing (..)
+import Navigation exposing (Location)
 import Regex
 import RemoteData exposing (WebData)
 import Routing exposing (..)
@@ -102,7 +102,8 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     case msg of
         ChangePage Logout ->
-            { m | user = Guest, stories = RemoteData.Loading, page = HomePage } ! [ Navigation.modifyUrl <| pageToUrl HomePage, getStories ]
+            { m | user = Guest, stories = RemoteData.Loading, page = HomePage }
+                ! [ Navigation.modifyUrl <| pageToUrl HomePage, getStories ]
 
         ChangePage page ->
             let
@@ -123,13 +124,14 @@ update msg m =
             in
                 ( { m | answersForm = answers }, Navigation.newUrl <| pageToUrl page )
 
-        LoginMsg msg ->
+        LoginMsg lmsg ->
             let
-                loginRequest u p =
-                    Api.postAuthenticate (Api.LoginRequest u p)
+                loginRequest username password =
+                    Api.LoginRequest username password
+                        |> Api.postAuthenticate
 
                 ( loginModel, cmd, user ) =
-                    Login.update loginRequest msg m.login
+                    Login.update loginRequest lmsg m.login
 
                 newUser =
                     Maybe.withDefault m.user (Maybe.map loginResponseToUser user)
@@ -213,7 +215,7 @@ view m =
                 HomePage ->
                     [ dashBoard m
                     , div [ id "stories", panelClass ]
-                        ((h2 [] [ text "Starter Stories" ]) :: (storyTiles m))
+                        (h2 [] [ text "Starter Stories" ] :: storyTiles m)
                     ]
 
                 LoginPage ->
@@ -222,7 +224,7 @@ view m =
                 FindStoryPage ->
                     [ dashBoard m
                     , div [ id "stories", panelClass ]
-                        ((h2 [] [ text "Stories" ]) :: (viewStories m))
+                        (h2 [] [ text "Stories" ] :: viewStories m)
                     ]
 
                 StoryPage id_ ->
@@ -230,7 +232,7 @@ view m =
                     , viewStory m id_
                     , div [ id "activities", panelClass ]
                         [ h2 [] [ text "Answers" ]
-                        , (Html.map FormMsg (answersFormView m.answersForm))
+                        , Html.map FormMsg (answersFormView m.answersForm)
                         ]
                     , drawer m
                     ]
@@ -262,8 +264,8 @@ navbarLinks m =
                 [ Html.a [ href (pageToUrl page) ] [ text txt ]
                 ]
 
-        showLink ( p, _ ) =
-            pageAllowed p m.user
+        showLink ( pg, _ ) =
+            pageAllowed pg m.user
     in
         List.map btn <|
             List.filter showLink
@@ -315,8 +317,8 @@ answersFormView form =
 
 
 mapStories : (List Story -> Html Msg) -> WebData (List Story) -> Html Msg
-mapStories f stories =
-    case stories of
+mapStories f stories_ =
+    case stories_ of
         RemoteData.NotAsked ->
             text "Unexpected state (no stories asked for)"
 
@@ -326,8 +328,8 @@ mapStories f stories =
         RemoteData.Failure err ->
             text ("Error loading stories: " ++ toString err)
 
-        RemoteData.Success stories ->
-            f stories
+        RemoteData.Success s ->
+            f s
 
 
 storyTiles : Model -> List (Html Msg)
@@ -343,7 +345,8 @@ storyTiles m =
             style [ ( "background", "url(pix/" ++ s.img ++ ")" ), ( "background-size", "cover" ) ]
 
         storyTile s =
-            Html.a [ class "storytile", storyStyle s, Html.Attributes.href (pageToUrl (StoryPage (Maybe.withDefault "1" s.id))) ] [ h3 [] [ text s.title ] ]
+            Html.a [ class "storytile", storyStyle s, Html.Attributes.href (pageToUrl (StoryPage (Maybe.withDefault "1" s.id))) ]
+                [ h3 [] [ text s.title ] ]
     in
         [ stories_ ]
 
@@ -466,7 +469,7 @@ viewStory m id_ =
 
 
 dashBoard : Model -> Html Msg
-dashBoard m =
+dashBoard _ =
     div [ id "dashboard", class "panel panel-default" ]
         [ img [ src "img/robot.png" ] []
         ]

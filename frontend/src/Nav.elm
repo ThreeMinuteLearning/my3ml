@@ -4,7 +4,7 @@ import Html exposing (Html, div, a, span, i, ul, li, nav, button, text, form, in
 import Html.Attributes exposing (class, id, href, placeholder, attribute, type_)
 
 
-navbar : List (Html msg ) -> Html msg
+navbar : List (Html msg) -> Html msg
 navbar links =
     header []
         [ nav [ class "navbar navbar-default" ]
@@ -14,8 +14,8 @@ navbar links =
                     , navbrand "#" "3ML"
                     ]
                 , div [ id "navbar", class "navbar-collapse collapse" ]
-                      [ ul [ class "nav navbar-nav navbar-right" ] links
-                      ]
+                    [ ul [ class "nav navbar-nav navbar-right" ] links
+                    ]
                 ]
             ]
         ]

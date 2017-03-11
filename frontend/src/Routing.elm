@@ -68,7 +68,7 @@ matchers =
 
 locationToPage : Location -> Page
 locationToPage location =
-    case (parseHash matchers location) of
+    case parseHash matchers location of
         Just route ->
             route
 
