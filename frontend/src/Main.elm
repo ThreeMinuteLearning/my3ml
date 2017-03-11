@@ -1,14 +1,11 @@
 module Main exposing (main)
 
+import AnswersForm
 import Api exposing (Story)
-import Dict
 import Drawer exposing (drawer)
-import Form exposing (Form)
-import Form.Input as Input
-import Form.Validate as Validate exposing (..)
-import Html exposing (Html, button, br, div, img, h2, h3, p, text, tr, li, label, input)
+import Html exposing (Html, br, div, img, h2, h3, p, text, tr, li, label, input)
 import Html.Attributes exposing (id, class, for, href, src, style, type_, value)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onInput)
 import Login
 import Markdown
 import Nav
@@ -51,7 +48,7 @@ init location =
             , storyFilter = ""
             , tableState = Table.initialSort "Title"
             , showDrawer = Nothing
-            , answersForm = Form.initial [] answerFormValidation
+            , answersForm = AnswersForm.init
             , wordDict = RemoteData.Loading
             }
     in
@@ -117,7 +114,7 @@ update msg m =
                 answers =
                     case page of
                         StoryPage _ ->
-                            Form.initial [] answerFormValidation
+                            AnswersForm.init
 
                         _ ->
                             m.answersForm
@@ -157,40 +154,7 @@ update msg m =
                 { m | showDrawer = Just d } ! []
 
         FormMsg formMsg ->
-            { m | answersForm = Form.update answerFormValidation formMsg m.answersForm } ! []
-
-
-answerFormValidation : Validation CustomError Answers
-answerFormValidation =
-    let
-        nonEmptyString =
-            string |> andThen nonEmpty
-
-        options =
-            Dict.fromList
-                [ ( toString ReadAround, ReadAround )
-                , ( toString BreakDown, BreakDown )
-                , ( toString Substitution, Substitution )
-                ]
-
-        validateClarifyMethod =
-            customValidation
-                string
-                (\s ->
-                    case Dict.get s options of
-                        Just cm ->
-                            Ok cm
-
-                        Nothing ->
-                            Err (customError InvalidClarifyMethod)
-                )
-    in
-        Validate.map5 Answers
-            (field "connect" nonEmptyString)
-            (field "question" nonEmptyString)
-            (field "summarise" nonEmptyString)
-            (field "clarify" nonEmptyString)
-            (field "clarifyMethod" validateClarifyMethod)
+            { m | answersForm = AnswersForm.update formMsg m.answersForm } ! []
 
 
 subscriptions : Model -> Sub Msg
@@ -232,7 +196,7 @@ view m =
                     , viewStory m id_
                     , div [ id "activities", panelClass ]
                         [ h2 [] [ text "Answers" ]
-                        , Html.map FormMsg (answersFormView m.answersForm)
+                        , Html.map FormMsg (AnswersForm.view m.answersForm)
                         ]
                     , drawer m
                     ]
@@ -278,42 +242,6 @@ navbarLinks m =
                 , ( LoginPage, "Login" )
                 , ( Logout, "Logout" )
                 ]
-
-
-answersFormView : Form CustomError Answers -> Html Form.Msg
-answersFormView form =
-    let
-        answerField nm lbl =
-            Form.getFieldAsString nm form
-                |> \fld ->
-                    div [ class (errorClass fld.liveError) ]
-                        [ label [ for (nm ++ "Input") ] [ text lbl ]
-                        , Input.textArea fld [ class "form-control", id (nm ++ "Input") ]
-                        ]
-
-        clarifyMethodOptions =
-            [ ( "", "Please choose one" )
-            , ( toString ReadAround, "Read a line or two around the word, looking for clues." )
-            , ( toString BreakDown, "Look for parts of words or whole words in the unknown word." )
-            , ( toString Substitution, "Imagine the word isn't there and try another word or words in its place." )
-            ]
-
-        errorClass maybeError =
-            Maybe.map (\_ -> "has-error") maybeError |> Maybe.withDefault ""
-    in
-        Html.form []
-            [ div [ class "form-group" ]
-                [ answerField "connect" "Connect this story with yourself or something you know about."
-                , answerField "question" "Think of a question the story makes you want to ask and type it here."
-                , answerField "summarise" "Write one sentence that captures the main idea."
-                , answerField "clarify" "Work through the clarify methods, then type what you think the word means."
-                , div []
-                    [ label [] [ text "Which clarify method worked best for you?" ]
-                    , Input.selectInput clarifyMethodOptions (Form.getFieldAsString "clarifyMethod" form) [ class "form-control" ]
-                    ]
-                , button [ class "btn btn-primary", type_ "submit", onClick Form.Submit ] [ text "Submit your answers" ]
-                ]
-            ]
 
 
 mapStories : (List Story -> Html Msg) -> WebData (List Story) -> Html Msg

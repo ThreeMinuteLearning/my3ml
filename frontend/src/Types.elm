@@ -1,10 +1,9 @@
 module Types exposing (..)
 
+import AnswersForm
 import Api exposing (Story, DictEntry)
-import Array exposing (Array)
-import Date exposing (Date)
 import Dict exposing (Dict)
-import Form exposing (Form)
+import Form
 import Login
 import RemoteData exposing (WebData)
 import Routing exposing (Page(..))
@@ -50,7 +49,7 @@ type alias Model =
     , storyFilter : String
     , tableState : Table.State
     , showDrawer : Maybe DrawerType
-    , answersForm : Form CustomError Answers
+    , answersForm : AnswersForm.Model
     , wordDict : WebData WordDict
     }
 
@@ -69,22 +68,3 @@ type UserType
 
 type ClarifyWord
     = ClarifyWord String
-
-
-type ClarifyMethod
-    = ReadAround
-    | BreakDown
-    | Substitution
-
-
-type CustomError
-    = InvalidClarifyMethod
-
-
-type alias Answers =
-    { connectAnswer : String
-    , questionAnswer : String
-    , summary : String
-    , clarification : String
-    , clarificationMethod : ClarifyMethod
-    }
