@@ -1,7 +1,7 @@
 module Nav exposing (navbar)
 
-import Html exposing (Html, div, a, span, i, ul, li, nav, button, text, form, input, header)
-import Html.Attributes exposing (class, id, href, placeholder, attribute, type_)
+import Html exposing (Html, div, a, span, ul, li, nav, button, text, header)
+import Html.Attributes exposing (class, id, href, attribute, type_)
 
 
 navbar : List (Html msg) -> Html msg
@@ -33,15 +33,4 @@ mobileToggleButton =
         , span [ class "icon-bar" ] []
         , span [ class "icon-bar" ] []
         , span [ class "icon-bar" ] []
-        ]
-
-
-navbarLinks : Html msg
-navbarLinks =
-    div [ class "collapse navbar-collapse" ]
-        [ ul
-            [ class "nav navbar-nav" ]
-            [ li [ class "active" ] [ a [ href "#" ] [ text "Link", span [ class "sr-only" ] [ text "(current)" ] ] ]
-            , li [] [ a [ href "#" ] [ text "Link" ] ]
-            ]
         ]
