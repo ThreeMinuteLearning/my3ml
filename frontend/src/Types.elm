@@ -5,7 +5,7 @@ import Array exposing (Array)
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Form exposing (Form)
-import Login exposing (User(..))
+import Login
 import RemoteData exposing (WebData)
 import Routing exposing (Page(..))
 import Table
@@ -16,7 +16,7 @@ type Msg
     | Navigate Page
     | StoriesResponse (WebData (List Story))
     | DictResponse (WebData WordDict)
-    | LoginMsg Login.Msg
+    | LoginMsg (Login.Msg Api.Login)
     | StoryFilterInput String
     | SetTableState Table.State
     | ToggleDrawer DrawerType
@@ -44,7 +44,7 @@ type alias WordDict =
 
 type alias Model =
     { login : Login.Model
-    , user : Login.User
+    , user : User
     , page : Page
     , stories : WebData (List Story)
     , storyFilter : String
@@ -53,6 +53,18 @@ type alias Model =
     , answersForm : Form CustomError Answers
     , wordDict : WebData WordDict
     }
+
+
+type User
+    = Guest
+    | User String UserType String
+
+
+type UserType
+    = Student
+    | Teacher
+    | Editor
+    | Admin
 
 
 type ClarifyWord

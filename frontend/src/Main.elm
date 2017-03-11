@@ -9,8 +9,7 @@ import Form.Validate as Validate exposing (..)
 import Html exposing (Html, button, br, div, fieldset, img, h1, h2, h3, p, program, span, text, textarea, tr, ul, li, label, input)
 import Html.Attributes exposing (attribute, id, class, checked, disabled, for, href, name, src, style, type_, value, width)
 import Html.Events exposing (onClick, onInput)
-import Http exposing (..)
-import Login exposing (User(..))
+import Login
 import Markdown
 import Nav
 import Navigation exposing (..)
@@ -59,22 +58,41 @@ init location =
         ( initialModel, Cmd.batch [ cmd, Cmd.map LoginMsg loginCmd, getDictionary, getStories ] )
 
 
-authRequired : ( Page, User ) -> Bool
-authRequired pageUser =
-    case pageUser of
-        ( HomePage, Guest ) ->
-            False
+pageAllowed : Page -> User -> Bool
+pageAllowed page user =
+    case user of
+        Guest ->
+            case page of
+                HomePage ->
+                    True
 
-        ( LoginPage, _ ) ->
-            False
+                LoginPage ->
+                    True
 
-        _ ->
-            False
+                FindStoryPage ->
+                    True
+
+                StoryPage _ ->
+                    True
+
+                _ ->
+                    False
+
+        User _ userType _ ->
+            case page of
+                TeacherPage ->
+                    userType == Teacher
+
+                LoginPage ->
+                    False
+
+                _ ->
+                    True
 
 
 authRedirect : Page -> User -> ( Page, Cmd Msg )
 authRedirect page user =
-    if authRequired ( page, user ) then
+    if not <| pageAllowed page user then
         ( LoginPage, Navigation.modifyUrl <| pageToUrl LoginPage )
     else
         ( page, Cmd.none )
@@ -83,6 +101,9 @@ authRedirect page user =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     case msg of
+        ChangePage Logout ->
+            { m | user = Guest, stories = RemoteData.Loading, page = HomePage } ! [ Navigation.modifyUrl <| pageToUrl HomePage, getStories ]
+
         ChangePage page ->
             let
                 ( newPage, cmd ) =
@@ -104,11 +125,14 @@ update msg m =
 
         LoginMsg msg ->
             let
+                loginRequest u p =
+                    Api.postAuthenticate (Api.LoginRequest u p)
+
                 ( loginModel, cmd, user ) =
-                    Login.update msg m.login
+                    Login.update loginRequest msg m.login
 
                 newUser =
-                    Maybe.withDefault m.user user
+                    Maybe.withDefault m.user (Maybe.map loginResponseToUser user)
             in
                 ( { m | login = loginModel, user = newUser }, Cmd.map LoginMsg cmd )
 
@@ -233,17 +257,25 @@ navbarLinks m =
             else
                 []
 
-        btn page txt =
+        btn ( page, txt ) =
             li (activeAttr page)
                 [ Html.a [ href (pageToUrl page) ] [ text txt ]
                 ]
+
+        showLink ( p, _ ) =
+            pageAllowed p m.user
     in
-        [ btn HomePage "Home"
-        , btn FindStoryPage "Find a story"
-        , btn AccountPage "My 3ML"
-        , btn LeaderBoardPage "Leader board"
-        , btn TrailsPage "Trails"
-        ]
+        List.map btn <|
+            List.filter showLink
+                [ ( HomePage, "Home" )
+                , ( FindStoryPage, "Find a story" )
+                , ( AccountPage, "My 3ML" )
+                , ( LeaderBoardPage, "Leader board" )
+                , ( TrailsPage, "Trails" )
+                , ( TeacherPage, "Teacher" )
+                , ( LoginPage, "Login" )
+                , ( Logout, "Logout" )
+                ]
 
 
 answersFormView : Form CustomError Answers -> Html Form.Msg
@@ -448,3 +480,23 @@ main =
         , update = update
         , view = view
         }
+
+
+loginResponseToUser : Api.Login -> User
+loginResponseToUser login =
+    let
+        userType =
+            case .userType login.role of
+                "Teacher" ->
+                    Teacher
+
+                "Editor" ->
+                    Editor
+
+                "Admin" ->
+                    Admin
+
+                _ ->
+                    Student
+    in
+        User login.name userType (.accessToken login.token)

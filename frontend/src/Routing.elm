@@ -1,7 +1,7 @@
 module Routing exposing (Page(..), pageToUrl, locationToPage)
 
-import UrlParser exposing (..)
 import Navigation exposing (Location)
+import UrlParser exposing (..)
 
 
 type Page
@@ -12,6 +12,8 @@ type Page
     | LeaderBoardPage
     | TrailsPage
     | LoginPage
+    | TeacherPage
+    | Logout
     | NotFound
 
 
@@ -39,6 +41,12 @@ pageToUrl page =
         TrailsPage ->
             "#/trails"
 
+        TeacherPage ->
+            "#/teacher"
+
+        Logout ->
+            "#logout"
+
         NotFound ->
             "#notfound"
 
@@ -52,6 +60,8 @@ matchers =
         , map FindStoryPage (s "stories")
         , map AccountPage (s "account")
         , map TrailsPage (s "trails")
+        , map TeacherPage (s "teacher")
+        , map Logout (s "logout")
         , map LeaderBoardPage (s "leaderboard")
         ]
 

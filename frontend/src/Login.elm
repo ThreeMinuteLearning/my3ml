@@ -1,23 +1,10 @@
-module Login exposing (..)
+module Login exposing (Model, Msg(..), init, subscriptions, update, view)
 
-import Api
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
 import Navigation
-
-
-type User
-    = Guest
-    | User String UserType String
-
-
-type UserType
-    = Student
-    | Teacher
-    | Editor
-    | Admin
 
 
 type alias Model =
@@ -35,21 +22,21 @@ initModel =
     }
 
 
-init : ( Model, Cmd Msg )
+init : ( Model, Cmd (Msg u) )
 init =
     ( initModel, Cmd.none )
 
 
-type Msg
+type Msg u
     = UsernameInput String
     | PasswordInput String
     | Submit
     | Error String
-    | LoginResponse (Result Http.Error Api.Login)
+    | LoginResponse (Result Http.Error u)
 
 
-update : Msg -> Model -> ( Model, Cmd Msg, Maybe User )
-update msg model =
+update : (String -> String -> Http.Request u) -> Msg u -> Model -> ( Model, Cmd (Msg u), Maybe u )
+update mkRequest msg model =
     case msg of
         UsernameInput username ->
             ( { model | username = username }, Cmd.none, Nothing )
@@ -60,18 +47,18 @@ update msg model =
         Submit ->
             let
                 request =
-                    Api.postAuthenticate (Api.LoginRequest model.username model.password)
+                    mkRequest model.username model.password
 
                 cmd =
                     Http.send LoginResponse request
             in
-                ( model, cmd, Nothing )
+                ( initModel, cmd, Nothing )
 
         Error error ->
             ( { model | error = Just error }, Cmd.none, Nothing )
 
-        LoginResponse (Ok lr) ->
-            ( initModel, Navigation.newUrl "#/", Just (loginResponseToUser lr) )
+        LoginResponse (Ok u) ->
+            ( initModel, Navigation.newUrl "#/", Just u )
 
         LoginResponse (Err err) ->
             let
@@ -91,27 +78,7 @@ update msg model =
                 ( { model | error = Just errMsg }, Cmd.none, Nothing )
 
 
-loginResponseToUser : Api.Login -> User
-loginResponseToUser login =
-    let
-        userType =
-            case .userType login.role of
-                "Teacher" ->
-                    Teacher
-
-                "Editor" ->
-                    Editor
-
-                "Admin" ->
-                    Admin
-
-                _ ->
-                    Student
-    in
-        User login.name userType (.accessToken login.token)
-
-
-view : Model -> Html Msg
+view : Model -> Html (Msg u)
 view model =
     div [ class "login" ]
         [ errorPanel model.error
@@ -119,7 +86,7 @@ view model =
         ]
 
 
-loginForm : Model -> Html Msg
+loginForm : Model -> Html (Msg u)
 loginForm model =
     Html.form [ onSubmit Submit ]
         [ fieldset []
@@ -161,6 +128,6 @@ errorPanel error =
                 [ text msg ]
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> Sub (Msg u)
 subscriptions model =
     Sub.none
