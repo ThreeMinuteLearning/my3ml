@@ -4,6 +4,7 @@
 
 module Main where
 
+import           Control.Monad (join)
 import           Data.Monoid ((<>))
 import           Data.Proxy  (Proxy (Proxy))
 import           Elm (Spec (Spec), specsToDir, toElmTypeSource, toElmDecoderSource, toElmEncoderSource)
@@ -23,19 +24,25 @@ specs =
             [  "import Dict exposing (Dict)"
             ,  defElmImports
             ]
-            <> sourceFor (Proxy :: Proxy Story)
-            <> sourceFor (Proxy :: Proxy DictEntry)
-            <> sourceFor (Proxy :: Proxy School)
-            <> sourceFor (Proxy :: Proxy Class)
-            <> sourceFor (Proxy :: Proxy Login)
-            <> sourceFor (Proxy :: Proxy UserType)
-            <> sourceFor (Proxy :: Proxy AccessToken)
-            <> sourceFor (Proxy :: Proxy LoginRequest)
-            <> generateElmForAPIWith elmOpts (Proxy :: Proxy Api)
+           <> typeSources
+           <> generateElmForAPIWith elmOpts (Proxy :: Proxy Api)
+           <> codecSources
         )
     ]
   where
-    sourceFor t = [ toElmTypeSource t, toElmDecoderSource t, toElmEncoderSource t ]
+    typeSources = map fst sources
+    codecSources = join (map snd sources)
+    sources =
+        sourceFor (Proxy :: Proxy Story)
+        <> sourceFor (Proxy :: Proxy DictEntry)
+        <> sourceFor (Proxy :: Proxy School)
+        <> sourceFor (Proxy :: Proxy Class)
+        <> sourceFor (Proxy :: Proxy Login)
+        <> sourceFor (Proxy :: Proxy UserType)
+        <> sourceFor (Proxy :: Proxy AccessToken)
+        <> sourceFor (Proxy :: Proxy LoginRequest)
+
+    sourceFor t = [ (toElmTypeSource t, [toElmDecoderSource t, toElmEncoderSource t]) ]
 
 main :: IO ()
 main = specsToDir specs "frontend/src"
