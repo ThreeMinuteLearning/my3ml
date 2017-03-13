@@ -13,12 +13,17 @@ import Table
 type Msg
     = ChangePage Page
     | Navigate Page
-    | StoriesResponse (WebData (List Story))
-    | DictResponse (WebData WordDict)
     | LoginMsg (Login.Msg Api.Login)
+    | StoriesMsg StoriesMsg
+
+
+type StoriesMsg
+    = StoriesResponse (WebData (List Story))
+    | DictResponse (WebData WordDict)
     | StoryFilterInput String
     | SetTableState Table.State
     | ToggleDrawer DrawerType
+    | ClearAnswers
     | FormMsg Form.Msg
 
 
@@ -41,11 +46,8 @@ type alias WordDict =
     Dict String (List Definition)
 
 
-type alias Model =
-    { login : Login.Model
-    , user : User
-    , page : Page
-    , stories : WebData (List Story)
+type alias StoryData =
+    { stories : WebData (List Story)
     , storyFilter : String
     , tableState : Table.State
     , showDrawer : Maybe DrawerType
@@ -54,9 +56,23 @@ type alias Model =
     }
 
 
+type alias Model =
+    { storyData : StoryData
+    , page : Page
+    , mode : AppMode
+    }
+
+
+type AppMode
+    = Anon Login.Model
+    | StudentMode User
+    | EditorMode User
+    | TeacherMode User
+    | AdminMode User
+
+
 type User
-    = Guest
-    | User String UserType String
+    = User String String
 
 
 type UserType

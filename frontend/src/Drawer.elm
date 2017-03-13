@@ -6,11 +6,11 @@ import Html.Events exposing (onClick, onCheck)
 import Types exposing (..)
 
 
-drawer : Model -> Html Msg
-drawer m =
+drawer : Maybe DrawerType -> Html Msg
+drawer showDrawer =
     let
         currentDrawer =
-            Maybe.withDefault Connect m.showDrawer
+            Maybe.withDefault Connect showDrawer
 
         listItem s =
             li [] [ text s ]
@@ -88,16 +88,17 @@ drawer m =
                         "clarifyblack.png"
                         "clarifypanel"
     in
-        div []
-            [ input
-                [ type_ "checkbox"
-                , id "toggle-drawer"
-                , onCheck (\_ -> ToggleDrawer currentDrawer)
-                , checked (m.showDrawer /= Nothing)
+        Html.map StoriesMsg <|
+            div []
+                [ input
+                    [ type_ "checkbox"
+                    , id "toggle-drawer"
+                    , onCheck (\_ -> ToggleDrawer currentDrawer)
+                    , checked (showDrawer /= Nothing)
+                    ]
+                    []
+                , div [ id "drawer", class panelStyle ]
+                    [ drawerHeader
+                    , div [ id "drawercontent" ] content
+                    ]
                 ]
-                []
-            , div [ id "drawer", class panelStyle ]
-                [ drawerHeader
-                , div [ id "drawercontent" ] content
-                ]
-            ]

@@ -1,4 +1,4 @@
-module Login exposing (Model, Msg(..), init, subscriptions, update, view)
+module Login exposing (Model, Msg(..), initModel, subscriptions, update, view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -20,11 +20,6 @@ initModel =
     , password = ""
     , error = Nothing
     }
-
-
-init : ( Model, Cmd (Msg u) )
-init =
-    ( initModel, Cmd.none )
 
 
 type Msg u

@@ -1,5 +1,6 @@
-module Stories exposing (tableView, tilesView, viewStory)
+module Stories exposing (tableView, tilesView, viewStory, viewAnswersForm)
 
+import AnswersForm
 import Api exposing (Story)
 import Html exposing (Html, br, div, img, h2, h3, p, text, tr, li, label, input)
 import Html.Attributes exposing (id, class, for, href, src, style, type_, value)
@@ -9,7 +10,7 @@ import Regex
 import RemoteData exposing (WebData)
 import Routing exposing (pageToUrl, Page(..))
 import Table
-import Types exposing (Model, Msg(..))
+import Types exposing (Model, Msg(..), StoriesMsg(..), StoryData)
 
 
 mapStories : (List Story -> Html Msg) -> WebData (List Story) -> Html Msg
@@ -28,11 +29,11 @@ mapStories f stories_ =
             f s
 
 
-tilesView : Model -> List (Html Msg)
-tilesView m =
+tilesView : StoryData -> List (Html Msg)
+tilesView sd =
     let
         stories_ =
-            mapStories (mkTiles << List.take 20) m.stories
+            mapStories (mkTiles << List.take 20) sd.stories
 
         mkTiles stories =
             div [ class "storytiles" ] (List.map storyTile stories)
@@ -47,8 +48,8 @@ tilesView m =
         [ stories_ ]
 
 
-tableView : Model -> List (Html Msg)
-tableView m =
+tableView : StoryData -> List (Html Msg)
+tableView sd =
     let
         c =
             Table.defaultCustomizations
@@ -72,7 +73,7 @@ tableView m =
         cfg =
             Table.customConfig
                 { toId = Maybe.withDefault "" << .id
-                , toMsg = SetTableState
+                , toMsg = StoriesMsg << SetTableState
                 , columns =
                     [ storyTitleColumn
                     , Table.stringColumn "Tag1" (tag 1)
@@ -107,21 +108,22 @@ tableView m =
                 [ Html.a [ Html.Attributes.href (pageToUrl (StoryPage (Maybe.withDefault "1" s.id))) ] [ text s.title ]
                 ]
     in
-        [ div []
-            [ div [ class "form-group" ]
-                [ label [ for "storyfilter" ] [ text "Search" ]
-                , input
-                    [ type_ "text"
-                    , value m.storyFilter
-                    , onInput StoryFilterInput
-                    , id "storyfilter"
+        [ Html.map StoriesMsg <|
+            div []
+                [ div [ class "form-group" ]
+                    [ label [ for "storyfilter" ] [ text "Search" ]
+                    , input
+                        [ type_ "text"
+                        , value sd.storyFilter
+                        , onInput StoryFilterInput
+                        , id "storyfilter"
+                        ]
+                        []
+                    , div [ class "cols-xs-4" ] []
                     ]
-                    []
-                , div [ class "cols-xs-4" ] []
                 ]
-            ]
         , div [ class "table-responsive" ]
-            [ mapStories (Table.view cfg m.tableState << filterStories m.storyFilter) m.stories ]
+            [ mapStories (Table.view cfg sd.tableState << filterStories sd.storyFilter) sd.stories ]
         ]
 
 
@@ -140,9 +142,9 @@ filterStories storyFilter stories =
             List.filter match stories
 
 
-viewStory : Model -> String -> Html Msg
-viewStory m id_ =
-    case m.stories of
+viewStory : StoryData -> String -> Html Msg
+viewStory sd id_ =
+    case sd.stories of
         RemoteData.Success stories ->
             case List.filter (\s -> s.id == Just id_) stories of
                 s :: _ ->
@@ -162,3 +164,12 @@ viewStory m id_ =
 
         _ ->
             text "Stories have not been loaded"
+
+
+viewAnswersForm : StoryData -> Html Msg
+viewAnswersForm sd =
+    Html.map StoriesMsg <|
+        div [ id "activities", class "panel panel-default" ]
+            [ h2 [] [ text "Answers" ]
+            , Html.map FormMsg (AnswersForm.view sd.answersForm)
+            ]
