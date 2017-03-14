@@ -1,14 +1,21 @@
-{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
 import           Control.Monad (join)
 import           Data.Monoid ((<>))
-import           Data.Proxy  (Proxy (Proxy))
+import           Data.Proxy (Proxy (Proxy))
+import           Data.Text (Text)
 import           Elm (Spec (Spec), specsToDir, toElmTypeSource, toElmDecoderSource, toElmEncoderSource)
+import           GHC.TypeLits (KnownSymbol)
 import           Servant.Elm (ElmOptions (..), defElmImports, defElmOptions, generateElmForAPIWith, UrlPrefix (Static))
+import           Servant.Foreign hiding (Static)
 
 import           Api.Types
 
@@ -43,6 +50,19 @@ specs =
         <> sourceFor (Proxy :: Proxy LoginRequest)
 
     sourceFor t = [ (toElmTypeSource t, [toElmDecoderSource t, toElmEncoderSource t]) ]
+
+-- Add Authorization header argument to APIs with AuthProtect in them
+instance (KnownSymbol sym, HasForeignType lang ftype Text, HasForeign lang ftype sublayout)
+    => HasForeign lang ftype (AuthProtect sym :> sublayout) where
+    type Foreign ftype (AuthProtect sym :> sublayout) = Foreign ftype sublayout
+
+    foreignFor lang ftype Proxy req = foreignFor lang ftype (Proxy :: Proxy sublayout) req'
+      where
+        req' = req { _reqHeaders = HeaderArg arg : _reqHeaders req }
+        arg = Arg
+            { _argName = PathSegment "Authorization"
+            , _argType = typeFor lang (Proxy :: Proxy ftype) (Proxy :: Proxy Text)
+            }
 
 main :: IO ()
 main = specsToDir specs "frontend/src"

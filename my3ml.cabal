@@ -57,6 +57,7 @@ executable code-generator
                      , my3ml
                      , servant-elm >= 0.4
                      , servant-server >= 0.5
+                     , servant-foreign >= 0.9
                      , text
   default-language:    Haskell2010
 
