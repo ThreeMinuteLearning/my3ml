@@ -46,7 +46,6 @@ specs =
         <> sourceFor (Proxy :: Proxy Class)
         <> sourceFor (Proxy :: Proxy Login)
         <> sourceFor (Proxy :: Proxy UserType)
-        <> sourceFor (Proxy :: Proxy AccessToken)
         <> sourceFor (Proxy :: Proxy LoginRequest)
 
     sourceFor t = [ (toElmTypeSource t, [toElmDecoderSource t, toElmEncoderSource t]) ]

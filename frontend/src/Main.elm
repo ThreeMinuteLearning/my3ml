@@ -8,26 +8,13 @@ import Html.Attributes exposing (id, class, href, src)
 import Login
 import Nav
 import Navigation exposing (Location)
-import RemoteData exposing (WebData)
+import RemoteData
+import Rest
 import Routing exposing (Page(..), locationToPage, pageToUrl)
 import Stories
 import Table
 import Teacher
-import Types exposing (Model, AppMode(..), Msg(..), StoriesMsg(..), User(..), UserType(..), StoryData)
-
-
-getStories : Cmd Msg
-getStories =
-    Api.getStories
-        |> RemoteData.sendRequest
-        |> Cmd.map (StoriesMsg << StoriesResponse)
-
-
-getDictionary : Cmd Msg
-getDictionary =
-    Api.getDictionary
-        |> RemoteData.sendRequest
-        |> Cmd.map (StoriesMsg << DictResponse)
+import Types exposing (Model, AppMode(..), Msg(..), StoriesMsg(..), User(..), UserType(..), AccessToken(..), StoryData)
 
 
 init : Location -> ( Model, Cmd Msg )
@@ -39,7 +26,12 @@ init location =
         initialModel =
             Model initStoryData page initMode
     in
-        ( initialModel, Cmd.batch [ cmd, getDictionary, getStories ] )
+        ( initialModel, Cmd.batch [ cmd, Rest.getDictionary, Rest.getStories emptyAccessToken ] )
+
+
+emptyAccessToken : AccessToken
+emptyAccessToken =
+    AccessToken ""
 
 
 initMode : AppMode
@@ -99,7 +91,7 @@ update msg m =
     case ( msg, m.mode ) of
         ( ChangePage Logout, _ ) ->
             { m | storyData = initStoryData, page = HomePage, mode = initMode }
-                ! [ Navigation.modifyUrl <| pageToUrl HomePage, getStories ]
+                ! [ Navigation.modifyUrl <| pageToUrl HomePage, Rest.getStories emptyAccessToken ]
 
         ( ChangePage page, mode ) ->
             let
@@ -138,9 +130,12 @@ update msg m =
                             ( Anon loginModel, [] )
 
                         Just lr ->
-                            ( handleLoginResponse lr, [ getStories ] )
+                            handleLoginResponse lr
+
+                allCmds =
+                    Cmd.batch (Cmd.map LoginMsg cmd :: cmds)
             in
-                ( { m | mode = newMode }, Cmd.map LoginMsg cmd )
+                ( { m | mode = newMode }, allCmds )
 
         ( StoriesMsg sMsg, _ ) ->
             { m | storyData = updateStories sMsg m.storyData } ! []
@@ -178,24 +173,30 @@ updateStories msg sd =
             { sd | answersForm = AnswersForm.update formMsg sd.answersForm }
 
 
-handleLoginResponse : Api.Login -> AppMode
+handleLoginResponse : Api.Login -> ( AppMode, List (Cmd Msg) )
 handleLoginResponse login =
     let
+        token =
+            AccessToken login.token
+
         user =
-            User login.name (.accessToken login.token)
+            User login.name token
+
+        updateStories =
+            [ Rest.getStories token ]
     in
         case .userType login.role of
             "Teacher" ->
-                TeacherMode user
+                ( TeacherMode user, updateStories )
 
             "Editor" ->
-                EditorMode user
+                ( EditorMode user, updateStories )
 
             "Admin" ->
-                AdminMode user
+                ( AdminMode user, [] )
 
             _ ->
-                StudentMode user
+                ( StudentMode user, updateStories )
 
 
 subscriptions : Model -> Sub Msg

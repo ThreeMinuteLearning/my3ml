@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Api.Types where
 
@@ -13,7 +14,7 @@ import           Data.Text (Text)
 import           Elm (ElmType)
 import           GHC.Generics (Generic)
 import           Prelude hiding (id)
-import           Servant ((:<|>), (:>), Capture, ReqBody, Post, Get, JSON)
+import           Servant ((:<|>), (:>), AuthProtect, Capture, ReqBody, Post, Get, JSON)
 
 data Story = Story
     { id :: Maybe StoryId
@@ -82,8 +83,7 @@ data Login = Login
 
 type SubjectId = Text
 
-newtype AccessToken = AccessToken {accessToken :: Text}
-    deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+type AccessToken = Text
 
 -- Change this to an ADT when elm-export support lands
 newtype UserType = UserType {userType :: Text }
@@ -95,16 +95,13 @@ teacher = UserType "Teacher"
 editor = UserType "Editor"
 admin = UserType "Admin"
 
-data DB = DB
-    { stories :: Map.Map StoryId Story
-    , dictionary :: WordDictionary
-    }
+type AccessTokenAuth = AuthProtect "access-token"
 
 type LoginApi =
     "authenticate" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] Login
 
 type StoriesApi =
-    "stories" :>
+    "stories" :> AccessTokenAuth :>
         (    Get '[JSON] [Story]
         :<|> Capture "storyId" Text :> Get '[JSON] Story
         :<|> ReqBody '[JSON] Story :> Post '[JSON] Story
@@ -117,7 +114,7 @@ type DictApi =
         )
 
 type SchoolsApi =
-    "schools" :>
+    "schools" :> AccessTokenAuth :>
         (    Get '[JSON] [School]
         :<|> Capture "schoolId" SchoolId :>
              ( "classes" :>

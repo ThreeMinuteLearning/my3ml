@@ -1,23 +1,34 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Api.Server
     ( server
+    , DB (..)
     ) where
 
 import           Control.Concurrent.STM (TVar, atomically, readTVar, writeTVar)
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Except (throwError)
+import           Control.Monad.Except (MonadError, throwError)
 import           Data.List (find)
 import qualified Data.Map.Strict as Map
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Prelude hiding (id)
 import qualified Prelude
-import           Servant ((:<|>) ((:<|>)), Server, err401, err404, errBody, Handler)
+import           Servant ((:<|>) ((:<|>)), Server, ServantErr, err401, err404, errBody, Handler)
 
+import           Api.Auth ()
 import           Api.Types
+
+data DB = DB
+    { stories :: Map.Map StoryId Story
+    , starterStories :: [Story]
+    , dictionary :: WordDictionary
+    }
 
 server :: TVar DB -> Server Api
 server tDb = storyServer tDb :<|> dictServer tDb :<|> schoolsServer :<|> loginServer
@@ -28,13 +39,13 @@ loginServer authReq = case lookup (username (authReq :: LoginRequest), password 
     Just r -> return r
   where
     users =
-        [ (("admin", "admin"), Login "aid" "admin" "Dr Admin" admin (AccessToken "admin"))
-        , (("editor", "editor"), Login "eid" "editor" "Mr Ed" editor (AccessToken "editor"))
-        , (("teacher", "teacher"), Login "tid1" "teacher" "Captain Teach" teacher (AccessToken "teacher:4"))
-        , (("mammy", "mammy"), Login "tid2" "mammy" "Mammy Two Shoes" teacher (AccessToken "teacher:3"))
-        , (("jerry", "jerry"), Login "uid1" "jerry" "Jerry Mouse" student (AccessToken "student:3"))
-        , (("tom", "tom"), Login "uid2" "tom" "Tom Cat" student (AccessToken "student:3"))
-        , (("jack", "jack"), Login "uid3" "jack" "Jack Sparrow" student (AccessToken "student:4"))
+        [ (("admin", "admin"), Login "aid" "admin" "Dr Admin" admin "admin")
+        , (("editor", "editor"), Login "eid" "editor" "Mr Ed" editor "editor")
+        , (("teacher", "teacher"), Login "tid1" "teacher" "Captain Teach" teacher "teacher:4")
+        , (("mammy", "mammy"), Login "tid2" "mammy" "Mammy Two Shoes" teacher "teacher:3")
+        , (("jerry", "jerry"), Login "uid1" "jerry" "Jerry Mouse" student "student:3")
+        , (("tom", "tom"), Login "uid2" "tom" "Tom Cat" student "student:3")
+        , (("jack", "jack"), Login "uid3" "jack" "Jack Sparrow" student "student:4")
         ]
 
 schools :: [School]
@@ -63,12 +74,17 @@ students =
     ]
 
 storyServer :: TVar DB -> Server StoriesApi
-storyServer tDb =
+storyServer tDb token_ =
     getStories :<|> getStory :<|> createStory
   where
     notFound = err404 { errBody = "Story with this ID was not found" }
 
-    getStories = withStories Map.elems
+    getStories =
+        liftIO . atomically $ do
+            db <- readTVar tDb
+            return $ case token_ of
+                Nothing -> starterStories db
+                _ -> Map.elems (stories db)
 
     getStory storyId = do
         story <- withStories (Map.lookup storyId)
@@ -91,7 +107,8 @@ storyServer tDb =
             return (f (stories db))
 
 schoolsServer :: Server SchoolsApi
-schoolsServer = getSchools :<|> serveSchool
+schoolsServer Nothing = throwAll err401
+schoolsServer (Just _) = getSchools :<|> serveSchool
   where
     getSchools = return schools
 
@@ -123,3 +140,17 @@ dictServer tDb =
        liftIO . atomically $ do
            db <- readTVar tDb
            return (f (dictionary db))
+
+
+-- ThrowAll idea taken from servant-auth
+class ThrowAll a where
+    throwAll :: ServantErr -> a
+
+instance (ThrowAll a, ThrowAll b) => ThrowAll (a :<|> b) where
+    throwAll e = throwAll e :<|> throwAll e
+
+instance {-# OVERLAPS #-} ThrowAll b => ThrowAll (a -> b) where
+    throwAll e = const $ throwAll e
+
+instance {-# OVERLAPPABLE #-} (MonadError ServantErr m) => ThrowAll (m a) where
+    throwAll = throwError

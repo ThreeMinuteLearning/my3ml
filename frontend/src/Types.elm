@@ -71,8 +71,12 @@ type AppMode
     | AdminMode User
 
 
+type AccessToken
+    = AccessToken String
+
+
 type User
-    = User String String
+    = User String AccessToken
 
 
 type UserType

@@ -13,10 +13,12 @@ import           Data.Maybe (fromJust)
 import           Prelude hiding (id)
 import           Network.Wai (Application)
 import           Network.Wai.Handler.Warp (run)
-import           Servant ((:<|>) ((:<|>)), (:>), Proxy (Proxy), Raw, Server, serve, serveDirectory)
+import           Servant ((:<|>) ((:<|>)), (:>), Proxy (Proxy), Raw, Server, serveWithContext, serveDirectory)
 
+import           Api.Server (DB (..))
 import qualified Api.Server
-import           Api.Types (Api, Story (..), DB (..))
+import           Api.Auth (authServerContext)
+import           Api.Types (Api, Story (..))
 
 type SiteApi =  "api" :> Api
             :<|> Raw
@@ -31,7 +33,7 @@ server db = apiServer :<|> assets
     assets = serveDirectory "assets"
 
 app :: TVar DB -> Application
-app db = serve siteApi (server db)
+app db = serveWithContext siteApi authServerContext (server db)
 
 main :: IO ()
 main = do
@@ -46,8 +48,10 @@ main = do
           Right d -> d
           Left e -> error $ "Failed to decode dictionary" ++ show e
       storyIds = map (fromJust . id) stories'
+      starterStories' = take 20 stories'
       db = DB
           { stories = Map.fromList (zip storyIds stories')
+          , starterStories = starterStories'
           , dictionary = dict
           }
   tDB <- newTVarIO db
