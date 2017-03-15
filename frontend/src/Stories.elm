@@ -2,6 +2,7 @@ module Stories exposing (tableView, tilesView, viewStory, viewAnswersForm)
 
 import AnswersForm
 import Api exposing (Story)
+import Bootstrap
 import Html exposing (Html, br, div, img, h2, h3, p, text, tr, li, label, input)
 import Html.Attributes exposing (id, class, for, href, src, style, type_, value)
 import Html.Events exposing (onInput)
@@ -48,41 +49,14 @@ tilesView sd =
         [ stories_ ]
 
 
-tableView : StoryData -> List (Html Msg)
-tableView sd =
+tableConfig : Table.Config Story Msg
+tableConfig =
     let
-        c =
-            Table.defaultCustomizations
-
-        myThead =
-            c.thead
-                >> .children
-                >> tr []
-                >> List.singleton
-                >> Table.HtmlDetails []
-
-        tableCustomizations =
-            { c | thead = myThead, tableAttrs = [ class "table table-striped" ] }
-
         tag i s =
             s.tags
                 |> List.drop (i - 1)
                 |> List.head
                 |> Maybe.withDefault ""
-
-        cfg =
-            Table.customConfig
-                { toId = Maybe.withDefault "" << .id
-                , toMsg = StoriesMsg << SetTableState
-                , columns =
-                    [ storyTitleColumn
-                    , Table.stringColumn "Tag1" (tag 1)
-                    , Table.stringColumn "Tag2" (tag 2)
-                    , Table.stringColumn "Tag3" (tag 3)
-                    , levelColumn
-                    ]
-                , customizations = tableCustomizations
-                }
 
         -- This is needed to make the level column wide enough so the heading and arrow
         -- don't wrap
@@ -108,23 +82,39 @@ tableView sd =
                 [ Html.a [ Html.Attributes.href (pageToUrl (StoryPage (Maybe.withDefault "1" s.id))) ] [ text s.title ]
                 ]
     in
-        [ Html.map StoriesMsg <|
-            div []
-                [ div [ class "form-group" ]
-                    [ label [ for "storyfilter" ] [ text "Search" ]
-                    , input
-                        [ type_ "text"
-                        , value sd.storyFilter
-                        , onInput StoryFilterInput
-                        , id "storyfilter"
-                        ]
-                        []
-                    , div [ class "cols-xs-4" ] []
-                    ]
+        Table.customConfig
+            { toId = Maybe.withDefault "" << .id
+            , toMsg = StoriesMsg << SetTableState
+            , columns =
+                [ storyTitleColumn
+                , Table.stringColumn "Tag1" (tag 1)
+                , Table.stringColumn "Tag2" (tag 2)
+                , Table.stringColumn "Tag3" (tag 3)
+                , levelColumn
                 ]
-        , div [ class "table-responsive" ]
-            [ mapStories (Table.view cfg sd.tableState << filterStories sd.storyFilter) sd.stories ]
-        ]
+            , customizations = Bootstrap.tableCustomizations
+            }
+
+
+tableView : StoryData -> List (Html Msg)
+tableView sd =
+    [ Html.map StoriesMsg <|
+        div []
+            [ div [ class "form-group" ]
+                [ label [ for "storyfilter" ] [ text "Search" ]
+                , input
+                    [ type_ "text"
+                    , value sd.storyFilter
+                    , onInput StoryFilterInput
+                    , id "storyfilter"
+                    ]
+                    []
+                , div [ class "cols-xs-4" ] []
+                ]
+            ]
+    , div [ class "table-responsive" ]
+        [ mapStories (Table.view tableConfig sd.tableState << filterStories sd.storyFilter) sd.stories ]
+    ]
 
 
 filterStories : String -> List Story -> List Story
