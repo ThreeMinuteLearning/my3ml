@@ -1,7 +1,7 @@
 module Types exposing (..)
 
 import AnswersForm
-import Api exposing (Story, DictEntry)
+import Api exposing (Class, Story, DictEntry)
 import Dict exposing (Dict)
 import Form
 import Login
@@ -15,6 +15,12 @@ type Msg
     | Navigate Page
     | LoginMsg (Login.Msg Api.Login)
     | StoriesMsg StoriesMsg
+    | SchoolDataMsg SchoolDataMsg
+
+
+type SchoolDataMsg
+    = ClassesResponse (WebData (List Class))
+    | SchoolDataTableState Table.State
 
 
 type StoriesMsg
@@ -25,10 +31,6 @@ type StoriesMsg
     | ToggleDrawer DrawerType
     | ClearAnswers
     | FormMsg Form.Msg
-
-
-
--- TODO refactor connect etc into a separate type since they are used in several places
 
 
 type DrawerType
@@ -56,6 +58,12 @@ type alias StoryData =
     }
 
 
+type alias SchoolData =
+    { classes : WebData (List Class)
+    , tableState : Table.State
+    }
+
+
 type alias Model =
     { storyData : StoryData
     , page : Page
@@ -67,7 +75,7 @@ type AppMode
     = Anon Login.Model
     | StudentMode User
     | EditorMode User
-    | TeacherMode User
+    | TeacherMode User SchoolData
     | AdminMode User
 
 

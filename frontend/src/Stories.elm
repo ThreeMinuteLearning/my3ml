@@ -9,32 +9,17 @@ import Html.Events exposing (onInput)
 import Markdown
 import Regex
 import RemoteData exposing (WebData)
+import Rest exposing (handleRemoteData)
 import Routing exposing (pageToUrl, Page(..))
 import Table
 import Types exposing (Model, Msg(..), StoriesMsg(..), StoryData)
-
-
-mapStories : (List Story -> Html Msg) -> WebData (List Story) -> Html Msg
-mapStories f stories_ =
-    case stories_ of
-        RemoteData.NotAsked ->
-            text "Unexpected state (no stories asked for)"
-
-        RemoteData.Loading ->
-            text "Loading stories ..."
-
-        RemoteData.Failure err ->
-            text ("Error loading stories: " ++ toString err)
-
-        RemoteData.Success s ->
-            f s
 
 
 tilesView : StoryData -> List (Html Msg)
 tilesView sd =
     let
         stories_ =
-            mapStories (mkTiles << List.take 20) sd.stories
+            handleRemoteData (mkTiles << List.take 20) sd.stories
 
         mkTiles stories =
             div [ class "storytiles" ] (List.map storyTile stories)
@@ -113,7 +98,7 @@ tableView sd =
                 ]
             ]
     , div [ class "table-responsive" ]
-        [ mapStories (Table.view tableConfig sd.tableState << filterStories sd.storyFilter) sd.stories ]
+        [ handleRemoteData (Table.view tableConfig sd.tableState << filterStories sd.storyFilter) sd.stories ]
     ]
 
 

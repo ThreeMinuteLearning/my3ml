@@ -1,9 +1,26 @@
-module Rest exposing (getStories, getDictionary)
+module Rest exposing (handleRemoteData, getStories, getDictionary, getSchoolClasses)
 
 import Api
+import Html exposing (Html, text)
 import Http exposing (Request)
 import RemoteData exposing (WebData)
-import Types exposing (AccessToken(..), AppMode(..), Msg(..), StoriesMsg(..))
+import Types exposing (AccessToken(..), AppMode(..), Msg(..), SchoolDataMsg(..), StoriesMsg(..))
+
+
+handleRemoteData : (a -> Html Msg) -> WebData a -> Html Msg
+handleRemoteData f rd =
+    case rd of
+        RemoteData.NotAsked ->
+            text "Data not loaded."
+
+        RemoteData.Loading ->
+            text "Loading ..."
+
+        RemoteData.Failure err ->
+            text ("Error loading data: " ++ toString err)
+
+        RemoteData.Success d ->
+            f d
 
 
 sendRequest : Request a -> (WebData a -> Msg) -> Cmd Msg
@@ -14,6 +31,11 @@ sendRequest r m =
 getStories : AccessToken -> Cmd Msg
 getStories (AccessToken t) =
     sendRequest (Api.getStories t) (StoriesMsg << StoriesResponse)
+
+
+getSchoolClasses : AccessToken -> Cmd Msg
+getSchoolClasses (AccessToken t) =
+    sendRequest (Api.getSchoolClasses t) (SchoolDataMsg << ClassesResponse)
 
 
 getDictionary : Cmd Msg

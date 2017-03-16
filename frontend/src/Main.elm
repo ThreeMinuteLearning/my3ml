@@ -14,7 +14,7 @@ import Routing exposing (Page(..), locationToPage, pageToUrl)
 import Stories
 import Table
 import Teacher
-import Types exposing (Model, AppMode(..), Msg(..), StoriesMsg(..), User(..), UserType(..), AccessToken(..), StoryData)
+import Types exposing (..)
 
 
 init : Location -> ( Model, Cmd Msg )
@@ -50,6 +50,13 @@ initStoryData =
     }
 
 
+initSchoolData : SchoolData
+initSchoolData =
+    { classes = RemoteData.Loading
+    , tableState = Table.initialSort "Name"
+    }
+
+
 pageAllowed : Page -> AppMode -> Bool
 pageAllowed page mode =
     case ( page, mode ) of
@@ -68,7 +75,7 @@ pageAllowed page mode =
         ( LoginPage, _ ) ->
             False
 
-        ( TeacherPage, TeacherMode _ ) ->
+        ( TeacherPage, TeacherMode _ _ ) ->
             True
 
         ( TeacherPage, _ ) ->
@@ -140,9 +147,28 @@ update msg m =
         ( StoriesMsg sMsg, _ ) ->
             { m | storyData = updateStories sMsg m.storyData } ! []
 
+        ( SchoolDataMsg sdMsg, mode ) ->
+            case mode of
+                TeacherMode u sd ->
+                    { m | mode = TeacherMode u (updateSchoolData sdMsg sd) } ! []
+
+                _ ->
+                    -- Shouldn't happen
+                    m ! []
+
         -- This shouldn't be possible
         ( LoginMsg _, _ ) ->
             m ! []
+
+
+updateSchoolData : SchoolDataMsg -> SchoolData -> SchoolData
+updateSchoolData msg sd =
+    case msg of
+        ClassesResponse cs ->
+            { sd | classes = cs }
+
+        SchoolDataTableState ts ->
+            { sd | tableState = ts }
 
 
 updateStories : StoriesMsg -> StoryData -> StoryData
@@ -182,21 +208,21 @@ handleLoginResponse login =
         user =
             User login.name token
 
-        updateStories =
+        newStories =
             [ Rest.getStories token ]
     in
         case .userType login.role of
             "Teacher" ->
-                ( TeacherMode user, updateStories )
+                ( TeacherMode user initSchoolData, Rest.getSchoolClasses token :: newStories )
 
             "Editor" ->
-                ( EditorMode user, updateStories )
+                ( EditorMode user, newStories )
 
             "Admin" ->
                 ( AdminMode user, [] )
 
             _ ->
-                ( StudentMode user, updateStories )
+                ( StudentMode user, newStories )
 
 
 subscriptions : Model -> Sub Msg
@@ -244,8 +270,8 @@ view m =
                     , Stories.viewStory m.storyData id_
                     ]
 
-                ( TeacherPage, _ ) ->
-                    Teacher.view m
+                ( TeacherPage, TeacherMode user schoolData ) ->
+                    Teacher.view user schoolData
 
                 _ ->
                     [ dashBoard m
