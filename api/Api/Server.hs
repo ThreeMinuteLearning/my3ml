@@ -19,10 +19,10 @@ import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Prelude hiding (id)
 import qualified Prelude
-import           Servant ((:<|>) ((:<|>)), Server, ServantErr, err401, err404, errBody, Handler)
+import           Servant ((:<|>) ((:<|>)), Server, ServantErr, err401, err403, err404, errBody, Handler)
 
-import           Api.Auth ()
-import           Api.Types
+import           Api.Auth (AccessScope(..))
+import           Api.Types hiding (AccessToken)
 
 data DB = DB
     { stories :: Map.Map StoryId Story
@@ -31,7 +31,7 @@ data DB = DB
     }
 
 server :: TVar DB -> Server Api
-server tDb = storyServer tDb :<|> dictServer tDb :<|> schoolsServer :<|> loginServer
+server tDb = storyServer tDb :<|> dictServer tDb :<|> schoolsServer :<|> schoolServer :<|> loginServer
 
 loginServer :: Server LoginApi
 loginServer authReq = case lookup (username (authReq :: LoginRequest), password authReq) users of
@@ -41,11 +41,11 @@ loginServer authReq = case lookup (username (authReq :: LoginRequest), password 
     users =
         [ (("admin", "admin"), Login "aid" "admin" "Dr Admin" admin "admin")
         , (("editor", "editor"), Login "eid" "editor" "Mr Ed" editor "editor")
-        , (("teacher", "teacher"), Login "tid1" "teacher" "Captain Teach" teacher "teacher:4")
-        , (("mammy", "mammy"), Login "tid2" "mammy" "Mammy Two Shoes" teacher "teacher:3")
-        , (("jerry", "jerry"), Login "uid1" "jerry" "Jerry Mouse" student "student:3")
-        , (("tom", "tom"), Login "uid2" "tom" "Tom Cat" student "student:3")
-        , (("jack", "jack"), Login "uid3" "jack" "Jack Sparrow" student "student:4")
+        , (("teacher", "teacher"), Login "tid1" "teacher" "Captain Teach" teacher "t:4")
+        , (("mammy", "mammy"), Login "tid2" "mammy" "Mammy Two Shoes" teacher "t:3")
+        , (("jerry", "jerry"), Login "uid1" "jerry" "Jerry Mouse" student "s:3")
+        , (("tom", "tom"), Login "uid2" "tom" "Tom Cat" student "s:3")
+        , (("jack", "jack"), Login "uid3" "jack" "Jack Sparrow" student "s:4")
         ]
 
 schools :: [School]
@@ -108,20 +108,27 @@ storyServer tDb token_ =
 
 schoolsServer :: Server SchoolsApi
 schoolsServer Nothing = throwAll err401
-schoolsServer (Just _) = getSchools :<|> serveSchool
+schoolsServer (Just AdminScope) = return schools :<|> serveSchool
+schoolsServer _ = throwAll err403
+
+
+serveSchool :: SchoolId -> Server ClassesApi
+serveSchool sid = getClasses sid :<|> getClass sid
   where
-    getSchools = return schools
-
-    serveSchool sid = getClasses sid :<|> getClass sid
-
     getClasses :: SchoolId -> Handler [Class]
-    getClasses sid = return (classesInSchool sid)
+    getClasses _ = return classesInSchool
 
     getClass :: SchoolId -> ClassId -> Handler Class
-    getClass sid cid =
-        maybe (throwError err404) return $ find (\c -> id (c :: Class) == cid) (classesInSchool sid)
+    getClass _ cid =
+        maybe (throwError err404) return $ find (\c -> id (c :: Class) == cid) classesInSchool
 
-    classesInSchool sid = filter (\c -> schoolId (c :: Class) == sid) classes
+    classesInSchool = filter (\c -> schoolId (c :: Class) == sid) classes
+
+
+schoolServer :: Server SchoolApi
+schoolServer Nothing = throwAll err401
+schoolServer (Just (TeacherScope sid)) = serveSchool sid
+schoolServer _ = throwAll err403
 
 
 dictServer :: TVar DB -> Server DictApi

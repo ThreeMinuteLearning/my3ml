@@ -116,12 +116,16 @@ type DictApi =
 type SchoolsApi =
     "schools" :> AccessTokenAuth :>
         (    Get '[JSON] [School]
-        :<|> Capture "schoolId" SchoolId :>
-             ( "classes" :>
-                 (    Get '[JSON] [Class]
-                 :<|> Capture "classId" ClassId :> Get '[JSON] Class
-                 )
-             )
+        :<|> Capture "schoolId" SchoolId :> ClassesApi
         )
 
-type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> LoginApi
+type SchoolApi =
+    "school" :> AccessTokenAuth :> ClassesApi
+
+type ClassesApi =
+    "classes" :>
+        (    Get '[JSON] [Class]
+        :<|> Capture "classId" ClassId :> Get '[JSON] Class
+        )
+
+type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> LoginApi
