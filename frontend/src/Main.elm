@@ -156,6 +156,9 @@ update msg m =
                     -- Shouldn't happen
                     m ! []
 
+        ( NoOp, _ ) ->
+            m ! []
+
         -- This shouldn't be possible
         ( LoginMsg _, _ ) ->
             m ! []

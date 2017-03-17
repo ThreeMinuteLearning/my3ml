@@ -16,6 +16,7 @@ type Msg
     | LoginMsg (Login.Msg Api.Login)
     | StoriesMsg StoriesMsg
     | SchoolDataMsg SchoolDataMsg
+    | NoOp
 
 
 type SchoolDataMsg
