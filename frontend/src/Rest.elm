@@ -1,4 +1,4 @@
-module Rest exposing (handleRemoteData, getStories, getDictionary, getSchoolClasses)
+module Rest exposing (handleRemoteData, getStories, getDictionary, getSchoolClasses, getSchoolStudents)
 
 import Api
 import Html exposing (Html, text)
@@ -36,6 +36,11 @@ getStories (AccessToken t) =
 getSchoolClasses : AccessToken -> Cmd Msg
 getSchoolClasses (AccessToken t) =
     sendRequest (Api.getSchoolClasses t) (SchoolDataMsg << ClassesResponse)
+
+
+getSchoolStudents : AccessToken -> Cmd Msg
+getSchoolStudents (AccessToken t) =
+    sendRequest (Api.getSchoolStudents t) (SchoolDataMsg << StudentsResponse)
 
 
 getDictionary : Cmd Msg

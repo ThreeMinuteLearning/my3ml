@@ -1,7 +1,7 @@
 module Types exposing (..)
 
 import AnswersForm
-import Api exposing (Class, Story, DictEntry)
+import Api exposing (Class, Story, Student, DictEntry)
 import Dict exposing (Dict)
 import Form
 import Login
@@ -21,6 +21,7 @@ type Msg
 
 type SchoolDataMsg
     = ClassesResponse (WebData (List Class))
+    | StudentsResponse (WebData (List Student))
     | SchoolDataTableState Table.State
 
 
@@ -61,6 +62,7 @@ type alias StoryData =
 
 type alias SchoolData =
     { classes : WebData (List Class)
+    , students : WebData (List Student)
     , tableState : Table.State
     }
 

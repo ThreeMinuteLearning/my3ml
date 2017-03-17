@@ -1,6 +1,6 @@
 module Teacher exposing (view)
 
-import Api exposing (Class)
+import Api exposing (Class, Student)
 import Bootstrap exposing (toolbar, btnGroup, btn)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (id)
@@ -22,6 +22,19 @@ classesTableConfig =
         }
 
 
+studentsTableConfig : Table.Config Student Msg
+studentsTableConfig =
+    Table.customConfig
+        { toId = .id
+        , toMsg = SchoolDataMsg << SchoolDataTableState
+        , columns =
+            [ Table.stringColumn "Name" .name
+            , Table.intColumn "Level" .level
+            ]
+        , customizations = Bootstrap.tableCustomizations
+        }
+
+
 view : User -> SchoolData -> List (Html Msg)
 view _ sd =
     [ toolbar "toolbar"
@@ -33,7 +46,7 @@ view _ sd =
             , btn NoOp [ text "Do Something" ]
             ]
         ]
-    , div [ id "classes" ]
-        [ handleRemoteData (Table.view classesTableConfig sd.tableState) sd.classes
+    , div [ id "students" ]
+        [ handleRemoteData (Table.view studentsTableConfig sd.tableState) sd.students
         ]
     ]

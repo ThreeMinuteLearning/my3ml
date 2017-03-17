@@ -3,7 +3,7 @@ module Main exposing (main)
 import AnswersForm
 import Api
 import Drawer exposing (drawer)
-import Html exposing (Html, div, img, h2, p, text, li)
+import Html exposing (Html, div, img, h2, text, li)
 import Html.Attributes exposing (id, class, href, src)
 import Login
 import Nav
@@ -53,6 +53,7 @@ initStoryData =
 initSchoolData : SchoolData
 initSchoolData =
     { classes = RemoteData.Loading
+    , students = RemoteData.Loading
     , tableState = Table.initialSort "Name"
     }
 
@@ -170,6 +171,9 @@ updateSchoolData msg sd =
         ClassesResponse cs ->
             { sd | classes = cs }
 
+        StudentsResponse ss ->
+            { sd | students = ss }
+
         SchoolDataTableState ts ->
             { sd | tableState = ts }
 
@@ -216,7 +220,7 @@ handleLoginResponse login =
     in
         case .userType login.role of
             "Teacher" ->
-                ( TeacherMode user initSchoolData, Rest.getSchoolClasses token :: newStories )
+                ( TeacherMode user initSchoolData, Rest.getSchoolStudents token :: Rest.getSchoolClasses token :: newStories )
 
             "Editor" ->
                 ( EditorMode user, newStories )

@@ -63,6 +63,7 @@ data Teacher = Teacher
 data Student = Student
     { id :: StudentId
     , name :: Text
+    , level :: Int
     , schoolId :: SchoolId
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
@@ -116,16 +117,28 @@ type DictApi =
 type SchoolsApi =
     "schools" :> AccessTokenAuth :>
         (    Get '[JSON] [School]
-        :<|> Capture "schoolId" SchoolId :> ClassesApi
+        :<|> Capture "schoolId" SchoolId :>
+             (    ClassesApi
+             :<|> StudentsApi
+             )
         )
 
 type SchoolApi =
-    "school" :> AccessTokenAuth :> ClassesApi
+    "school" :> AccessTokenAuth :>
+         (    ClassesApi
+         :<|> StudentsApi
+         )
 
 type ClassesApi =
     "classes" :>
         (    Get '[JSON] [Class]
         :<|> Capture "classId" ClassId :> Get '[JSON] Class
+        )
+
+type StudentsApi =
+    "students" :>
+        (    Get '[JSON] [Student]
+        :<|> Capture "studentId" StudentId :> Get '[JSON] Student
         )
 
 type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> LoginApi

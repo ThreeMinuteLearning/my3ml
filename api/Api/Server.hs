@@ -63,14 +63,14 @@ classes =
     , Class "5" "P2" "4" []
     ]
 
-students :: [Student]
-students =
-    [ Student "1" "Jerry Mouse" "3"
-    , Student "2" "Tom Cat" "3"
-    , Student "3" "Butch" "3"
-    , Student "4" "Nibbles" "3"
-    , Student "5" "Tyke" "3"
-    , Student "6" "Jack Sparrow" "4"
+allStudents :: [Student]
+allStudents =
+    [ Student "1" "Jerry Mouse" 5 "3"
+    , Student "2" "Tom Cat" 3 "3"
+    , Student "3" "Butch" 3 "3"
+    , Student "4" "Nibbles" 2 "3"
+    , Student "5" "Tyke" 2 "3"
+    , Student "6" "Jack Sparrow" 8 "4"
     ]
 
 storyServer :: TVar DB -> Server StoriesApi
@@ -108,28 +108,41 @@ storyServer tDb token_ =
 
 schoolsServer :: Server SchoolsApi
 schoolsServer Nothing = throwAll err401
-schoolsServer (Just AdminScope) = return schools :<|> serveSchool
+schoolsServer (Just AdminScope) = return schools :<|> specificSchoolServer
 schoolsServer _ = throwAll err403
 
+schoolServer :: Server SchoolApi
+schoolServer Nothing = throwAll err401
+schoolServer (Just (TeacherScope sid)) = specificSchoolServer sid
+schoolServer _ = throwAll err403
 
-serveSchool :: SchoolId -> Server ClassesApi
-serveSchool sid = getClasses sid :<|> getClass sid
+specificSchoolServer :: SchoolId -> Server (ClassesApi :<|> StudentsApi)
+specificSchoolServer sid = classesServer sid :<|> studentsServer sid
+
+classesServer :: SchoolId -> Server ClassesApi
+classesServer sid = getClasses :<|> getClass
   where
-    getClasses :: SchoolId -> Handler [Class]
-    getClasses _ = return classesInSchool
+    getClasses :: Handler [Class]
+    getClasses = return classesInSchool
 
-    getClass :: SchoolId -> ClassId -> Handler Class
-    getClass _ cid =
+    getClass :: ClassId -> Handler Class
+    getClass cid =
         maybe (throwError err404) return $ find (\c -> id (c :: Class) == cid) classesInSchool
 
     classesInSchool = filter (\c -> schoolId (c :: Class) == sid) classes
 
 
-schoolServer :: Server SchoolApi
-schoolServer Nothing = throwAll err401
-schoolServer (Just (TeacherScope sid)) = serveSchool sid
-schoolServer _ = throwAll err403
+studentsServer :: SchoolId -> Server StudentsApi
+studentsServer schoolId_ = getStudents :<|> getStudent
+  where
+    getStudents :: Handler [Student]
+    getStudents = return studentsInSchool
 
+    getStudent :: StudentId -> Handler Student
+    getStudent studentId =
+        maybe (throwError err404) return $ find (\s -> id (s :: Student) == studentId) studentsInSchool
+
+    studentsInSchool = filter (\s -> schoolId (s :: Student) == schoolId_) allStudents
 
 dictServer :: TVar DB -> Server DictApi
 dictServer tDb =
