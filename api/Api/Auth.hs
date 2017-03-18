@@ -14,11 +14,11 @@ import           Servant (Context(..), AuthProtect, err400, errBody)
 import           Servant.Server.Experimental.Auth (AuthServerData, AuthHandler, mkAuthHandler)
 import           Network.Wai (Request, requestHeaders)
 
-import           Api.Types (SchoolId)
+import           Api.Types (SchoolId, StudentId)
 
 data AccessScope
     = TeacherScope SchoolId
-    | StudentScope SchoolId
+    | StudentScope StudentId SchoolId
     | AdminScope
     | EditorScope
 
@@ -34,7 +34,7 @@ authHandler =
             Right "editor" -> return (Just EditorScope)
             Right "admin" -> return (Just AdminScope)
             Right ('t':':':s) -> return . Just . TeacherScope $ pack s
-            Right ('s':':':s) -> return . Just . StudentScope $ pack s
+            Right ('s':':':stid:scid) -> return . Just $ StudentScope (pack [stid]) (pack scid)
             _ -> throwError (err400 {errBody = "Invalid token"})
   in
     mkAuthHandler handler

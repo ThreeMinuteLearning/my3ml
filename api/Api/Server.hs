@@ -43,9 +43,9 @@ loginServer authReq = case lookup (username (authReq :: LoginRequest), password 
         , (("editor", "editor"), Login "eid" "editor" "Mr Ed" editor "editor")
         , (("teacher", "teacher"), Login "tid1" "teacher" "Captain Teach" teacher "t:4")
         , (("mammy", "mammy"), Login "tid2" "mammy" "Mammy Two Shoes" teacher "t:3")
-        , (("jerry", "jerry"), Login "uid1" "jerry" "Jerry Mouse" student "s:3")
-        , (("tom", "tom"), Login "uid2" "tom" "Tom Cat" student "s:3")
-        , (("jack", "jack"), Login "uid3" "jack" "Jack Sparrow" student "s:4")
+        , (("jerry", "jerry"), Login "uid1" "jerry" "Jerry Mouse" student "s:1:3")
+        , (("tom", "tom"), Login "uid2" "tom" "Tom Cat" student "s:2:3")
+        , (("jack", "jack"), Login "uid3" "jack" "Jack Sparrow" student "s:6:4")
         ]
 
 schools :: [School]
