@@ -1,5 +1,6 @@
 module AnswersForm exposing (Model, init, update, view)
 
+import Bootstrap exposing (errorClass, submitButton)
 import Dict
 import Form exposing (Form)
 import Form.Input as Input
@@ -92,9 +93,6 @@ view form =
             , ( toString BreakDown, "Look for parts of words or whole words in the unknown word." )
             , ( toString Substitution, "Imagine the word isn't there and try another word or words in its place." )
             ]
-
-        errorClass maybeError =
-            Maybe.map (\_ -> "has-error") maybeError |> Maybe.withDefault ""
     in
         Html.form []
             [ div [ class "form-group" ]
@@ -106,6 +104,6 @@ view form =
                     [ label [] [ text "Which clarify method worked best for you?" ]
                     , Input.selectInput clarifyMethodOptions (Form.getFieldAsString "clarifyMethod" form) [ class "form-control" ]
                     ]
-                , button [ class "btn btn-primary", type_ "submit", onClick Form.Submit ] [ text "Submit your answers" ]
+                , submitButton "Submit your answers"
                 ]
             ]

@@ -1,9 +1,15 @@
-module Bootstrap exposing (tableCustomizations, toolbar, btnGroup, btn)
+module Bootstrap exposing (errorClass, tableCustomizations, toolbar, btnGroup, btn, submitButton)
 
-import Html exposing (button, div, tr)
-import Html.Attributes exposing (attribute, id, class)
+import Form
+import Html exposing (Html, button, div, text, tr)
+import Html.Attributes exposing (attribute, id, class, type_)
 import Html.Events exposing (onClick)
 import Table
+
+
+submitButton : String -> Html Form.Msg
+submitButton txt =
+    button [ class "btn btn-primary", type_ "submit", onClick Form.Submit ] [ text txt ]
 
 
 toolbar id_ =
@@ -20,6 +26,11 @@ btn action =
 
 role =
     attribute "role"
+
+
+errorClass : Maybe e -> String
+errorClass maybeError =
+    Maybe.map (\_ -> "has-error") maybeError |> Maybe.withDefault ""
 
 
 c =
