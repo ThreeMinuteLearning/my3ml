@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import AddStudentsForm
 import AnswersForm
 import Api
 import Drawer exposing (drawer)
@@ -55,6 +56,8 @@ initSchoolData =
     { classes = RemoteData.Loading
     , students = RemoteData.Loading
     , tableState = Table.initialSort "Name"
+    , action = ViewStudents
+    , addStudentsForm = AddStudentsForm.init
     }
 
 
@@ -176,6 +179,12 @@ updateSchoolData msg sd =
 
         SchoolDataTableState ts ->
             { sd | tableState = ts }
+
+        TeacherAction ta ->
+            { sd | action = ta }
+
+        StudentFormMsg formMsg ->
+            { sd | addStudentsForm = AddStudentsForm.update formMsg sd.addStudentsForm }
 
 
 updateStories : StoriesMsg -> StoryData -> StoryData
