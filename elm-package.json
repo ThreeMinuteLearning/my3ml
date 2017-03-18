@@ -16,6 +16,7 @@
         "evancz/url-parser": "2.0.1 <= v < 3.0.0",
         "evancz/elm-markdown": "3.0.1 <= v < 4.0.0",
         "evancz/elm-sortable-table": "1.0.1 <= v < 2.0.0",
+        "krisajenkins/elm-exts": "27.3.0 <= v < 28.0.0",
         "krisajenkins/remotedata": "4.3.0 <= v < 5.0.0",
         "NoRedInk/elm-decode-pipeline": "3.0.0 <= v < 4.0.0"
     },

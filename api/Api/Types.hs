@@ -9,6 +9,7 @@
 module Api.Types where
 
 import           Data.Aeson (FromJSON, ToJSON)
+import           Data.Time.Clock (UTCTime)
 import qualified Data.Map.Strict as Map
 import           Data.Text (Text)
 import           Elm (ElmType)
@@ -23,7 +24,7 @@ data Story = Story
     , tags :: [Text]
     , level :: Int
     , words :: [DictEntry]
-    , date :: Text
+    , date :: UTCTime
     , content :: Text
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 

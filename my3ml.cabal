@@ -29,6 +29,7 @@ library
                      , servant-server >= 0.9
                      , stm >= 2.4.4
                      , text
+                     , time
                      , transformers >= 0.4.2.0
                      , uuid
                      , wai

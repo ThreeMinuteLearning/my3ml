@@ -28,7 +28,9 @@ specs :: [Spec]
 specs =
     [ Spec ["Api"]
         (
-            [  "import Dict exposing (Dict)"
+            [  "import Date exposing (Date)"
+            ,  "import Dict exposing (Dict)"
+            ,  "import Exts.Json.Decode exposing (decodeDate)"
             ,  defElmImports
             ]
            <> typeSources
