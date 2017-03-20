@@ -25,13 +25,14 @@ import           Api.Auth (AccessScope(..))
 import           Api.Types hiding (AccessToken)
 
 data DB = DB
-    { stories :: Map.Map StoryId Story
+    { allStories :: Map.Map StoryId Story
     , starterStories :: [Story]
     , dictionary :: WordDictionary
+    , trails :: [StoryTrail]
     }
 
 server :: TVar DB -> Server Api
-server tDb = storyServer tDb :<|> dictServer tDb :<|> schoolsServer :<|> schoolServer :<|> loginServer
+server tDb = storyServer tDb :<|> dictServer tDb :<|> schoolsServer :<|> schoolServer :<|> trailsServer tDb :<|> loginServer
 
 loginServer :: Server LoginApi
 loginServer authReq = case lookup (username (authReq :: LoginRequest), password authReq) users of
@@ -84,7 +85,7 @@ storyServer tDb token_ =
             db <- readTVar tDb
             return $ case token_ of
                 Nothing -> starterStories db
-                _ -> Map.elems (stories db)
+                _ -> Map.elems (allStories db)
 
     getStory storyId = do
         story <- withStories (Map.lookup storyId)
@@ -97,14 +98,43 @@ storyServer tDb token_ =
         liftIO . atomically $ do
             db <- readTVar tDb
             let storyWithId = story { id = Just uuid } :: Story
-                newStories  = Map.insert uuid storyWithId (stories db)
-            writeTVar tDb db { stories = newStories }
+                newStories  = Map.insert uuid storyWithId (allStories db)
+            writeTVar tDb db { allStories = newStories }
             return storyWithId
 
     withStories f =
         liftIO . atomically $ do
             db <- readTVar tDb
-            return (f (stories db))
+            return (f (allStories db))
+
+trailsServer :: TVar DB -> Server TrailsApi
+trailsServer _ Nothing = throwAll err401
+trailsServer tDb (Just (TeacherScope sid)) =
+    getTrails tDb sid :<|> createTrail tDb
+trailsServer tDb (Just (StudentScope _ sid)) =
+    getTrails tDb sid :<|> throwAll err403
+trailsServer _ _ = throwAll err403
+
+getTrails :: TVar DB -> SchoolId -> Handler [StoryTrail]
+getTrails tDb schoolId_ = do
+    allTrails <- withDB tDb trails
+    return $ filter (\t -> schoolId (t :: StoryTrail) == schoolId_) allTrails
+
+createTrail :: TVar DB -> StoryTrail -> Handler StoryTrail
+createTrail tDb trail = do
+    uuid <- liftIO (toText <$> nextRandom)
+    liftIO . atomically $ do
+        db <- readTVar tDb
+        let trailWithId = trail { id = Just uuid } :: StoryTrail
+            newTrails = trailWithId : trails db
+        writeTVar tDb db { trails = newTrails }
+        return trailWithId
+
+withDB :: TVar DB -> (DB -> a) -> Handler a
+withDB tDb f =
+    liftIO . atomically $ do
+        db <- readTVar tDb
+        return $ f db
 
 schoolsServer :: Server SchoolsApi
 schoolsServer Nothing = throwAll err401

@@ -50,9 +50,10 @@ main = do
       storyIds = map (fromJust . id) stories'
       starterStories' = take 20 stories'
       db = DB
-          { stories = Map.fromList (zip storyIds stories')
+          { allStories = Map.fromList (zip storyIds stories')
           , starterStories = starterStories'
           , dictionary = dict
+          , trails = []
           }
   tDB <- newTVarIO db
   putStrLn $ "Serving on port " ++ show port ++ "..."

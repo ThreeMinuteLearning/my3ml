@@ -75,6 +75,16 @@ data LoginRequest = LoginRequest
     , password :: Text
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
+data StoryTrail = StoryTrail
+    { id :: Maybe TrailId
+    , name :: Text
+--    , createdBy :: SubjectId
+    , schoolId :: SchoolId
+    , stories :: [StoryId]
+    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
+type TrailId = Text
+
 data Login = Login
     { sub :: SubjectId
     , username :: Text
@@ -142,4 +152,10 @@ type StudentsApi =
         :<|> Capture "studentId" StudentId :> Get '[JSON] Student
         )
 
-type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> LoginApi
+type TrailsApi =
+    "trails" :> AccessTokenAuth :>
+        (    Get '[JSON] [StoryTrail]
+        :<|> ReqBody '[JSON] StoryTrail :> Post '[JSON] StoryTrail
+        )
+
+type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> TrailsApi :<|> LoginApi
