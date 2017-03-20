@@ -79,6 +79,12 @@ pageAllowed page mode =
         ( LoginPage, _ ) ->
             False
 
+        ( LeaderBoardPage, StudentMode _ ) ->
+            True
+
+        ( LeaderBoardPage, _ ) ->
+            False
+
         ( TeacherPage, TeacherMode _ _ ) ->
             True
 
