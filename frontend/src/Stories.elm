@@ -3,8 +3,8 @@ module Stories exposing (tableView, tilesView, viewStory, viewAnswersForm)
 import AnswersForm
 import Api exposing (Story)
 import Bootstrap
-import Html exposing (Html, br, div, img, h2, h3, p, text, tr, li, label, input)
-import Html.Attributes exposing (id, class, for, href, src, style, type_, value)
+import Html exposing (Html, br, div, img, h2, h3, p, text, label, input)
+import Html.Attributes exposing (id, class, for, src, style, type_, value)
 import Html.Events exposing (onInput)
 import Markdown
 import Regex
