@@ -22,7 +22,7 @@ import           Api.Types
 elmOpts :: ElmOptions
 elmOpts =
     defElmOptions
-        { urlPrefix = Static "http://localhost:8000/api" }
+        { urlPrefix = Static "/api" }
 
 specs :: [Spec]
 specs =
