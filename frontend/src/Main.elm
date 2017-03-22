@@ -4,6 +4,7 @@ import AddStudentsForm
 import AnswersForm
 import Api
 import Drawer exposing (drawer)
+import Form
 import Html exposing (Html, div, img, h2, text, li)
 import Html.Attributes exposing (id, class, href, src)
 import Login
@@ -15,6 +16,7 @@ import Routing exposing (Page(..), locationToPage, pageToUrl)
 import Stories
 import Table
 import Teacher
+import Tuple exposing (first)
 import Types exposing (..)
 
 
@@ -58,6 +60,7 @@ initSchoolData =
     , tableState = Table.initialSort "Name"
     , action = ViewStudents
     , addStudentsForm = AddStudentsForm.init
+    , studentAccountsCreated = []
     }
 
 
@@ -160,7 +163,11 @@ update msg m =
         ( SchoolDataMsg sdMsg, mode ) ->
             case mode of
                 TeacherMode u sd ->
-                    { m | mode = TeacherMode u (updateSchoolData sdMsg sd) } ! []
+                    let
+                        ( newSd, cmd ) =
+                            updateSchoolData u sdMsg sd
+                    in
+                        { m | mode = TeacherMode u newSd } ! [ cmd ]
 
                 _ ->
                     -- Shouldn't happen
@@ -174,23 +181,44 @@ update msg m =
             m ! []
 
 
-updateSchoolData : SchoolDataMsg -> SchoolData -> SchoolData
-updateSchoolData msg sd =
+updateSchoolData : User -> SchoolDataMsg -> SchoolData -> ( SchoolData, Cmd Msg )
+updateSchoolData (User _ token) msg sd =
     case msg of
         ClassesResponse cs ->
-            { sd | classes = cs }
+            { sd | classes = cs } ! []
 
         StudentsResponse ss ->
-            { sd | students = ss }
+            { sd | students = ss } ! []
 
         SchoolDataTableState ts ->
-            { sd | tableState = ts }
+            { sd | tableState = ts } ! []
 
         TeacherAction ta ->
-            { sd | action = ta }
+            { sd | action = ta } ! []
 
-        StudentFormMsg formMsg ->
-            { sd | addStudentsForm = AddStudentsForm.update formMsg sd.addStudentsForm }
+        AddStudentsFormMsg formMsg ->
+            case ( formMsg, Form.getOutput sd.addStudentsForm ) of
+                ( Form.Submit, Just newStudents ) ->
+                    { sd | action = ViewStudents, addStudentsForm = AddStudentsForm.init } ! [ Rest.createStudentAccounts token (List.filter (not << String.isEmpty) newStudents) ]
+
+                _ ->
+                    { sd | addStudentsForm = AddStudentsForm.update formMsg sd.addStudentsForm } ! []
+
+        AddStudentsResponse r ->
+            case r of
+                RemoteData.Success newAccounts ->
+                    let
+                        accountsCreated =
+                            newAccounts ++ sd.studentAccountsCreated
+
+                        newStudents =
+                            List.map first newAccounts
+                    in
+                        { sd | studentAccountsCreated = accountsCreated, students = RemoteData.map (List.append newStudents) sd.students } ! []
+
+                -- TODO Post message on failure
+                _ ->
+                    sd ! []
 
 
 updateStories : StoriesMsg -> StoryData -> StoryData

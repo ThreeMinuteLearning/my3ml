@@ -5,7 +5,7 @@ import Api exposing (Class, Student)
 import Bootstrap exposing (toolbar, btnGroup, btn)
 import Dialog
 import Html exposing (Html, div, h3, p, text)
-import Html.Attributes exposing (id)
+import Html.Attributes exposing (id, class)
 import Rest exposing (handleRemoteData)
 import Table
 import Types exposing (User, SchoolData, SchoolDataMsg(..), TeacherAction(..), Msg(..))
@@ -73,9 +73,9 @@ view _ sd =
                         , body =
                             Just <|
                                 div []
-                                    [ p [] [ text "Enter the names of up to ten students you want to add accounts for." ]
+                                    [ p [] [ text "Enter the names of up to ten students you want to add accounts for (one student per input field)." ]
                                     , AddStudentsForm.view sd.addStudentsForm
-                                        |> Html.map (SchoolDataMsg << StudentFormMsg)
+                                        |> Html.map (SchoolDataMsg << AddStudentsFormMsg)
                                     ]
                         , footer = Nothing
                         }
@@ -101,7 +101,47 @@ view _ sd =
 
 viewStudentsTable : SchoolData -> Html Msg
 viewStudentsTable sd =
-    handleRemoteData (Table.view studentsTableConfig sd.tableState) sd.students
+    div []
+        [ viewNewAccounts sd.studentAccountsCreated
+        , handleRemoteData (Table.view studentsTableConfig sd.tableState) sd.students
+        ]
+
+
+viewNewAccounts : List ( Student, ( String, String ) ) -> Html Msg
+viewNewAccounts accounts =
+    let
+        heading =
+            Html.h4 [] [ text "New Accounts Created in this Session" ]
+
+        accountsTable =
+            Html.table [ class "table" ]
+                [ Html.thead []
+                    [ Html.tr []
+                        [ Html.th [] [ text "Name" ]
+                        , Html.th [] [ text "Username" ]
+                        , Html.th [] [ text "Password" ]
+                        ]
+                    ]
+                , Html.tbody [] (List.map accountRow accounts)
+                ]
+
+        accountRow ( student, ( username, password ) ) =
+            Html.tr []
+                [ Html.td [] [ text student.name ]
+                , Html.td [] [ text username ]
+                , Html.td [] [ text password ]
+                ]
+
+        content =
+            case accounts of
+                [] ->
+                    []
+
+                _ ->
+                    [ heading, accountsTable ]
+    in
+        div [ id "newAccounts" ]
+            content
 
 
 viewClassesTable : SchoolData -> Html Msg

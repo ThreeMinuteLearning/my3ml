@@ -150,6 +150,7 @@ type StudentsApi =
     "students" :>
         (    Get '[JSON] [Student]
         :<|> Capture "studentId" StudentId :> Get '[JSON] Student
+        :<|> ReqBody '[JSON] [Text] :> Post '[JSON] [(Student, (Text, Text))]
         )
 
 type TrailsApi =

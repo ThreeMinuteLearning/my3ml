@@ -15,6 +15,7 @@ import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Except (MonadError, throwError)
 import           Data.List (find)
 import qualified Data.Map.Strict as Map
+import           Data.Text (Text)
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Prelude hiding (id)
@@ -152,7 +153,7 @@ specificSchoolServer sid = classesServer sid :<|> studentsServer sid
 classesServer :: SchoolId -> Server ClassesApi
 classesServer sid = getClasses :<|> getClass
   where
-    getClasses :: Handler [Class]
+    getClasses :: (Monad m) => m [Class]
     getClasses = return classesInSchool
 
     getClass :: ClassId -> Handler Class
@@ -163,7 +164,7 @@ classesServer sid = getClasses :<|> getClass
 
 
 studentsServer :: SchoolId -> Server StudentsApi
-studentsServer schoolId_ = getStudents :<|> getStudent
+studentsServer schoolId_ = getStudents :<|> getStudent :<|> mapM createStudent
   where
     getStudents :: Handler [Student]
     getStudents = return studentsInSchool
@@ -173,6 +174,10 @@ studentsServer schoolId_ = getStudents :<|> getStudent
         maybe (throwError err404) return $ find (\s -> id (s :: Student) == studentId) studentsInSchool
 
     studentsInSchool = filter (\s -> schoolId (s :: Student) == schoolId_) allStudents
+
+    createStudent nm = do
+        uuid <- liftIO (toText <$> nextRandom)
+        return (Student uuid nm 5 schoolId_, ("username", "password"))
 
 dictServer :: TVar DB -> Server DictApi
 dictServer tDb =

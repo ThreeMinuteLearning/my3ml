@@ -25,7 +25,8 @@ type SchoolDataMsg
     | StudentsResponse (WebData (List Student))
     | SchoolDataTableState Table.State
     | TeacherAction TeacherAction
-    | StudentFormMsg Form.Msg
+    | AddStudentsFormMsg Form.Msg
+    | AddStudentsResponse (WebData (List ( Student, ( String, String ) )))
 
 
 type StoriesMsg
@@ -77,6 +78,7 @@ type alias SchoolData =
     , tableState : Table.State
     , action : TeacherAction
     , addStudentsForm : AddStudentsForm.Model
+    , studentAccountsCreated : List ( Student, ( String, String ) )
     }
 
 
