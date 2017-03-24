@@ -5,7 +5,7 @@ import Api exposing (Class, Student)
 import Bootstrap exposing (toolbar, btnGroup, btn)
 import Dialog
 import Html exposing (Html, div, h3, p, text)
-import Html.Attributes exposing (id, class)
+import Html.Attributes exposing (id, class, href)
 import Rest exposing (handleRemoteData)
 import Table
 import Types exposing (User, SchoolData, SchoolDataMsg(..), TeacherAction(..), Msg(..))
@@ -103,7 +103,9 @@ viewStudentsTable : SchoolData -> Html Msg
 viewStudentsTable sd =
     div []
         [ viewNewAccounts sd.studentAccountsCreated
-        , handleRemoteData (Table.view studentsTableConfig sd.tableState) sd.students
+        , div [ class "hidden-print" ]
+            [ handleRemoteData (Table.view studentsTableConfig sd.tableState) sd.students
+            ]
         ]
 
 
@@ -112,6 +114,9 @@ viewNewAccounts accounts =
     let
         heading =
             Html.h4 [] [ text "New Accounts Created in this Session" ]
+
+        printButton =
+            Html.a [ href "javascript:window.print()" ] [ text "Print this list" ]
 
         accountsTable =
             Html.table [ class "table" ]
@@ -138,7 +143,7 @@ viewNewAccounts accounts =
                     []
 
                 _ ->
-                    [ heading, accountsTable ]
+                    [ heading, printButton, accountsTable ]
     in
         div [ id "newAccounts" ]
             content

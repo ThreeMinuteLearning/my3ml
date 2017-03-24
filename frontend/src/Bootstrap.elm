@@ -13,7 +13,7 @@ submitButton txt =
 
 
 toolbar id_ =
-    div [ id id_, class "btn-toolbar", role "toolbar" ]
+    div [ id id_, class "btn-toolbar hidden-print", role "toolbar" ]
 
 
 btnGroup =
