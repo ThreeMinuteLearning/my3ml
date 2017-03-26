@@ -6,12 +6,14 @@ import Bootstrap
 import Html exposing (Html, br, div, img, h2, h3, p, text, label, input)
 import Html.Attributes exposing (id, class, for, src, style, type_, value)
 import Html.Events exposing (onInput)
+import Json.Decode as JD
 import Markdown
 import Regex
 import RemoteData exposing (WebData)
 import Rest exposing (handleRemoteData)
 import Routing exposing (pageToUrl, Page(..))
 import Table
+import Tuple exposing (second)
 import Types exposing (Model, Msg(..), StoriesMsg(..), StoryData)
 
 
@@ -125,8 +127,8 @@ viewStory sd id_ =
                 s :: _ ->
                     div [ class "panel panel-default" ]
                         [ h2 [] [ text s.title ]
-                        , div [ id "storypic" ]
-                            [ img [ src ("pix/" ++ s.img) ] []
+                        , div [ id "storypic", picStyle sd.currentPicWidth ]
+                            [ img [ onLoadGetWidth, src ("pix/" ++ s.img) ] []
                             ]
                         , Markdown.toHtml [ id "storycontent" ] s.content
                         , div [ id "storyfooter" ]
@@ -139,6 +141,19 @@ viewStory sd id_ =
 
         _ ->
             text "Stories have not been loaded"
+
+
+picStyle : Int -> Html.Attribute msg
+picStyle width =
+    if width > 0 && width < 300 then
+        style [ ( "float", "right" ) ]
+    else
+        style []
+
+
+onLoadGetWidth : Html.Attribute Msg
+onLoadGetWidth =
+    Html.Events.on "load" (JD.succeed (GetImgWidth "#storypic img"))
 
 
 viewAnswersForm : StoryData -> Html Msg

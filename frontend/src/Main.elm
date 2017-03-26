@@ -10,6 +10,7 @@ import Html.Attributes exposing (id, class, href, src)
 import Login
 import Nav
 import Navigation exposing (Location)
+import Ports exposing (getImgWidth, imgWidth)
 import RemoteData
 import Rest
 import Routing exposing (Page(..), locationToPage, pageToUrl)
@@ -46,6 +47,7 @@ initStoryData : StoryData
 initStoryData =
     { stories = RemoteData.Loading
     , storyFilter = ""
+    , currentPicWidth = 0
     , tableState = Table.initialSort "Title"
     , showDrawer = Nothing
     , answersForm = AnswersForm.init
@@ -173,6 +175,16 @@ update msg m =
                     -- Shouldn't happen
                     m ! []
 
+        ( GetImgWidth s, _ ) ->
+            m ! [ getImgWidth s ]
+
+        ( ImageWidth w, _ ) ->
+            let
+                sd =
+                    m.storyData
+            in
+                { m | storyData = { sd | currentPicWidth = round w } } ! []
+
         ( NoOp, _ ) ->
             m ! []
 
@@ -277,12 +289,19 @@ handleLoginResponse login =
 
 subscriptions : Model -> Sub Msg
 subscriptions m =
-    case m.mode of
-        Anon login ->
-            Sub.batch [ Sub.map LoginMsg (Login.subscriptions login) ]
+    let
+        loginSub =
+            case m.mode of
+                Anon login ->
+                    Sub.map LoginMsg (Login.subscriptions login)
 
-        _ ->
-            Sub.none
+                _ ->
+                    Sub.none
+
+        storyImgSub =
+            imgWidth ImageWidth
+    in
+        Sub.batch [ storyImgSub, loginSub ]
 
 
 view : Model -> Html Msg

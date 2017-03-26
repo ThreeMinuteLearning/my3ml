@@ -17,6 +17,8 @@ type Msg
     | LoginMsg (Login.Msg Api.Login)
     | StoriesMsg StoriesMsg
     | SchoolDataMsg SchoolDataMsg
+    | GetImgWidth String
+    | ImageWidth Float
     | NoOp
 
 
@@ -57,6 +59,7 @@ type alias WordDict =
 type alias StoryData =
     { stories : WebData (List Story)
     , storyFilter : String
+    , currentPicWidth : Int
     , tableState : Table.State
     , showDrawer : Maybe DrawerType
     , answersForm : AnswersForm.Model
