@@ -52,27 +52,27 @@ loginServer authReq = case lookup (username (authReq :: LoginRequest), password 
 
 schools :: [School]
 schools =
-    [ School "3" "T&J Academy"
-    , School "4" "Pirate School"
+    [ School "3" "T&J Academy" Nothing
+    , School "4" "Pirate School" Nothing
     ]
 
 classes :: [Class]
 classes =
-    [ Class "1" "A1" "3" []
-    , Class "2" "A2" "3" []
-    , Class "3" "B1" "3" []
-    , Class "4" "P1" "4" []
-    , Class "5" "P2" "4" []
+    [ Class "1" "A1" Nothing "3" []
+    , Class "2" "A2" Nothing "3" []
+    , Class "3" "B1" Nothing "3" []
+    , Class "4" "P1" Nothing "4" []
+    , Class "5" "P2" Nothing "4" []
     ]
 
 allStudents :: [Student]
 allStudents =
-    [ Student "1" "Jerry Mouse" 5 "3"
-    , Student "2" "Tom Cat" 3 "3"
-    , Student "3" "Butch" 3 "3"
-    , Student "4" "Nibbles" 2 "3"
-    , Student "5" "Tyke" 2 "3"
-    , Student "6" "Jack Sparrow" 8 "4"
+    [ Student "1" "Jerry Mouse" Nothing 5 "3"
+    , Student "2" "Tom Cat" Nothing 3 "3"
+    , Student "3" "Butch" Nothing 3 "3"
+    , Student "4" "Nibbles" Nothing 2 "3"
+    , Student "5" "Tyke" Nothing 2 "3"
+    , Student "6" "Jack Sparrow" Nothing 8 "4"
     ]
 
 storyServer :: TVar DB -> Server StoriesApi
@@ -177,7 +177,7 @@ studentsServer schoolId_ = getStudents :<|> getStudent :<|> mapM createStudent
 
     createStudent nm = do
         uuid <- liftIO (toText <$> nextRandom)
-        return (Student uuid nm 5 schoolId_, ("username", "password"))
+        return (Student uuid nm Nothing 5 schoolId_, ("username", "password"))
 
 dictServer :: TVar DB -> Server DictApi
 dictServer tDb =

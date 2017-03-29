@@ -42,6 +42,7 @@ type WordDictionary = Map.Map Text [WordDefinition]
 data School = School
     { id :: SchoolId
     , name :: Text
+    , description :: Maybe Text
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 type SchoolId = Text
@@ -49,6 +50,7 @@ type SchoolId = Text
 data Class = Class
     { id :: ClassId
     , name :: Text
+    , description :: Maybe Text
     , schoolId :: SchoolId
     , students :: [StudentId]
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
@@ -58,12 +60,14 @@ type ClassId = Text
 data Teacher = Teacher
     { id :: Text
     , name :: Text
+    , bio :: Maybe Text
     , schoolId :: SchoolId
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 data Student = Student
     { id :: StudentId
     , name :: Text
+    , description :: Maybe Text
     , level :: Int
     , schoolId :: SchoolId
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
