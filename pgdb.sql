@@ -1,5 +1,7 @@
 CREATE TYPE user_type AS ENUM ('student', 'teacher', 'admin');
 
+CREATE TYPE dict_entry AS (word text, index smallint);
+
 CREATE TABLE login
     ( id uuid PRIMARY KEY
     , username text NOT NULL UNIQUE CHECK (length(username) > 0)
@@ -11,12 +13,13 @@ CREATE TABLE login
 CREATE TABLE story
     ( id text PRIMARY KEY
     , title text NOT NULL
-    , level integer NOT NULL CHECK (level >= 0 AND level < 10)
+    , img_url text NOT NULL
+    , level smallint NOT NULL CHECK (level >= 0 AND level < 10)
     , curriculum text NOT NULL CHECK (length(curriculum) > 0)
     , tags text[] NOT NULL
-    , json jsonb NOT NULL
+    , content text NOT NULL CHECK (length(content) > 0)
+    , words dict_entry[] NOT NULL
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
-    , updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
 CREATE TABLE school
@@ -44,7 +47,7 @@ CREATE TABLE student
     , sub uuid NOT NULL REFERENCES login
     , name text NOT NULL CHECK (length(name) > 0)
     , description text
-    , level integer NOT NULL CHECK (level >= 0 AND level < 10)
+    , level smallint NOT NULL CHECK (level >= 0 AND level < 10)
     , school_id uuid NOT NULL REFERENCES school
     );
 

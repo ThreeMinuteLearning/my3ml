@@ -19,13 +19,14 @@ import           Servant ((:<|>), (:>), AuthProtect, Capture, ReqBody, Post, Get
 
 data Story = Story
     { id :: Maybe StoryId
-    , img :: Text
     , title :: Text
-    , tags :: [Text]
+    , img :: Text
     , level :: Int
+    , curriculum :: Text
+    , tags :: [Text]
+    , content :: Text
     , words :: [DictEntry]
     , date :: UTCTime
-    , content :: Text
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 data DictEntry = DictEntry
