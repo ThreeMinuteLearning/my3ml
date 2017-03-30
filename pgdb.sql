@@ -1,4 +1,4 @@
-CREATE TYPE user_type AS ENUM ('student', 'teacher', 'admin');
+CREATE TYPE user_type AS ENUM ('Student', 'Teacher', 'Admin');
 
 CREATE TYPE dict_entry AS (word text, index smallint);
 
@@ -25,6 +25,7 @@ CREATE TABLE story
 CREATE TABLE school
     ( id uuid PRIMARY KEY
     , name text NOT NULL CHECK (length(name) > 0)
+    , description text
     );
 
 CREATE TABLE class
@@ -44,10 +45,10 @@ CREATE TABLE teacher
 
 CREATE TABLE student
     ( id uuid PRIMARY KEY
-    , sub uuid NOT NULL REFERENCES login
     , name text NOT NULL CHECK (length(name) > 0)
     , description text
     , level smallint NOT NULL CHECK (level >= 0 AND level < 10)
+    , sub uuid NOT NULL REFERENCES login
     , school_id uuid NOT NULL REFERENCES school
     );
 

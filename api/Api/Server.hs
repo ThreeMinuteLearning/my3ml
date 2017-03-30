@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -15,7 +16,6 @@ import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Except (MonadError, throwError)
 import           Data.List (find)
 import qualified Data.Map.Strict as Map
-import           Data.Text (Text)
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Prelude hiding (id)
@@ -36,7 +36,7 @@ server :: TVar DB -> Server Api
 server tDb = storyServer tDb :<|> dictServer tDb :<|> schoolsServer :<|> schoolServer :<|> trailsServer tDb :<|> loginServer
 
 loginServer :: Server LoginApi
-loginServer authReq = case lookup (username (authReq :: LoginRequest), password authReq) users of
+loginServer authReq = case lookup (username (authReq :: LoginRequest), password (authReq :: LoginRequest)) users of
     Nothing -> throwError err401
     Just r -> return r
   where
@@ -67,12 +67,12 @@ classes =
 
 allStudents :: [Student]
 allStudents =
-    [ Student "1" "Jerry Mouse" Nothing 5 "3"
-    , Student "2" "Tom Cat" Nothing 3 "3"
-    , Student "3" "Butch" Nothing 3 "3"
-    , Student "4" "Nibbles" Nothing 2 "3"
-    , Student "5" "Tyke" Nothing 2 "3"
-    , Student "6" "Jack Sparrow" Nothing 8 "4"
+    [ Student "1" "Jerry Mouse" Nothing 5 "" "3"
+    , Student "2" "Tom Cat" Nothing 3 "" "3"
+    , Student "3" "Butch" Nothing 3 "" "3"
+    , Student "4" "Nibbles" Nothing 2 "" "3"
+    , Student "5" "Tyke" Nothing 2 "" "3"
+    , Student "6" "Jack Sparrow" Nothing 8 "" "4"
     ]
 
 storyServer :: TVar DB -> Server StoriesApi
@@ -177,7 +177,7 @@ studentsServer schoolId_ = getStudents :<|> getStudent :<|> mapM createStudent
 
     createStudent nm = do
         uuid <- liftIO (toText <$> nextRandom)
-        return (Student uuid nm Nothing 5 schoolId_, ("username", "password"))
+        return (Student uuid nm Nothing 5 "" schoolId_, ("username", "password"))
 
 dictServer :: TVar DB -> Server DictApi
 dictServer tDb =

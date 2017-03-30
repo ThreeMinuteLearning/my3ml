@@ -70,6 +70,7 @@ data Student = Student
     , name :: Text
     , description :: Maybe Text
     , level :: Int
+    , accountId :: SubjectId
     , schoolId :: SchoolId
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
@@ -89,6 +90,13 @@ data StoryTrail = StoryTrail
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 type TrailId = Text
+
+data Account = Account
+    { id :: SubjectId
+    , username :: Text
+    , password :: Text
+    , role :: UserType
+    }
 
 data Login = Login
     { sub :: SubjectId
