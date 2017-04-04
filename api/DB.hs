@@ -4,7 +4,7 @@ module DB where
 
 import           Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import           Control.Monad.IO.Class (liftIO, MonadIO)
-import           Data.Maybe (fromJust, fromMaybe)
+import           Data.Maybe (fromMaybe)
 import           Data.List (find)
 import qualified Data.Map.Strict as Map
 import           Data.Text (Text)
@@ -72,7 +72,7 @@ updateDB (AtomicDB tDB) f =
         writeTVar tDB (f db)
 
 storyId :: Story -> Text
-storyId = fromJust . (id :: Story -> Maybe Text)
+storyId = id :: Story -> Text
 
 instance DB AtomicDB where
     getStories db = Map.elems <$> withDB db stories

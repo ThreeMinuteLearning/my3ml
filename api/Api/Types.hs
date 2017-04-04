@@ -18,7 +18,7 @@ import           Prelude hiding (id)
 import           Servant ((:<|>), (:>), AuthProtect, Capture, ReqBody, Post, Get, JSON)
 
 data Story = Story
-    { id :: Maybe StoryId
+    { id :: StoryId
     , title :: Text
     , img :: Text
     , level :: Int

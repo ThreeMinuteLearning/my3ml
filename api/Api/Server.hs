@@ -61,7 +61,7 @@ storyServer db token_ =
 
     createStory story = do
         uuid <- liftIO (toText <$> nextRandom)
-        let storyWithId = story { id = Just uuid } :: Story
+        let storyWithId = story { id = uuid } :: Story
         _ <- DB.createStory db storyWithId
         return storyWithId
 

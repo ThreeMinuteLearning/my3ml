@@ -13,7 +13,6 @@ import RemoteData exposing (WebData)
 import Rest exposing (handleRemoteData)
 import Routing exposing (pageToUrl, Page(..))
 import Table
-import Tuple exposing (second)
 import Types exposing (Model, Msg(..), StoriesMsg(..), StoryData)
 
 
@@ -30,7 +29,7 @@ tilesView sd =
             style [ ( "background", "url(pix/" ++ s.img ++ ")" ), ( "background-size", "cover" ) ]
 
         storyTile s =
-            Html.a [ class "storytile", storyStyle s, Html.Attributes.href (pageToUrl (StoryPage (Maybe.withDefault "1" s.id))) ]
+            Html.a [ class "storytile", storyStyle s, Html.Attributes.href (pageToUrl (StoryPage s.id)) ]
                 [ h3 [] [ text s.title ] ]
     in
         [ stories_ ]
@@ -66,11 +65,11 @@ tableConfig =
         viewStoryLink : Story -> Table.HtmlDetails Msg
         viewStoryLink s =
             Table.HtmlDetails []
-                [ Html.a [ Html.Attributes.href (pageToUrl (StoryPage (Maybe.withDefault "1" s.id))) ] [ text s.title ]
+                [ Html.a [ Html.Attributes.href (pageToUrl (StoryPage s.id)) ] [ text s.title ]
                 ]
     in
         Table.customConfig
-            { toId = Maybe.withDefault "" << .id
+            { toId = .id
             , toMsg = StoriesMsg << SetTableState
             , columns =
                 [ storyTitleColumn
@@ -123,7 +122,7 @@ viewStory : StoryData -> String -> Html Msg
 viewStory sd id_ =
     case sd.stories of
         RemoteData.Success stories ->
-            case List.filter (\s -> s.id == Just id_) stories of
+            case List.filter (\s -> s.id == id_) stories of
                 s :: _ ->
                     div [ class "panel panel-default" ]
                         [ h2 [] [ text s.title ]

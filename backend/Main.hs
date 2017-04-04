@@ -8,9 +8,7 @@ module Main where
 import qualified Data.Aeson as J
 import qualified Data.ByteString as B
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust)
 import           Prelude hiding (id)
-import           Network.Wai (Application)
 import           Network.Wai.Handler.Warp (run)
 import           Servant ((:<|>) ((:<|>)), (:>), Proxy (Proxy), Raw, Server, serveWithContext, serveDirectory)
 
@@ -44,7 +42,7 @@ main = do
       dict = case J.eitherDecodeStrict dictFile of
           Right d -> d
           Left e -> error $ "Failed to decode dictionary" ++ show e
-      storyIds = map (fromJust . id) stories'
+      storyIds = map id stories'
       starterStories' = take 20 stories'
       db = InMemoryDB
           { stories = Map.fromList (zip storyIds stories')

@@ -5,7 +5,6 @@ module HasqlDB where
 import           Control.Monad (replicateM)
 import           Data.Functor.Contravariant
 import           Data.List (foldl')
-import           Data.Maybe (fromJust)
 import           Data.Monoid
 import           Data.Text (Text)
 import qualified Data.UUID as UUID
@@ -50,7 +49,7 @@ selectAllStories =
     array v = D.value (D.array (D.arrayDimension replicateM (D.arrayValue v)))
 
     decoder = Story
-        <$> (Just <$> dvText)
+        <$> dvText
         <*> dvText
         <*> dvText
         <*> (fromIntegral <$> D.value D.int2)
@@ -72,7 +71,7 @@ updateStory = Q.statement sql storyEncoder D.unit True
     sql = "UPDATE story SET title=$2, img_url=$3, level=$4, curriculum=$5, tags=$6, content=$7, words=(array(select word::dict_entry from unnest ($8, $9) as word)) WHERE id=$1"
 
 storyEncoder :: E.Params Story
-storyEncoder = contramap (fromJust . storyId) evText
+storyEncoder = contramap (id :: Story -> Text) evText
     <> contramap title evText
     <> contramap img evText
     <> contramap (fromIntegral . storyLevel) (E.value E.int4)
@@ -84,7 +83,6 @@ storyEncoder = contramap (fromJust . storyId) evText
     <> contramap date (E.value E.timestamptz)
   where
     array v = E.value (E.array (E.arrayDimension foldl' (E.arrayValue v)))
-    storyId = id :: Story -> Maybe Text
     storyLevel = level :: Story -> Int
 
 -- School
