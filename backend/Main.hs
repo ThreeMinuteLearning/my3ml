@@ -5,7 +5,6 @@
 
 module Main where
 
-import           Control.Concurrent.STM (TVar, newTVarIO)
 import qualified Data.Aeson as J
 import qualified Data.ByteString as B
 import qualified Data.Map.Strict as Map
@@ -15,10 +14,11 @@ import           Network.Wai (Application)
 import           Network.Wai.Handler.Warp (run)
 import           Servant ((:<|>) ((:<|>)), (:>), Proxy (Proxy), Raw, Server, serveWithContext, serveDirectory)
 
-import           Api.Server (DB (..))
 import qualified Api.Server
 import           Api.Auth (authServerContext)
 import           Api.Types (Api, Story (..))
+import           DB
+import qualified TestData
 
 type SiteApi =  "api" :> Api
             :<|> Raw
@@ -26,14 +26,11 @@ type SiteApi =  "api" :> Api
 siteApi :: Proxy SiteApi
 siteApi = Proxy
 
-server :: TVar DB -> Server SiteApi
+server :: DB db => db -> Server SiteApi
 server db = apiServer :<|> assets
   where
     apiServer = Api.Server.server db
     assets = serveDirectory "assets"
-
-app :: TVar DB -> Application
-app db = serveWithContext siteApi authServerContext (server db)
 
 main :: IO ()
 main = do
@@ -49,12 +46,15 @@ main = do
           Left e -> error $ "Failed to decode dictionary" ++ show e
       storyIds = map (fromJust . id) stories'
       starterStories' = take 20 stories'
-      db = DB
-          { allStories = Map.fromList (zip storyIds stories')
-          , starterStories = starterStories'
+      db = InMemoryDB
+          { stories = Map.fromList (zip storyIds stories')
+          , sampleStories = starterStories'
           , dictionary = dict
           , trails = []
+          , schools = TestData.schools
+          , classes = TestData.classes
+          , students = TestData.students
           }
-  tDB <- newTVarIO db
   putStrLn $ "Serving on port " ++ show port ++ "..."
-  run port (app tDB)
+  adb <- mkDB db
+  run port $ serveWithContext siteApi authServerContext (server adb)

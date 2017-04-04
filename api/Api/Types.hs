@@ -82,7 +82,7 @@ data LoginRequest = LoginRequest
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 data StoryTrail = StoryTrail
-    { id :: Maybe TrailId
+    { id :: TrailId
     , name :: Text
 --    , createdBy :: SubjectId
     , schoolId :: SchoolId
