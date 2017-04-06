@@ -15,11 +15,9 @@ import Api.Types
 class DB backend where
     getStories :: MonadIO m => backend -> m [Story]
 
-    getSampleStories :: MonadIO m => backend -> m [Story]
-
     getStory :: MonadIO m => backend -> StoryId -> m (Maybe Story)
 
-    createStory :: MonadIO m => backend -> Story -> m Story
+    createStory :: MonadIO m => backend -> Story -> m ()
 
     getSchools :: MonadIO m => backend -> m [School]
 
@@ -27,9 +25,9 @@ class DB backend where
 
     getTrails :: MonadIO m => backend -> SchoolId -> m [StoryTrail]
 
-    createTrail :: MonadIO m => backend -> StoryTrail -> m StoryTrail
+    createTrail :: MonadIO m => backend -> StoryTrail -> m ()
 
-    deleteTrail :: MonadIO m => backend -> TrailId -> m (Either String ())
+    deleteTrail :: MonadIO m => backend -> TrailId -> m ()
 
     getClasses :: MonadIO m => backend -> SchoolId -> m [Class]
 
@@ -38,6 +36,8 @@ class DB backend where
     getStudents :: MonadIO m => backend -> SchoolId -> m [Student]
 
     getStudent :: MonadIO m => backend -> SchoolId -> StudentId -> m (Maybe Student)
+
+    createStudent :: MonadIO m => backend -> Student -> m ()
 
     getDictionary :: MonadIO m => backend -> m WordDictionary
 
@@ -75,31 +75,26 @@ storyId :: Story -> Text
 storyId = id :: Story -> Text
 
 instance DB AtomicDB where
-    getStories db = Map.elems <$> withDB db stories
-
-    getSampleStories db = withDB db sampleStories
+    getStories db =  Map.elems <$> withDB db stories
 
     getStory db sid = Map.lookup sid <$> withDB db stories
 
-    createStory db story = do
+    createStory db story =
         updateDB db $ \d ->
             let newStories = Map.insert (storyId story) story (stories (d ::InMemoryDB))
             in  d { stories = newStories }
-        return story
 
     getTrails db sid = filter (\t -> schoolId (t :: StoryTrail) == sid) <$> withDB db trails
 
-    createTrail db trail = do
+    createTrail db trail =
         updateDB db $ \d ->
             let newTrails = trail : trails d
             in  d { trails = newTrails }
-        return trail
 
-    deleteTrail db trid = do
+    deleteTrail db trid =
         updateDB db $ \d ->
             let newTrails = filter (\t -> id (t :: StoryTrail) /= trid) (trails d)
             in  d { trails = newTrails }
-        return $ Right ()
 
     getSchools db = withDB db schools
 
@@ -113,6 +108,11 @@ instance DB AtomicDB where
     getStudent db schoolId_ studentId_ = do
         studs <- getStudents db schoolId_
         return $ find (\s -> id (s :: Student) == studentId_) studs
+
+    createStudent db s =
+        updateDB db $ \d ->
+            let newStudents = s : students (d :: InMemoryDB)
+            in  d { students = newStudents }
 
     getDictionary db = withDB db dictionary
 

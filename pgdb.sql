@@ -60,4 +60,13 @@ CREATE TABLE student_class
 CREATE TABLE trail
     ( id uuid PRIMARY KEY
     , name text NOT NULL CHECK (length(name) > 0)
+    , school_id uuid NOT NULL REFERENCES school
+    , stories uuid[] NOT NULL
+    );
+
+CREATE TABLE dict
+    ( word text NOT NULL
+    , index smallint NOT NULL
+    , definition text NOT NULL
+    , uses_words dict_entry[] NOT NULL
     );

@@ -31,7 +31,9 @@ library
                      , contravariant >= 1.4
                      , elm-export
                      , hasql >= 0.19
+                     , hasql-pool
                      , mtl
+                     , safe-exceptions >= 0.1.4
                      , servant-server >= 0.9
                      , stm >= 2.4.4
                      , text
