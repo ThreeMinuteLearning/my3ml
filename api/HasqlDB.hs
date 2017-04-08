@@ -310,3 +310,16 @@ selectWord = Q.statement sql evText decode True
           \ WHERE word = $1 \
           \ ORDER BY index"
     decode = D.rowsList $ D.value D.int2 >> (,) <$> dvText <*> dArray dictEntryTupleValue
+
+insertWordDefinition :: Query (Text, WordDefinition) ()
+insertWordDefinition = Q.statement sql encoder D.unit True
+  where
+    sql = "INSERT INTO dict (word, index, definition, uses_words) \
+          \ VALUES ($1, \
+              \ (SELECT coalesce(max(index)+1, 0) FROM dict WHERE word = $1), \
+              \ $2, \
+              \ array(SELECT word::dict_entry FROM unnest ($3, $4) AS word))"
+    encoder = contramap fst evText
+        <> contramap (fst . snd) evText
+        <> contramap (map fst . snd . snd) (eArray E.text)
+        <> contramap (map (fromIntegral . snd) . snd . snd) (eArray E.int2)
