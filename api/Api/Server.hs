@@ -116,9 +116,16 @@ studentsServer db schoolId_ = DB.getStudents db schoolId_ :<|> getStudent :<|> m
         s <- DB.getStudent db schoolId_ studentId
         maybe (throwError err404) return s
 
+    generateUsername nm = return nm
+
+    generatePassword = return "password"
+
     createStudent nm = do
         uuid <- liftIO (toText <$> nextRandom)
-        return (Student uuid nm Nothing 5 "" schoolId_, ("username", "password"))
+        username <- generateUsername nm
+        password <- generatePassword
+
+        return (Student uuid nm Nothing 5 schoolId_, ("username", "password"))
 
 dictServer :: DB.DB backend => backend -> Server DictApi
 dictServer db =

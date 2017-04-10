@@ -13,6 +13,7 @@ import           Data.List (foldl', groupBy)
 import qualified Data.Map.Strict as Map
 import           Data.Monoid
 import           Data.Text (Text)
+import qualified Data.Text as T
 import qualified Data.UUID as UUID
 import           Hasql.Query (Query)
 import           Hasql.Pool (Pool, use)
@@ -28,6 +29,8 @@ import DB
 newtype HasqlDB = H Pool
 
 instance DB HasqlDB where
+    getAccountByUsername = runQuery selectAccountByUsername
+
     getStories db = runQuery selectAllStories db ()
 
     getStory = runQuery selectStoryById
@@ -54,7 +57,9 @@ instance DB HasqlDB where
 
     getStudent db schoolId_ studentId_ = runQuery selectStudentById  db (studentId_, schoolId_)
 
-    createStudent = runQuery insertStudent
+    createStudent db stdnt creds = runSession db $ do
+        subId <- S.query creds insertStudentAccount
+        S.query (stdnt, subId) insertStudent
 
     getDictionary db = do
         elts <- groupBy ((==) `on` fst) <$> runQuery selectDictionary db ()
@@ -69,12 +74,14 @@ dictWord [] = ("", []) -- shouldn't happen
 
 
 runQuery :: MonadIO m => Query p a -> HasqlDB -> p -> m a
-runQuery q (H pool) p = liftIO $ do
-    result <- use pool (S.query p q)
-    case result of
-      Left e -> liftIO $ throwString (show e)
-      Right r -> return r
+runQuery q db p = runSession db (S.query p q)
 
+runSession :: MonadIO m => HasqlDB -> S.Session a -> m a
+runSession (H pool) s = liftIO $ do
+    result <- use pool s
+    case result of
+        Left e -> liftIO $ throwString (show e)
+        Right r -> return r
 
 dvText :: D.Row Text
 dvText = D.value D.text
@@ -98,16 +105,33 @@ dictEntryValue = D.composite (DictEntry <$> D.compositeValue D.text <*> (fromInt
 dictEntryTupleValue :: D.Value (Text, Int)
 dictEntryTupleValue = D.composite ((,) <$> D.compositeValue D.text <*> (fromIntegral <$> D.compositeValue D.int2))
 
+userTypeValue :: D.Value UserType
+userTypeValue = D.composite (uType <$> D.compositeValue D.text)
+  where
+    uType t = case T.unpack t of
+        "Teacher" -> teacher
+        "Admin" -> admin
+        "Editor" -> editor
+        _ -> student
+
+
 -- User accounts
 
-insertAccount :: Query Account ()
-insertAccount = Q.statement sql encode D.unit True
+selectAccountByUsername :: Query Text (Maybe Account)
+selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
   where
-    sql = "INSERT INTO login (id, username, password, user_type) VALUES ($1 :: uuid, $2, $3, $4 :: user_type)"
-    encode = contramap (id :: Account -> Text) evText
-        <> contramap (username :: Account -> Text) evText
-        <> contramap (password :: Account -> Text) evText
-        <> contramap (userType . (role :: Account -> UserType)) evText
+    sql = "SELECT (id, username, password, user_type) FROM login WHERE username = $1"
+    decode = Account
+        <$> dvUUID
+        <*> dvText
+        <*> dvText
+        <*> D.value userTypeValue
+
+insertStudentAccount :: Query (Text, Text) UUID.UUID
+insertStudentAccount = Q.statement sql encode (D.singleRow (D.value D.uuid))True
+  where
+    sql = "INSERT INTO login (username, password) VALUES ($1, $2) RETURNING id"
+    encode = contramap fst evText <> contramap snd evText
 
 -- Stories
 
@@ -192,18 +216,17 @@ studentRow = Student
     <*> D.nullableValue D.text
     <*> (fromIntegral <$> D.value D.int2)
     <*> dvUUID
-    <*> dvUUID
 
-insertStudent :: Query Student ()
+insertStudent :: Query (Student, UUID.UUID) ()
 insertStudent = Q.statement sql encode D.unit True
   where
-    sql = "INSERT INTO student (id, name, description, level, sub, school_id) values ($1 :: uuid, $2, $3, $4, $5 :: uuid, $6 :: uuid)"
-    encode = contramap (id :: Student -> Text) evText
-        <> contramap (name :: Student -> Text) evText
-        <> contramap (description :: Student -> Maybe Text) (E.nullableValue E.text)
-        <> contramap (fromIntegral . (level :: Student -> Int)) (E.value E.int4)
-        <> contramap (accountId :: Student -> SubjectId) evText
-        <> contramap (schoolId :: Student -> SchoolId) evText
+    sql = "INSERT INTO student (id, name, description, level, sub, school_id) values ($1 :: uuid, $2, $3, $4, $5, $6 :: uuid)"
+    encode = contramap ((id :: Student -> Text) . fst) evText
+        <> contramap ((name :: Student -> Text) . fst) evText
+        <> contramap ((description :: Student -> Maybe Text) . fst) (E.nullableValue E.text)
+        <> contramap ((fromIntegral . (level :: Student -> Int)) . fst) (E.value E.int4)
+        <> contramap snd (E.value E.uuid)
+        <> contramap ((schoolId :: Student -> SchoolId) . fst) evText
 
 
 -- Schools

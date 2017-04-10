@@ -70,7 +70,6 @@ data Student = Student
     , name :: Text
     , description :: Maybe Text
     , level :: Int
-    , accountId :: SubjectId
     , schoolId :: SchoolId
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 

@@ -13,6 +13,8 @@ import           Prelude hiding (id)
 import Api.Types
 
 class DB backend where
+    getAccountByUsername :: MonadIO m => backend -> Text -> m (Maybe Account)
+
     getStories :: MonadIO m => backend -> m [Story]
 
     getStory :: MonadIO m => backend -> StoryId -> m (Maybe Story)
@@ -37,7 +39,7 @@ class DB backend where
 
     getStudent :: MonadIO m => backend -> SchoolId -> StudentId -> m (Maybe Student)
 
-    createStudent :: MonadIO m => backend -> Student -> m ()
+    createStudent :: MonadIO m => backend -> Student -> (Text, Text) -> m ()
 
     getDictionary :: MonadIO m => backend -> m WordDictionary
 
@@ -109,7 +111,7 @@ instance DB AtomicDB where
         studs <- getStudents db schoolId_
         return $ find (\s -> id (s :: Student) == studentId_) studs
 
-    createStudent db s =
+    createStudent db s creds =
         updateDB db $ \d ->
             let newStudents = s : students (d :: InMemoryDB)
             in  d { students = newStudents }

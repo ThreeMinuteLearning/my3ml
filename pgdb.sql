@@ -2,11 +2,13 @@ CREATE TYPE user_type AS ENUM ('Student', 'Teacher', 'Admin');
 
 CREATE TYPE dict_entry AS (word text, index smallint);
 
+CREATE EXTENSION "uuid-ossp";
+
 CREATE TABLE login
-    ( id uuid PRIMARY KEY
+    ( id uuid DEFAULT uuid_generate_v4() PRIMARY KEY
     , username text NOT NULL UNIQUE CHECK (length(username) > 0)
     , password text NOT NULL CHECK (length(password) > 0)
-    , user_type user_type NOT NULL
+    , user_type user_type DEFAULT 'Student' NOT NULL
     , otp_key text
     );
 
@@ -66,7 +68,7 @@ CREATE TABLE trail
 
 CREATE TABLE dict
     ( word text NOT NULL
-    , index smallint NOT NULL
+    , index smallint NOT NULL check (index >= 0 AND index < 20)
     , definition text NOT NULL
     , uses_words dict_entry[] NOT NULL
     );
