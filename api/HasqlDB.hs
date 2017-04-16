@@ -6,6 +6,7 @@ import           Control.Exception.Safe
 import           Control.Monad (when, replicateM)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as BC
 import           Data.Functor.Contravariant
 import           Data.Function (on)
 import           Data.Int (Int64)
@@ -16,7 +17,7 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.UUID as UUID
 import           Hasql.Query (Query)
-import           Hasql.Pool (Pool, use)
+import           Hasql.Pool (Pool, use, acquire)
 import qualified Hasql.Query as Q
 import qualified Hasql.Encoders as E
 import qualified Hasql.Decoders as D
@@ -25,6 +26,10 @@ import           Prelude hiding (id, words)
 
 import Api.Types
 import DB
+
+
+mkDB :: String -> IO HasqlDB
+mkDB connStr = H <$> acquire (10, 120, BC.pack connStr)
 
 newtype HasqlDB = H Pool
 
@@ -55,11 +60,15 @@ instance DB HasqlDB where
 
     getStudents = runQuery selectStudentsBySchool
 
-    getStudent db schoolId_ studentId_ = runQuery selectStudentById  db (studentId_, schoolId_)
+    getStudent db schoolId_ studentId_ = runQuery selectStudentById db (studentId_, schoolId_)
+
+    getStudentBySubjectId = runQuery selectStudentBySubjectId
 
     createStudent db stdnt creds = runSession db $ do
         subId <- S.query creds insertStudentAccount
         S.query (stdnt, subId) insertStudent
+
+    getTeacherBySubjectId = runQuery selectTeacherBySubjectId
 
     getDictionary db = do
         elts <- groupBy ((==) `on` fst) <$> runQuery selectDictionary db ()
@@ -105,8 +114,10 @@ dictEntryValue = D.composite (DictEntry <$> D.compositeValue D.text <*> (fromInt
 dictEntryTupleValue :: D.Value (Text, Int)
 dictEntryTupleValue = D.composite ((,) <$> D.compositeValue D.text <*> (fromIntegral <$> D.compositeValue D.int2))
 
-userTypeValue :: D.Value UserType
-userTypeValue = D.composite (uType <$> D.compositeValue D.text)
+
+userTypeValue :: D.Row UserType
+userTypeValue = -- D.composite (uType <$> D.compositeValue D.text)
+    uType <$> dvText
   where
     uType t = case T.unpack t of
         "Teacher" -> teacher
@@ -114,18 +125,17 @@ userTypeValue = D.composite (uType <$> D.compositeValue D.text)
         "Editor" -> editor
         _ -> student
 
-
 -- User accounts
 
 selectAccountByUsername :: Query Text (Maybe Account)
 selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
   where
-    sql = "SELECT (id, username, password, user_type) FROM login WHERE username = $1"
+    sql = "SELECT id, username, password, user_type :: text FROM login WHERE username = $1"
     decode = Account
         <$> dvUUID
         <*> dvText
         <*> dvText
-        <*> D.value userTypeValue
+        <*> userTypeValue
 
 insertStudentAccount :: Query (Text, Text) UUID.UUID
 insertStudentAccount = Q.statement sql encode (D.singleRow (D.value D.uuid))True
@@ -193,10 +203,27 @@ insertSchool = Q.statement sql encode D.unit True
         <> contramap (name :: School -> Text) evText
         <> contramap (description :: School -> Maybe Text) (E.nullableValue E.text)
 
+-- Teachers
+
+selectTeacherSql :: ByteString
+selectTeacherSql = "SELECT id, name, bio, school_id FROM teacher"
+
+selectTeacherBySubjectId :: Query SubjectId Teacher
+selectTeacherBySubjectId = Q.statement sql evText (D.singleRow teacherRow) True
+  where
+    sql = selectTeacherSql <> " WHERE sub = $1 :: uuid"
+
+teacherRow :: D.Row Teacher
+teacherRow = Teacher
+    <$> dvUUID
+    <*> dvText
+    <*> D.nullableValue D.text
+    <*> dvUUID
+
 -- Students
 
 selectStudentSql :: ByteString
-selectStudentSql = "SELECT id, name, description, level, sub, school_id FROM student"
+selectStudentSql = "SELECT id, name, description, level, school_id FROM student"
 
 selectStudentsBySchool :: Query SchoolId [Student]
 selectStudentsBySchool = Q.statement sql evText (D.rowsList studentRow) True
@@ -208,6 +235,11 @@ selectStudentById = Q.statement sql encode (D.maybeRow studentRow) True
   where
     sql = selectStudentSql <> " WHERE id = $1 :: uuid AND school_id = $2 :: uuid"
     encode = contramap fst evText <> contramap snd evText
+
+selectStudentBySubjectId :: Query SubjectId Student
+selectStudentBySubjectId = Q.statement sql evText (D.singleRow studentRow) True
+  where
+    sql = selectStudentSql <> " WHERE sub = $1 :: uuid"
 
 studentRow :: D.Row Student
 studentRow = Student

@@ -9,36 +9,50 @@ module Api.Server
     ( server
     ) where
 
+import           Control.Monad (unless)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Except (MonadError, throwError)
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
+import           Jose.Jwk
 import           Prelude hiding (id)
 import           Servant ((:<|>) ((:<|>)), Server, ServantErr, err401, err403, err404, errBody, Handler)
 
-import           Api.Auth (AccessScope(..))
+import           Api.Auth (AccessScope(..), mkAccessToken)
 import           Api.Types hiding (AccessToken)
 import qualified DB
 
+server :: DB.DB backend => backend -> Jwk -> Server Api
+server db key = storyServer db :<|> dictServer db :<|> schoolsServer db :<|> schoolServer db :<|> trailsServer db :<|> loginServer db key
 
-server :: DB.DB backend => backend -> Server Api
-server db = storyServer db :<|> dictServer db :<|> schoolsServer db :<|> schoolServer db :<|> trailsServer db :<|> loginServer
 
+loginServer :: DB.DB backend => backend -> Jwk -> Server LoginApi
+loginServer db key authReq = do
+    user <- DB.getAccountByUsername db uName
+    case user of
+        Nothing -> throwError err401
+        Just a -> do
+            unless (validatePassword (password (a :: Account)) (password (authReq :: LoginRequest)))
+                (throwError err401)
+            (accessToken, nm) <- liftIO $ createToken a
 
-loginServer :: Server LoginApi
-loginServer authReq = case lookup (username (authReq :: LoginRequest), password (authReq :: LoginRequest)) users of
-    Nothing -> throwError err401
-    Just r -> return r
+            return $ Login (id (a :: Account)) uName nm (role (a :: Account)) accessToken
   where
-    users =
-        [ (("admin", "admin"), Login "aid" "admin" "Dr Admin" admin "admin")
-        , (("editor", "editor"), Login "eid" "editor" "Mr Ed" editor "editor")
-        , (("teacher", "teacher"), Login "tid1" "teacher" "Captain Teach" teacher "t:4")
-        , (("mammy", "mammy"), Login "tid2" "mammy" "Mammy Two Shoes" teacher "t:3")
-        , (("jerry", "jerry"), Login "uid1" "jerry" "Jerry Mouse" student "s:1:3")
-        , (("tom", "tom"), Login "uid2" "tom" "Tom Cat" student "s:2:3")
-        , (("jack", "jack"), Login "uid3" "jack" "Jack Sparrow" student "s:6:4")
-        ]
+    uName = username (authReq :: LoginRequest)
+
+    validatePassword passwd encodedPasswd = passwd == encodedPasswd
+
+    createToken acct = do
+        let subId = id (acct :: Account)
+        (scope, nm) <- case userType (role (acct :: Account)) of
+            "Student" -> do
+                 stdnt <- DB.getStudentBySubjectId db subId
+                 return (StudentScope subId (schoolId (stdnt :: Student)), name (stdnt :: Student))
+            "Teacher" -> do
+                 teachr <- DB.getTeacherBySubjectId db subId
+                 return (TeacherScope subId (schoolId (teachr :: Teacher)), name (teachr :: Teacher))
+        token_ <- mkAccessToken key scope
+        return (token_, nm)
 
 
 storyServer :: DB.DB backend => backend -> Server StoriesApi
@@ -68,7 +82,7 @@ storyServer db token_ =
 
 trailsServer :: DB.DB backend => backend -> Server TrailsApi
 trailsServer _ Nothing = throwAll err401
-trailsServer db (Just (TeacherScope sid)) =
+trailsServer db (Just (TeacherScope _ sid)) =
     DB.getTrails db sid :<|> createTrail db
 trailsServer db (Just (StudentScope _ sid)) =
     DB.getTrails db sid :<|> throwAll err403
@@ -91,7 +105,7 @@ schoolsServer _ _ = throwAll err403
 
 schoolServer :: DB.DB backend => backend -> Server SchoolApi
 schoolServer _ Nothing = throwAll err401
-schoolServer db (Just (TeacherScope sid)) = specificSchoolServer db sid
+schoolServer db (Just (TeacherScope _ sid)) = specificSchoolServer db sid
 schoolServer _ _ = throwAll err403
 
 

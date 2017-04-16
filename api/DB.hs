@@ -39,7 +39,11 @@ class DB backend where
 
     getStudent :: MonadIO m => backend -> SchoolId -> StudentId -> m (Maybe Student)
 
+    getStudentBySubjectId :: MonadIO m => backend -> SubjectId -> m Student
+
     createStudent :: MonadIO m => backend -> Student -> (Text, Text) -> m ()
+
+    getTeacherBySubjectId :: MonadIO m => backend -> SubjectId -> m Teacher
 
     getDictionary :: MonadIO m => backend -> m WordDictionary
 

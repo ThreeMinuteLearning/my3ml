@@ -1,13 +1,14 @@
-{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module TestData where
 
 import qualified Data.Aeson as J
 import qualified Data.ByteString as B
 import qualified Data.Map.Strict as Map
+import           Data.Text (Text)
 import           Prelude hiding (id)
 
-import Api.Types (Story(..), Student(Student), Class(Class), School(School))
+import Api.Types (Account(Account), Story(..), Student(Student), Class(Class), School(School), admin, editor, teacher, student, teacher)
 import DB
 
 mkTestDB :: IO AtomicDB
@@ -35,6 +36,19 @@ mkTestDB = do
             , students = students_
             }
     mkDB db
+
+
+users :: [(Text, Account)]
+users =
+    [ ("admin", Account "aid" "admin" "admin" admin)
+    , ("editor", Account "eid" "editor" "editor" editor)
+    , ("teacher", Account "tid1" "teacher" "teacher" teacher)
+    , ("mammy", Account "tid2" "mammy" "mammy" teacher)
+    , ("jerry", Account "uid1" "jerry" "jerry" student)
+    , ("tom", Account "uid2" "tom" "tom" student)
+    , ("jack", Account "uid3" "jack" "jack" student)
+    ]
+
 
 schools_ :: [School]
 schools_ =
