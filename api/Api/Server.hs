@@ -139,7 +139,10 @@ studentsServer db schoolId_ = DB.getStudents db schoolId_ :<|> getStudent :<|> m
         username <- generateUsername nm
         password <- generatePassword
 
-        return (Student uuid nm Nothing 5 schoolId_, ("username", "password"))
+        let stdnt = Student uuid nm Nothing 5 schoolId_
+            creds = (username, password)
+        DB.createStudent db stdnt creds
+        return (stdnt, creds)
 
 dictServer :: DB.DB backend => backend -> Server DictApi
 dictServer db =
