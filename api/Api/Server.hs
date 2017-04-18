@@ -10,24 +10,28 @@ module Api.Server
     ) where
 
 import           Control.Monad (unless)
-import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Except (MonadError, throwError)
+import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Logger
+import           Data.Monoid ((<>))
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Jose.Jwk
 import           Prelude hiding (id)
-import           Servant ((:<|>) ((:<|>)), Server, ServantErr, err401, err403, err404, errBody, Handler)
+import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, err401, err403, err404, errBody, Handler)
 
 import           Api.Auth (AccessScope(..), mkAccessToken)
 import           Api.Types hiding (AccessToken)
 import qualified DB
 
-server :: DB.DB backend => backend -> Jwk -> Server Api
+type ApiServer a = ServerT a (LoggingT Handler)
+
+server :: DB.DB backend => backend -> Jwk -> ApiServer Api
 server db key = storyServer db :<|> dictServer db :<|> schoolsServer db :<|> schoolServer db :<|> trailsServer db :<|> loginServer db key
 
-
-loginServer :: DB.DB backend => backend -> Jwk -> Server LoginApi
+loginServer :: DB.DB backend => backend -> Jwk -> ApiServer LoginApi
 loginServer db key authReq = do
+    logInfoN $ "Login request from: " <> uName
     user <- DB.getAccountByUsername db uName
     case user of
         Nothing -> throwError err401
@@ -55,13 +59,12 @@ loginServer db key authReq = do
         return (token_, nm)
 
 
-storyServer :: DB.DB backend => backend -> Server StoriesApi
+storyServer :: DB.DB backend => backend -> ApiServer StoriesApi
 storyServer db token_ =
     getStories :<|> getStory :<|> createStory
   where
     notFound = err404 { errBody = "Story with this ID was not found" }
 
-    getStories :: Handler [Story]
     getStories =
         case token_ of
             Nothing -> return []
@@ -80,7 +83,7 @@ storyServer db token_ =
         return storyWithId
 
 
-trailsServer :: DB.DB backend => backend -> Server TrailsApi
+trailsServer :: DB.DB backend => backend -> ApiServer TrailsApi
 trailsServer _ Nothing = throwAll err401
 trailsServer db (Just (TeacherScope _ sid)) =
     DB.getTrails db sid :<|> createTrail db
@@ -89,7 +92,7 @@ trailsServer db (Just (StudentScope _ sid)) =
 trailsServer _ _ = throwAll err403
 
 
-createTrail :: DB.DB backend => backend -> StoryTrail -> Handler StoryTrail
+createTrail :: DB.DB backend => backend -> StoryTrail -> LoggingT Handler StoryTrail
 createTrail db trail = do
     uuid <- liftIO (toText <$> nextRandom)
     let trailWithId = trail { id = uuid } :: StoryTrail
@@ -97,35 +100,33 @@ createTrail db trail = do
     return trailWithId
 
 
-schoolsServer :: DB.DB backend => backend -> Server SchoolsApi
+schoolsServer :: DB.DB backend => backend -> ApiServer SchoolsApi
 schoolsServer _ Nothing = throwAll err401
 schoolsServer db (Just AdminScope) = DB.getSchools db :<|> specificSchoolServer db
 schoolsServer _ _ = throwAll err403
 
 
-schoolServer :: DB.DB backend => backend -> Server SchoolApi
+schoolServer :: DB.DB backend => backend -> ApiServer SchoolApi
 schoolServer _ Nothing = throwAll err401
 schoolServer db (Just (TeacherScope _ sid)) = specificSchoolServer db sid
 schoolServer _ _ = throwAll err403
 
 
-specificSchoolServer :: DB.DB backend => backend -> SchoolId -> Server (ClassesApi :<|> StudentsApi)
+specificSchoolServer :: DB.DB backend => backend -> SchoolId -> ApiServer (ClassesApi :<|> StudentsApi)
 specificSchoolServer db sid = classesServer db sid :<|> studentsServer db sid
 
 
-classesServer :: DB.DB backend => backend -> SchoolId -> Server ClassesApi
+classesServer :: DB.DB backend => backend -> SchoolId -> ApiServer ClassesApi
 classesServer db sid = DB.getClasses db sid :<|> getClass
   where
-    getClass :: ClassId -> Handler Class
     getClass cid = do
         c <- DB.getClass db cid
         maybe (throwError err404) return c
 
 
-studentsServer :: DB.DB backend => backend -> SchoolId -> Server StudentsApi
+studentsServer :: DB.DB backend => backend -> SchoolId -> ApiServer StudentsApi
 studentsServer db schoolId_ = DB.getStudents db schoolId_ :<|> getStudent :<|> mapM createStudent
   where
-    getStudent :: StudentId -> Handler Student
     getStudent studentId = do
         s <- DB.getStudent db schoolId_ studentId
         maybe (throwError err404) return s
@@ -144,7 +145,7 @@ studentsServer db schoolId_ = DB.getStudents db schoolId_ :<|> getStudent :<|> m
         DB.createStudent db stdnt creds
         return (stdnt, creds)
 
-dictServer :: DB.DB backend => backend -> Server DictApi
+dictServer :: DB.DB backend => backend -> ApiServer DictApi
 dictServer db =
     DB.getDictionary db :<|> DB.lookupWord db
 

@@ -34,6 +34,7 @@ library
                      , hasql >= 0.19
                      , hasql-pool
                      , jose-jwt
+                     , monad-logger
                      , mtl
                      , safe-exceptions >= 0.1.4
                      , servant-server >= 0.9
@@ -58,11 +59,13 @@ executable backend
                      , hasql
                      , hasql-pool
                      , jose-jwt
+                     , monad-logger
                      , my3ml
                      , servant-server >= 0.9
                      , stm >= 2.4.4
                      , uuid
                      , wai >= 3.2
+                     , wai-extra
                      , warp >= 3.2
   default-language:    Haskell2010
 

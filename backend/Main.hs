@@ -1,15 +1,18 @@
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE TypeOperators        #-}
 
 module Main where
 
+import           Control.Monad.Logger
 import           Crypto.Random (getRandomBytes)
 import           Data.Maybe (fromMaybe)
 import           Jose.Jwk
 import           Network.Wai.Handler.Warp (run)
-import           Servant ((:<|>) ((:<|>)), (:>), Proxy (Proxy), Raw, Server, serveWithContext, serveDirectory)
+import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
+import           Servant
 import           System.Environment (getEnvironment)
 
 import qualified Api.Server
@@ -24,10 +27,19 @@ type SiteApi = "api" :> Api
 siteApi :: Proxy SiteApi
 siteApi = Proxy
 
-server :: DB db => db -> Jwk -> FilePath -> Server SiteApi
-server db key assets = apiServer :<|> serveDirectory assets
+
+server :: DB db => db -> Jwk -> FilePath -> ServerT SiteApi Handler
+server db key assets = enter toHandler apiServer :<|> serveDirectory assets
   where
     apiServer = Api.Server.server db key
+
+
+toHandler' :: forall a. LoggingT Handler a -> Handler a
+toHandler' = runStderrLoggingT
+
+toHandler :: LoggingT Handler :~> Handler
+toHandler = Nat toHandler'
+
 
 main :: IO ()
 main = do
@@ -39,5 +51,6 @@ main = do
         key = SymmetricJwk keyBytes Nothing Nothing Nothing
     putStrLn $ "Serving on port " ++ show port ++ "..."
     adb <- mkDB pgdb
+    let my3mlServer = server adb key assets
 
-    run port $ serveWithContext siteApi (authServerContext key) (server adb key assets)
+    run port $ logStdoutDev $ serveWithContext siteApi (authServerContext key) my3mlServer
