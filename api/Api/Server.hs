@@ -7,6 +7,7 @@
 
 module Api.Server
     ( server
+    , Config (..)
     , HandlerT
     ) where
 
@@ -27,18 +28,24 @@ import           Api.Types hiding (AccessToken)
 import           DB (DB)
 import qualified DB
 
-type HandlerT db = LoggingT (ReaderT db Handler)
+data Config db = Config
+    { database :: db
+    , tokenKey :: Jwk
+    , sampleStories :: [Story]
+    }
+
+type HandlerT db = LoggingT (ReaderT (Config db) Handler)
 
 type ApiServer a db = ServerT a (HandlerT db)
 
-runDB :: MonadReader a m => (a -> m b) -> m b
-runDB f = ask >>= f
+runDB :: MonadReader (Config b) m => (b -> m b1) -> m b1
+runDB f = ask >>= f . database
 
-server :: DB db => Jwk -> ApiServer Api db
-server key = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> trailsServer :<|> loginServer key
+server :: DB db => ApiServer Api db
+server = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> trailsServer :<|> loginServer
 
-loginServer :: DB db => Jwk -> ApiServer LoginApi db
-loginServer key authReq = do
+loginServer :: DB db => ApiServer LoginApi db
+loginServer authReq = do
     logInfoN $ "Login request from: " <> uName
     user <- runDB $ DB.getAccountByUsername uName
     case user of
@@ -63,7 +70,8 @@ loginServer key authReq = do
             "Teacher" -> do
                  teachr <- runDB $ DB.getTeacherBySubjectId subId
                  return (TeacherScope subId (schoolId (teachr :: Teacher)), name (teachr :: Teacher))
-        token_ <- mkAccessToken key scope
+        jwk <- fmap tokenKey ask
+        token_ <- mkAccessToken jwk scope
         return (token_, nm)
 
 
@@ -75,7 +83,7 @@ storyServer token_ =
 
     getStories =
         case token_ of
-            Nothing -> return []
+            Nothing -> fmap sampleStories ask
             _ -> runDB DB.getStories
 
     getStory storyId = do
