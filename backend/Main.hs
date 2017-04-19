@@ -52,7 +52,7 @@ main = do
     putStrLn $ "Serving on port " ++ show port ++ "..."
     db <- mkDB pgdb
     stories <- getStories db
-    let cfg = Config db jwk stories
+    let cfg = Config db jwk (take 20 stories)
         my3mlServer = server cfg assets
 
     run port $ logStdoutDev $ serveWithContext siteApi (authServerContext jwk) my3mlServer
