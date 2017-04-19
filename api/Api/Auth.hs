@@ -10,7 +10,7 @@ module Api.Auth where
 
 import           Data.Aeson
 import           Control.Monad.Except (throwError)
-import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.IO.Class (liftIO, MonadIO)
 import           Data.ByteString.Lazy (toStrict)
 import           Data.Text (Text)
 import           Data.Text.Encoding (decodeUtf8)
@@ -54,7 +54,7 @@ authHandler k =
 authServerContext :: Jwk -> Context (AuthHandler Request (Maybe AccessScope) ': '[])
 authServerContext k = authHandler k :. EmptyContext
 
-mkAccessToken :: Jwk -> AccessScope -> IO Text
+mkAccessToken :: MonadIO m => Jwk -> AccessScope -> m Text
 mkAccessToken k scope = do
-    Right (Jwt jwt) <- jwkEncode A128KW A128GCM k (Claims (toStrict (encode scope)))
+    Right (Jwt jwt) <- liftIO $ jwkEncode A128KW A128GCM k (Claims (toStrict (encode scope)))
     return $ decodeUtf8 jwt

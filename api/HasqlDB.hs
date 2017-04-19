@@ -36,13 +36,13 @@ newtype HasqlDB = H Pool
 instance DB HasqlDB where
     getAccountByUsername = runQuery selectAccountByUsername
 
-    getStories db = runQuery selectAllStories db ()
+    getStories = runQuery selectAllStories ()
 
     getStory = runQuery selectStoryById
 
     createStory = runQuery insertStory
 
-    getSchools db = runQuery selectAllSchools db ()
+    getSchools = runQuery selectAllSchools ()
 
     getSchool = runQuery selectSchoolById
 
@@ -60,18 +60,18 @@ instance DB HasqlDB where
 
     getStudents = runQuery selectStudentsBySchool
 
-    getStudent db schoolId_ studentId_ = runQuery selectStudentById db (studentId_, schoolId_)
+    getStudent schoolId_ studentId_ = runQuery selectStudentById (studentId_, schoolId_)
 
     getStudentBySubjectId = runQuery selectStudentBySubjectId
 
-    createStudent db stdnt creds = runSession db $ do
+    createStudent stdnt creds db = runSession db $ do
         subId <- S.query creds insertStudentAccount
         S.query (stdnt, subId) insertStudent
 
     getTeacherBySubjectId = runQuery selectTeacherBySubjectId
 
     getDictionary db = do
-        elts <- groupBy ((==) `on` fst) <$> runQuery selectDictionary db ()
+        elts <- groupBy ((==) `on` fst) <$> runQuery selectDictionary () db
         return $ Map.fromList (map dictWord elts)
 
     lookupWord = runQuery selectWord
@@ -82,8 +82,8 @@ dictWord ((w, meaning):ws) = (w, meaning : map snd ws)
 dictWord [] = ("", []) -- shouldn't happen
 
 
-runQuery :: MonadIO m => Query p a -> HasqlDB -> p -> m a
-runQuery q db p = runSession db (S.query p q)
+runQuery :: MonadIO m => Query p a -> p -> HasqlDB -> m a
+runQuery q p db = runSession db (S.query p q)
 
 runSession :: MonadIO m => HasqlDB -> S.Session a -> m a
 runSession (H pool) s = liftIO $ do

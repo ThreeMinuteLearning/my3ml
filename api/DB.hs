@@ -12,42 +12,42 @@ import           Prelude hiding (id)
 
 import Api.Types
 
-class DB backend where
-    getAccountByUsername :: MonadIO m => backend -> Text -> m (Maybe Account)
+class DB db where
+    getAccountByUsername :: MonadIO m => Text -> db -> m (Maybe Account)
 
-    getStories :: MonadIO m => backend -> m [Story]
+    getStories :: MonadIO m => db -> m [Story]
 
-    getStory :: MonadIO m => backend -> StoryId -> m (Maybe Story)
+    getStory :: MonadIO m => StoryId -> db -> m (Maybe Story)
 
-    createStory :: MonadIO m => backend -> Story -> m ()
+    createStory :: MonadIO m => Story -> db -> m ()
 
-    getSchools :: MonadIO m => backend -> m [School]
+    getSchools :: MonadIO m => db -> m [School]
 
-    getSchool :: MonadIO m => backend -> SchoolId -> m (Maybe School)
+    getSchool :: MonadIO m => SchoolId -> db -> m (Maybe School)
 
-    getTrails :: MonadIO m => backend -> SchoolId -> m [StoryTrail]
+    getTrails :: MonadIO m => SchoolId -> db -> m [StoryTrail]
 
-    createTrail :: MonadIO m => backend -> StoryTrail -> m ()
+    createTrail :: MonadIO m => StoryTrail -> db -> m ()
 
-    deleteTrail :: MonadIO m => backend -> TrailId -> m ()
+    deleteTrail :: MonadIO m => TrailId -> db -> m ()
 
-    getClasses :: MonadIO m => backend -> SchoolId -> m [Class]
+    getClasses :: MonadIO m => SchoolId -> db -> m [Class]
 
-    getClass :: MonadIO m => backend -> ClassId -> m (Maybe Class)
+    getClass :: MonadIO m => ClassId -> db -> m (Maybe Class)
 
-    getStudents :: MonadIO m => backend -> SchoolId -> m [Student]
+    getStudents :: MonadIO m => SchoolId -> db -> m [Student]
 
-    getStudent :: MonadIO m => backend -> SchoolId -> StudentId -> m (Maybe Student)
+    getStudent :: MonadIO m => SchoolId -> StudentId -> db -> m (Maybe Student)
 
-    getStudentBySubjectId :: MonadIO m => backend -> SubjectId -> m Student
+    getStudentBySubjectId :: MonadIO m => SubjectId -> db -> m Student
 
-    createStudent :: MonadIO m => backend -> Student -> (Text, Text) -> m ()
+    createStudent :: MonadIO m => Student -> (Text, Text) -> db -> m ()
 
-    getTeacherBySubjectId :: MonadIO m => backend -> SubjectId -> m Teacher
+    getTeacherBySubjectId :: MonadIO m => SubjectId -> db -> m Teacher
 
-    getDictionary :: MonadIO m => backend -> m WordDictionary
+    getDictionary :: MonadIO m => db -> m WordDictionary
 
-    lookupWord :: MonadIO m => backend -> Text -> m [WordDefinition]
+    lookupWord :: MonadIO m => Text -> db -> m [WordDefinition]
 
 
 data InMemoryDB = InMemoryDB
@@ -83,43 +83,43 @@ storyId = id :: Story -> Text
 instance DB AtomicDB where
     getStories db =  Map.elems <$> withDB db stories
 
-    getStory db sid = Map.lookup sid <$> withDB db stories
+    getStory sid db = Map.lookup sid <$> withDB db stories
 
-    createStory db story =
+    createStory story db =
         updateDB db $ \d ->
             let newStories = Map.insert (storyId story) story (stories (d ::InMemoryDB))
             in  d { stories = newStories }
 
-    getTrails db sid = filter (\t -> schoolId (t :: StoryTrail) == sid) <$> withDB db trails
+    getTrails sid db = filter (\t -> schoolId (t :: StoryTrail) == sid) <$> withDB db trails
 
-    createTrail db trail =
+    createTrail trail db =
         updateDB db $ \d ->
             let newTrails = trail : trails d
             in  d { trails = newTrails }
 
-    deleteTrail db trid =
+    deleteTrail trid db =
         updateDB db $ \d ->
             let newTrails = filter (\t -> id (t :: StoryTrail) /= trid) (trails d)
             in  d { trails = newTrails }
 
     getSchools db = withDB db schools
 
-    getSchool db schoolId_ = find (\s -> id (s :: School) == schoolId_) <$> withDB db schools
+    getSchool schoolId_ db = find (\s -> id (s :: School) == schoolId_) <$> withDB db schools
 
-    getClasses db sid = filter (\c -> schoolId (c :: Class) == sid) <$> withDB db classes
+    getClasses sid db = filter (\c -> schoolId (c :: Class) == sid) <$> withDB db classes
 
-    getClass db cid = find (\c -> id (c :: Class) == cid) <$> withDB db classes
-    getStudents db sid = filter (\s -> schoolId (s :: Student) == sid) <$> withDB db (students :: InMemoryDB -> [Student])
+    getClass cid db = find (\c -> id (c :: Class) == cid) <$> withDB db classes
+    getStudents sid db = filter (\s -> schoolId (s :: Student) == sid) <$> withDB db (students :: InMemoryDB -> [Student])
 
-    getStudent db schoolId_ studentId_ = do
-        studs <- getStudents db schoolId_
+    getStudent schoolId_ studentId_ db = do
+        studs <- getStudents schoolId_ db
         return $ find (\s -> id (s :: Student) == studentId_) studs
 
-    createStudent db s creds =
+    createStudent s creds db =
         updateDB db $ \d ->
             let newStudents = s : students (d :: InMemoryDB)
             in  d { students = newStudents }
 
     getDictionary db = withDB db dictionary
 
-    lookupWord db w = (fromMaybe [] . Map.lookup w) <$> withDB db dictionary
+    lookupWord w db = (fromMaybe [] . Map.lookup w) <$> withDB db dictionary

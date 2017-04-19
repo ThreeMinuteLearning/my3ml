@@ -60,6 +60,7 @@ executable backend
                      , hasql-pool
                      , jose-jwt
                      , monad-logger
+                     , mtl
                      , my3ml
                      , servant-server >= 0.9
                      , stm >= 2.4.4

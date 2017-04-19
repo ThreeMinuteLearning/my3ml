@@ -7,12 +7,14 @@
 
 module Api.Server
     ( server
+    , HandlerT
     ) where
 
 import           Control.Monad (unless)
 import           Control.Monad.Except (MonadError, throwError)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Logger
+import           Control.Monad.Reader
 import           Data.Monoid ((<>))
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
@@ -22,23 +24,29 @@ import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, err401, err403, 
 
 import           Api.Auth (AccessScope(..), mkAccessToken)
 import           Api.Types hiding (AccessToken)
+import           DB (DB)
 import qualified DB
 
-type ApiServer a = ServerT a (LoggingT Handler)
+type HandlerT db = LoggingT (ReaderT db Handler)
 
-server :: DB.DB backend => backend -> Jwk -> ApiServer Api
-server db key = storyServer db :<|> dictServer db :<|> schoolsServer db :<|> schoolServer db :<|> trailsServer db :<|> loginServer db key
+type ApiServer a db = ServerT a (HandlerT db)
 
-loginServer :: DB.DB backend => backend -> Jwk -> ApiServer LoginApi
-loginServer db key authReq = do
+runDB :: MonadReader a m => (a -> m b) -> m b
+runDB f = ask >>= f
+
+server :: DB db => Jwk -> ApiServer Api db
+server key = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> trailsServer :<|> loginServer key
+
+loginServer :: DB db => Jwk -> ApiServer LoginApi db
+loginServer key authReq = do
     logInfoN $ "Login request from: " <> uName
-    user <- DB.getAccountByUsername db uName
+    user <- runDB $ DB.getAccountByUsername uName
     case user of
         Nothing -> throwError err401
         Just a -> do
             unless (validatePassword (password (a :: Account)) (password (authReq :: LoginRequest)))
                 (throwError err401)
-            (accessToken, nm) <- liftIO $ createToken a
+            (accessToken, nm) <- createToken a
 
             return $ Login (id (a :: Account)) uName nm (role (a :: Account)) accessToken
   where
@@ -50,17 +58,17 @@ loginServer db key authReq = do
         let subId = id (acct :: Account)
         (scope, nm) <- case userType (role (acct :: Account)) of
             "Student" -> do
-                 stdnt <- DB.getStudentBySubjectId db subId
+                 stdnt <- runDB $ DB.getStudentBySubjectId subId
                  return (StudentScope subId (schoolId (stdnt :: Student)), name (stdnt :: Student))
             "Teacher" -> do
-                 teachr <- DB.getTeacherBySubjectId db subId
+                 teachr <- runDB $ DB.getTeacherBySubjectId subId
                  return (TeacherScope subId (schoolId (teachr :: Teacher)), name (teachr :: Teacher))
         token_ <- mkAccessToken key scope
         return (token_, nm)
 
 
-storyServer :: DB.DB backend => backend -> ApiServer StoriesApi
-storyServer db token_ =
+storyServer :: DB db => ApiServer StoriesApi db
+storyServer token_ =
     getStories :<|> getStory :<|> createStory
   where
     notFound = err404 { errBody = "Story with this ID was not found" }
@@ -68,10 +76,10 @@ storyServer db token_ =
     getStories =
         case token_ of
             Nothing -> return []
-            _ -> DB.getStories db
+            _ -> runDB DB.getStories
 
     getStory storyId = do
-        story <- DB.getStory db storyId
+        story <- runDB (DB.getStory storyId)
         case story of
             Nothing -> throwError notFound
             Just s -> return s
@@ -79,56 +87,58 @@ storyServer db token_ =
     createStory story = do
         uuid <- liftIO (toText <$> nextRandom)
         let storyWithId = story { id = uuid } :: Story
-        _ <- DB.createStory db storyWithId
+        _ <- runDB (DB.createStory storyWithId)
         return storyWithId
 
 
-trailsServer :: DB.DB backend => backend -> ApiServer TrailsApi
-trailsServer _ Nothing = throwAll err401
-trailsServer db (Just (TeacherScope _ sid)) =
-    DB.getTrails db sid :<|> createTrail db
-trailsServer db (Just (StudentScope _ sid)) =
-    DB.getTrails db sid :<|> throwAll err403
-trailsServer _ _ = throwAll err403
+trailsServer :: DB db => ApiServer TrailsApi db
+trailsServer Nothing = throwAll err401
+trailsServer (Just (TeacherScope _ sid)) =
+    getTrailsForSchool sid :<|> createTrail
+trailsServer (Just (StudentScope _ sid)) =
+    getTrailsForSchool sid :<|> throwAll err403
+trailsServer _ = throwAll err403
 
+getTrailsForSchool :: DB db => SchoolId -> HandlerT db [StoryTrail]
+getTrailsForSchool = runDB . DB.getTrails
 
-createTrail :: DB.DB backend => backend -> StoryTrail -> LoggingT Handler StoryTrail
-createTrail db trail = do
+createTrail :: DB db => StoryTrail -> HandlerT db StoryTrail
+createTrail trail = do
     uuid <- liftIO (toText <$> nextRandom)
     let trailWithId = trail { id = uuid } :: StoryTrail
-    _ <- DB.createTrail db trailWithId
+    _ <- runDB (DB.createTrail trailWithId)
     return trailWithId
 
 
-schoolsServer :: DB.DB backend => backend -> ApiServer SchoolsApi
-schoolsServer _ Nothing = throwAll err401
-schoolsServer db (Just AdminScope) = DB.getSchools db :<|> specificSchoolServer db
-schoolsServer _ _ = throwAll err403
+schoolsServer :: DB db => ApiServer SchoolsApi db
+schoolsServer Nothing = throwAll err401
+schoolsServer (Just AdminScope) = runDB DB.getSchools :<|> specificSchoolServer
+schoolsServer _ = throwAll err403
 
 
-schoolServer :: DB.DB backend => backend -> ApiServer SchoolApi
-schoolServer _ Nothing = throwAll err401
-schoolServer db (Just (TeacherScope _ sid)) = specificSchoolServer db sid
-schoolServer _ _ = throwAll err403
+schoolServer :: DB db => ApiServer SchoolApi db
+schoolServer Nothing = throwAll err401
+schoolServer (Just (TeacherScope _ sid)) = specificSchoolServer sid
+schoolServer _ = throwAll err403
 
 
-specificSchoolServer :: DB.DB backend => backend -> SchoolId -> ApiServer (ClassesApi :<|> StudentsApi)
-specificSchoolServer db sid = classesServer db sid :<|> studentsServer db sid
+specificSchoolServer :: DB db => SchoolId -> ApiServer (ClassesApi :<|> StudentsApi) db
+specificSchoolServer sid = classesServer sid :<|> studentsServer sid
 
 
-classesServer :: DB.DB backend => backend -> SchoolId -> ApiServer ClassesApi
-classesServer db sid = DB.getClasses db sid :<|> getClass
+classesServer :: DB db => SchoolId -> ApiServer ClassesApi db
+classesServer sid = runDB (DB.getClasses sid) :<|> getClass
   where
     getClass cid = do
-        c <- DB.getClass db cid
+        c <- runDB (DB.getClass cid)
         maybe (throwError err404) return c
 
 
-studentsServer :: DB.DB backend => backend -> SchoolId -> ApiServer StudentsApi
-studentsServer db schoolId_ = DB.getStudents db schoolId_ :<|> getStudent :<|> mapM createStudent
+studentsServer :: DB db => SchoolId -> ApiServer StudentsApi db
+studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> getStudent :<|> mapM createStudent
   where
     getStudent studentId = do
-        s <- DB.getStudent db schoolId_ studentId
+        s <- runDB $ DB.getStudent schoolId_ studentId
         maybe (throwError err404) return s
 
     generateUsername nm = return nm
@@ -142,12 +152,12 @@ studentsServer db schoolId_ = DB.getStudents db schoolId_ :<|> getStudent :<|> m
 
         let stdnt = Student uuid nm Nothing 5 schoolId_
             creds = (username, password)
-        DB.createStudent db stdnt creds
+        runDB $ DB.createStudent stdnt creds
         return (stdnt, creds)
 
-dictServer :: DB.DB backend => backend -> ApiServer DictApi
-dictServer db =
-    DB.getDictionary db :<|> DB.lookupWord db
+dictServer :: DB db => ApiServer DictApi db
+dictServer =
+    runDB DB.getDictionary :<|> runDB . DB.lookupWord
 
 -- ThrowAll idea taken from servant-auth
 class ThrowAll a where

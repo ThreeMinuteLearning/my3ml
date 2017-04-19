@@ -1,12 +1,13 @@
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators        #-}
 
 module Main where
 
 import           Control.Monad.Logger
+import           Control.Monad.Reader
 import           Crypto.Random (getRandomBytes)
 import           Data.Maybe (fromMaybe)
 import           Jose.Jwk
@@ -15,7 +16,8 @@ import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import           Servant
 import           System.Environment (getEnvironment)
 
-import qualified Api.Server
+import           Api.Server (HandlerT)
+import qualified Api.Server as Api
 import           Api.Auth (authServerContext)
 import           Api.Types (Api)
 import           DB (DB)
@@ -28,17 +30,17 @@ siteApi :: Proxy SiteApi
 siteApi = Proxy
 
 
-server :: DB db => db -> Jwk -> FilePath -> ServerT SiteApi Handler
-server db key assets = enter toHandler apiServer :<|> serveDirectory assets
+server :: forall db. DB db => db -> Jwk -> FilePath -> ServerT SiteApi Handler
+server db key assets = enter transform apiServer :<|> serveDirectory assets
   where
-    apiServer = Api.Server.server db key
+    apiServer = Api.server key
 
+    transform' :: HandlerT db a -> Handler a
+    transform' handler =
+        runReaderT (runStderrLoggingT handler) db
 
-toHandler' :: forall a. LoggingT Handler a -> Handler a
-toHandler' = runStderrLoggingT
-
-toHandler :: LoggingT Handler :~> Handler
-toHandler = Nat toHandler'
+    transform :: HandlerT db :~> Handler
+    transform = Nat transform'
 
 
 main :: IO ()
