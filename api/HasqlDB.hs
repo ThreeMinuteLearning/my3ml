@@ -58,6 +58,8 @@ instance DB HasqlDB where
 
     getClass = runQuery selectClassById
 
+    createClass = runQuery insertClass
+
     getStudents = runQuery selectStudentsBySchool
 
     getStudent schoolId_ studentId_ = runQuery selectStudentById (studentId_, schoolId_)

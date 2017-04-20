@@ -17,6 +17,7 @@ import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Logger
 import           Control.Monad.Reader
 import           Data.Monoid ((<>))
+import           Data.Text (Text)
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Jose.Jwk
@@ -43,6 +44,9 @@ runDB f = ask >>= f . database
 
 server :: DB db => ApiServer Api db
 server = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> trailsServer :<|> loginServer
+
+newUUID :: HandlerT db Text
+newUUID = liftIO (toText <$> nextRandom)
 
 loginServer :: DB db => ApiServer LoginApi db
 loginServer authReq = do
@@ -135,12 +139,17 @@ specificSchoolServer sid = classesServer sid :<|> studentsServer sid
 
 
 classesServer :: DB db => SchoolId -> ApiServer ClassesApi db
-classesServer sid = runDB (DB.getClasses sid) :<|> getClass
+classesServer sid = runDB (DB.getClasses sid) :<|> getClass :<|> createClass
   where
     getClass cid = do
         c <- runDB (DB.getClass cid)
         maybe (throwError err404) return c
 
+    createClass (nm, desc) = do
+        uuid <- newUUID
+        let c = Class uuid nm (Just desc) sid []
+        _ <- runDB (DB.createClass c)
+        return c
 
 studentsServer :: DB db => SchoolId -> ApiServer StudentsApi db
 studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> getStudent :<|> mapM createStudent

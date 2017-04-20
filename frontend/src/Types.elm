@@ -1,5 +1,6 @@
 module Types exposing (..)
 
+import AddClassForm
 import AddStudentsForm
 import AnswersForm
 import Api exposing (Class, Story, Student, DictEntry)
@@ -28,7 +29,9 @@ type SchoolDataMsg
     | SchoolDataTableState Table.State
     | TeacherAction TeacherAction
     | AddStudentsFormMsg Form.Msg
+    | AddClassFormMsg Form.Msg
     | AddStudentsResponse (WebData (List ( Student, ( String, String ) )))
+    | AddClassResponse (WebData Class)
 
 
 type StoriesMsg
@@ -81,6 +84,7 @@ type alias SchoolData =
     , tableState : Table.State
     , action : TeacherAction
     , addStudentsForm : AddStudentsForm.Model
+    , addClassForm : AddClassForm.Model
     , studentAccountsCreated : List ( Student, ( String, String ) )
     }
 

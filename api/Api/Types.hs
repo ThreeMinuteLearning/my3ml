@@ -157,6 +157,7 @@ type ClassesApi =
     "classes" :>
         (    Get '[JSON] [Class]
         :<|> Capture "classId" ClassId :> Get '[JSON] Class
+        :<|> ReqBody '[JSON] (Text, Text) :> Post '[JSON] Class
         )
 
 type StudentsApi =

@@ -30,6 +30,7 @@ specs =
         (
             [  "import Date exposing (Date)"
             ,  "import Dict exposing (Dict)"
+            ,  "import Exts.Json.Encode exposing (tuple2)"
             ,  "import Exts.Json.Decode exposing (decodeDate)"
             ,  defElmImports
             ]

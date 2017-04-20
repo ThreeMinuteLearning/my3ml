@@ -1,5 +1,6 @@
 module Teacher exposing (view)
 
+import AddClassForm
 import AddStudentsForm
 import Api exposing (Class, Student)
 import Bootstrap exposing (toolbar, btnGroup, btn)
@@ -76,6 +77,21 @@ view _ sd =
                                     [ p [] [ text "Enter the names of up to ten students you want to add accounts for (one student per input field)." ]
                                     , AddStudentsForm.view sd.addStudentsForm
                                         |> Html.map (SchoolDataMsg << AddStudentsFormMsg)
+                                    ]
+                        , footer = Nothing
+                        }
+
+                AddClass ->
+                    Just
+                        { closeMessage = Just (SchoolDataMsg (TeacherAction ViewClasses))
+                        , containerClass = Nothing
+                        , header = Just (h3 [] [ text "Add Class" ])
+                        , body =
+                            Just <|
+                                div []
+                                    [ p [] [ text "Enter the new class name and a description" ]
+                                    , AddClassForm.view sd.addClassForm
+                                        |> Html.map (SchoolDataMsg << AddClassFormMsg)
                                     ]
                         , footer = Nothing
                         }

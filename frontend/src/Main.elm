@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import AddClassForm
 import AddStudentsForm
 import AnswersForm
 import Api
@@ -62,6 +63,7 @@ initSchoolData =
     , tableState = Table.initialSort "Name"
     , action = ViewStudents
     , addStudentsForm = AddStudentsForm.init
+    , addClassForm = AddClassForm.init
     , studentAccountsCreated = []
     }
 
@@ -208,6 +210,14 @@ updateSchoolData (User _ token) msg sd =
         TeacherAction ta ->
             { sd | action = ta } ! []
 
+        AddClassFormMsg formMsg ->
+            case ( formMsg, Form.getOutput sd.addClassForm ) of
+                ( Form.Submit, Just newClass ) ->
+                    { sd | action = ViewClasses, addClassForm = AddClassForm.init } ! [ Rest.createClass token newClass ]
+
+                _ ->
+                    { sd | addClassForm = AddClassForm.update formMsg sd.addClassForm } ! []
+
         AddStudentsFormMsg formMsg ->
             case ( formMsg, Form.getOutput sd.addStudentsForm ) of
                 ( Form.Submit, Just newStudents ) ->
@@ -227,6 +237,15 @@ updateSchoolData (User _ token) msg sd =
                             List.map first newAccounts
                     in
                         { sd | studentAccountsCreated = accountsCreated, students = RemoteData.map (List.append newStudents) sd.students } ! []
+
+                -- TODO Post message on failure
+                _ ->
+                    sd ! []
+
+        AddClassResponse r ->
+            case r of
+                RemoteData.Success newClass ->
+                    { sd | classes = RemoteData.map ((::) newClass) sd.classes } ! []
 
                 -- TODO Post message on failure
                 _ ->
