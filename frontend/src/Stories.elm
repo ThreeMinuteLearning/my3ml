@@ -73,9 +73,9 @@ tableConfig =
             , toMsg = StoriesMsg << SetTableState
             , columns =
                 [ storyTitleColumn
-                , Table.stringColumn "Tag1" (tag 1)
-                , Table.stringColumn "Tag2" (tag 2)
-                , Table.stringColumn "Tag3" (tag 3)
+                , Table.stringColumn "Curriculum" .curriculum
+                , Table.stringColumn "Tag2" (tag 1)
+                , Table.stringColumn "Tag3" (tag 2)
                 , levelColumn
                 ]
             , customizations = Bootstrap.tableCustomizations
@@ -95,7 +95,6 @@ tableView sd =
                     , id "storyfilter"
                     ]
                     []
-                , div [ class "cols-xs-4" ] []
                 ]
             ]
     , div [ class "table-responsive" ]
