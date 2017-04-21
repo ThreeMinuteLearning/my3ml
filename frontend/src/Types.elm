@@ -26,6 +26,8 @@ type Msg
 type SchoolDataMsg
     = ClassesResponse (WebData (List Class))
     | StudentsResponse (WebData (List Student))
+    | StudentFilterInput String
+    | StudentFilterClass (Maybe String)
     | SchoolDataTableState Table.State
     | TeacherAction TeacherAction
     | AddStudentsFormMsg Form.Msg
@@ -81,6 +83,7 @@ type TeacherAction
 type alias SchoolData =
     { classes : WebData (List Class)
     , students : WebData (List Student)
+    , studentFilter : ( String, Maybe String )
     , tableState : Table.State
     , action : TeacherAction
     , addStudentsForm : AddStudentsForm.Model

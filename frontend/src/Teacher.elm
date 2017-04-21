@@ -5,10 +5,15 @@ import AddStudentsForm
 import Api exposing (Class, Student)
 import Bootstrap exposing (toolbar, btnGroup, btn)
 import Dialog
-import Html exposing (Html, div, h3, p, text)
-import Html.Attributes exposing (id, class, href)
+import Exts.List exposing (firstMatch)
+import Html exposing (Html, div, h3, p, text, label, input)
+import Html.Attributes exposing (id, class, for, href, selected, type_, value)
+import Html.Events exposing (on, onInput)
+import Regex
+import RemoteData
 import Rest exposing (handleRemoteData)
 import Table
+import Tuple exposing (first, second)
 import Types exposing (User, SchoolData, SchoolDataMsg(..), TeacherAction(..), Msg(..))
 
 
@@ -19,6 +24,7 @@ classesTableConfig =
         , toMsg = SchoolDataMsg << SchoolDataTableState
         , columns =
             [ Table.stringColumn "Class Name" .name
+            , Table.stringColumn "Description" (Maybe.withDefault "" << .description)
             , Table.intColumn "Number of Students" (List.length << .students)
             ]
         , customizations = Bootstrap.tableCustomizations
@@ -115,12 +121,97 @@ view _ sd =
         ]
 
 
+filterStudents : SchoolData -> List Student -> List Student
+filterStudents sd students =
+    case sd.studentFilter of
+        ( _, Just classId ) ->
+            findStudentsInClass sd classId
+                |> Maybe.map (filterByStudentIds students)
+                |> Maybe.withDefault []
+
+        ( nameFilter, Nothing ) ->
+            if String.length nameFilter < 3 then
+                students
+            else
+                filterStudentsByName nameFilter students
+
+
+findStudentsInClass : SchoolData -> String -> Maybe (List String)
+findStudentsInClass sd classId =
+    case sd.classes of
+        RemoteData.Success classes ->
+            firstMatch (\c -> c.id == classId) classes
+                |> Maybe.map .students
+
+        _ ->
+            Nothing
+
+
+filterByStudentIds : List Student -> List String -> List Student
+filterByStudentIds students ids =
+    List.filter (\s -> List.member s.id ids) students
+
+
+filterStudentsByName : String -> List Student -> List Student
+filterStudentsByName nameFilter students =
+    Regex.caseInsensitive (Regex.regex nameFilter)
+        |> \r -> List.filter (\s -> Regex.contains r s.name) students
+
+
+viewStudentsFilter : SchoolData -> Html SchoolDataMsg
+viewStudentsFilter sd =
+    let
+        selectedClass =
+            Maybe.withDefault "" (second sd.studentFilter)
+
+        format description =
+            description
+                |> Maybe.map (\d -> " (" ++ d ++ ")")
+                |> Maybe.withDefault ""
+
+        classOption : Class -> Html msg
+        classOption c =
+            Html.option
+                [ selected (selectedClass == c.id)
+                , value c.id
+                ]
+                [ text (c.name ++ format c.description) ]
+
+        classes =
+            RemoteData.withDefault [] sd.classes
+
+        emptyOption =
+            Html.option [ value "" ] [ text "" ]
+
+        onSelect classId =
+            StudentFilterClass <|
+                if classId == "" then
+                    Nothing
+                else
+                    (Just classId)
+    in
+        div [ class "form-group" ]
+            [ label [ for "studentNameFilter" ] [ text "Search by name" ]
+            , input
+                [ type_ "text"
+                , value (first sd.studentFilter)
+                , onInput StudentFilterInput
+                , id "studentNameFilter"
+                ]
+                []
+            , label [ for "studentClass" ] [ text "Filter by class" ]
+            , Html.select [ onInput (\s -> onSelect s) ]
+                (emptyOption :: List.map classOption classes)
+            ]
+
+
 viewStudentsTable : SchoolData -> Html Msg
 viewStudentsTable sd =
     div []
         [ viewNewAccounts sd.studentAccountsCreated
+        , Html.map SchoolDataMsg (viewStudentsFilter sd)
         , div [ class "hidden-print" ]
-            [ handleRemoteData (Table.view studentsTableConfig sd.tableState) sd.students
+            [ handleRemoteData (Table.view studentsTableConfig sd.tableState << filterStudents sd) sd.students
             ]
         ]
 

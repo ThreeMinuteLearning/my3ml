@@ -18,7 +18,7 @@ import Routing exposing (Page(..), locationToPage, pageToUrl)
 import Stories
 import Table
 import Teacher
-import Tuple exposing (first)
+import Tuple exposing (first, second)
 import Types exposing (..)
 
 
@@ -63,6 +63,7 @@ initSchoolData =
     , tableState = Table.initialSort "Name"
     , action = ViewStudents
     , addStudentsForm = AddStudentsForm.init
+    , studentFilter = ( "", Nothing )
     , addClassForm = AddClassForm.init
     , studentAccountsCreated = []
     }
@@ -209,6 +210,12 @@ updateSchoolData (User _ token) msg sd =
 
         TeacherAction ta ->
             { sd | action = ta } ! []
+
+        StudentFilterInput f ->
+            { sd | studentFilter = ( f, second sd.studentFilter ) } ! []
+
+        StudentFilterClass c ->
+            { sd | studentFilter = ( first sd.studentFilter, c ) } ! []
 
         AddClassFormMsg formMsg ->
             case ( formMsg, Form.getOutput sd.addClassForm ) of
