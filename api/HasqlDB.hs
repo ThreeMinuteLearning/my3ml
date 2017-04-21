@@ -286,7 +286,7 @@ schoolRow = School
 -- Classes
 
 selectClassSql :: ByteString
-selectClassSql = "SELECT id, name, description, school_id FROM class"
+selectClassSql = "SELECT id, name, description, school_id, array(SELECT student_id :: text FROM student_class WHERE class_id = class.id) AS students FROM class"
 
 selectClassesBySchool :: Query SchoolId [Class]
 selectClassesBySchool = Q.statement sql evText (D.rowsList classRow) True
@@ -304,7 +304,7 @@ classRow = Class
     <*> dvText
     <*> D.nullableValue D.text
     <*> dvUUID
-    <*> pure []
+    <*> dArray D.text
 
 insertClass :: Query Class ()
 insertClass = Q.statement sql encode D.unit True
