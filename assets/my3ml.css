@@ -5,6 +5,9 @@ html {
     max-width: 900px;
 }
 
+.row {
+    margin-bottom: 20px;
+}
 /* Story tiles view */
 
 .storytiles {

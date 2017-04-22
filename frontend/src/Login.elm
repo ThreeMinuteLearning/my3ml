@@ -1,5 +1,6 @@
 module Login exposing (Model, Msg(..), initModel, subscriptions, update, view)
 
+import Exts.Html.Bootstrap exposing (formGroup)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -83,30 +84,36 @@ view model =
 
 loginForm : Model -> Html (Msg u)
 loginForm model =
-    Html.form [ onSubmit Submit ]
-        [ fieldset []
-            [ legend [] [ text "Login" ]
-            , div []
-                [ label [] [ text "Username" ]
-                , input
+    Html.form [ class "form-horizontal", onSubmit Submit ]
+        [ formGroup
+            [ label [ class "col-sm-2 control-label", for "username" ] [ text "Username" ]
+            , div [ class "col-sm-4" ]
+                [ input
                     [ type_ "text"
                     , value model.username
                     , onInput UsernameInput
+                    , class "form-control"
+                    , id "username"
                     ]
                     []
                 ]
-            , div []
-                [ label [] [ text "Password" ]
-                , input
+            ]
+        , formGroup
+            [ label [ class "col-sm-2 control-label", for "password" ] [ text "Password" ]
+            , div [ class "col-sm-4" ]
+                [ input
                     [ type_ "password"
                     , value model.password
                     , onInput PasswordInput
+                    , class "form-control"
+                    , id "password"
                     ]
                     []
                 ]
-            , div []
-                [ label [] []
-                , button [ type_ "submit" ] [ text "Login" ]
+            ]
+        , formGroup
+            [ div [ class "col-sm-offset-2 col-sm-4" ]
+                [ button [ class "btn btn-primary", type_ "submit" ] [ text "Login" ]
                 ]
             ]
         ]

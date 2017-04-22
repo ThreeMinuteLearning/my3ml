@@ -5,6 +5,7 @@ import AddStudentsForm
 import Api exposing (Class, Student)
 import Bootstrap exposing (toolbar, btnGroup, btn)
 import Dialog
+import Exts.Html.Bootstrap exposing (formGroup, row)
 import Exts.List exposing (firstMatch)
 import Html exposing (Html, div, h3, p, text, label, input)
 import Html.Attributes exposing (id, class, for, href, selected, type_, value)
@@ -106,15 +107,17 @@ view _ sd =
                     Nothing
     in
         [ Html.map (SchoolDataMsg << TeacherAction) <|
-            toolbar "toolbar"
-                [ btnGroup
-                    [ btn ViewStudents [ text "Students" ]
-                    , btn ViewClasses [ text "Classes" ]
-                    , btn ViewAnswers [ text "Answers" ]
+            row
+                [ toolbar "toolbar"
+                    [ btnGroup
+                        [ btn ViewStudents [ text "Students" ]
+                        , btn ViewClasses [ text "Classes" ]
+                        , btn ViewAnswers [ text "Answers" ]
+                        ]
+                    , btnGroup subtools
                     ]
-                , btnGroup subtools
                 ]
-        , div [ id "students" ]
+        , div []
             [ table
             , Dialog.view dialog
             ]
@@ -190,7 +193,7 @@ viewStudentsFilter sd =
                 else
                     (Just classId)
     in
-        div [ class "form-group" ]
+        formGroup
             [ label [ for "studentNameFilter" ] [ text "Search by name" ]
             , input
                 [ type_ "text"
@@ -208,9 +211,9 @@ viewStudentsFilter sd =
 viewStudentsTable : SchoolData -> Html Msg
 viewStudentsTable sd =
     div []
-        [ viewNewAccounts sd.studentAccountsCreated
-        , Html.map SchoolDataMsg (viewStudentsFilter sd)
-        , div [ class "hidden-print" ]
+        [ row [ viewNewAccounts sd.studentAccountsCreated ]
+        , div [ class "row hidden-print" ] [ Html.map SchoolDataMsg (viewStudentsFilter sd) ]
+        , div [ class "row hidden-print" ]
             [ handleRemoteData (Table.view studentsTableConfig sd.tableState << filterStudents sd) sd.students
             ]
         ]
@@ -223,7 +226,7 @@ viewNewAccounts accounts =
             Html.h4 [] [ text "New Accounts Created in this Session" ]
 
         printButton =
-            Html.a [ href "javascript:window.print()" ] [ text "Print this list" ]
+            Html.a [ class "hidden-print", href "javascript:window.print()" ] [ text "Print this list" ]
 
         accountsTable =
             Html.table [ class "table" ]
