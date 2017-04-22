@@ -90,8 +90,8 @@ storyServer token_ =
             Nothing -> fmap sampleStories ask
             _ -> runDB DB.getStories
 
-    getStory storyId = do
-        story <- runDB (DB.getStory storyId)
+    getStory storyId_ = do
+        story <- runDB (DB.getStory storyId_)
         case story of
             Nothing -> throwError notFound
             Just s -> return s
@@ -124,22 +124,22 @@ createTrail trail = do
 
 schoolsServer :: DB db => ApiServer SchoolsApi db
 schoolsServer Nothing = throwAll err401
-schoolsServer (Just AdminScope) = runDB DB.getSchools :<|> specificSchoolServer
+schoolsServer (Just (AdminScope subId)) = runDB DB.getSchools :<|> specificSchoolServer subId
 schoolsServer _ = throwAll err403
 
 
 schoolServer :: DB db => ApiServer SchoolApi db
 schoolServer Nothing = throwAll err401
-schoolServer (Just (TeacherScope _ sid)) = specificSchoolServer sid
+schoolServer (Just (TeacherScope subId sid)) = specificSchoolServer subId sid
 schoolServer _ = throwAll err403
 
 
-specificSchoolServer :: DB db => SchoolId -> ApiServer (ClassesApi :<|> StudentsApi) db
-specificSchoolServer sid = classesServer sid :<|> studentsServer sid
+specificSchoolServer :: DB db => SubjectId -> SchoolId -> ApiServer (ClassesApi :<|> StudentsApi) db
+specificSchoolServer subId sid = classesServer subId sid :<|> studentsServer sid
 
 
-classesServer :: DB db => SchoolId -> ApiServer ClassesApi db
-classesServer sid = runDB (DB.getClasses sid) :<|> getClass :<|> createClass
+classesServer :: DB db => SubjectId -> SchoolId -> ApiServer ClassesApi db
+classesServer subId sid = runDB (DB.getClasses sid) :<|> getClass :<|> createClass
   where
     getClass cid = do
         c <- runDB (DB.getClass cid)
@@ -147,15 +147,16 @@ classesServer sid = runDB (DB.getClasses sid) :<|> getClass :<|> createClass
 
     createClass (nm, desc) = do
         uuid <- newUUID
-        let c = Class uuid nm (Just desc) sid []
+        let c = Class uuid nm (Just desc) sid subId []
         _ <- runDB (DB.createClass c)
         return c
+
 
 studentsServer :: DB db => SchoolId -> ApiServer StudentsApi db
 studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> getStudent :<|> mapM createStudent
   where
-    getStudent studentId = do
-        s <- runDB $ DB.getStudent schoolId_ studentId
+    getStudent studId = do
+        s <- runDB $ DB.getStudent schoolId_ studId
         maybe (throwError err404) return s
 
     generateUsername nm = return nm

@@ -54,6 +54,7 @@ data Class = Class
     , name :: Text
     , description :: Maybe Text
     , schoolId :: SchoolId
+    , createdBy :: SubjectId
     , students :: [StudentId]
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
@@ -149,9 +150,9 @@ type SchoolsApi =
 
 type SchoolApi =
     "school" :> AccessTokenAuth :>
-         (    ClassesApi
-         :<|> StudentsApi
-         )
+        (    ClassesApi
+        :<|> StudentsApi
+        )
 
 type ClassesApi =
     "classes" :>

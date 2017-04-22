@@ -58,11 +58,11 @@ schools_ =
 
 classes_ :: [Class]
 classes_ =
-    [ Class "1" "A1" Nothing "3" []
-    , Class "2" "A2" Nothing "3" []
-    , Class "3" "B1" Nothing "3" []
-    , Class "4" "P1" Nothing "4" []
-    , Class "5" "P2" Nothing "4" []
+    [ Class "1" "A1" Nothing "3" "tid2" []
+    , Class "2" "A2" Nothing "3" "tid2" []
+    , Class "3" "B1" Nothing "3" "tid2" []
+    , Class "4" "P1" Nothing "4" "tid2" []
+    , Class "5" "P2" Nothing "4" "tid2" []
     ]
 
 students_ :: [Student]

@@ -286,7 +286,7 @@ schoolRow = School
 -- Classes
 
 selectClassSql :: ByteString
-selectClassSql = "SELECT id, name, description, school_id, array(SELECT student_id :: text FROM student_class WHERE class_id = class.id) AS students FROM class"
+selectClassSql = "SELECT id, name, description, school_id, created_by, array(SELECT student_id :: text FROM student_class WHERE class_id = class.id) AS students FROM class"
 
 selectClassesBySchool :: Query SchoolId [Class]
 selectClassesBySchool = Q.statement sql evText (D.rowsList classRow) True
@@ -304,16 +304,18 @@ classRow = Class
     <*> dvText
     <*> D.nullableValue D.text
     <*> dvUUID
+    <*> dvUUID
     <*> dArray D.text
 
 insertClass :: Query Class ()
 insertClass = Q.statement sql encode D.unit True
   where
-    sql = "INSERT INTO class (id, name, description, school_id) values ($1 :: uuid, $2, $3, $4 :: uuid)"
+    sql = "INSERT INTO class (id, name, description, school_id, created_by) values ($1 :: uuid, $2, $3, $4 :: uuid, $5 :: uuid)"
     encode = contramap (id :: Class -> ClassId) evText
         <> contramap (name :: Class -> Text) evText
         <> contramap (description :: Class -> Maybe Text) (E.nullableValue E.text)
         <> contramap (schoolId :: Class -> SchoolId) evText
+        <> contramap (createdBy :: Class -> SubjectId) evText
 
 
 -- Trails

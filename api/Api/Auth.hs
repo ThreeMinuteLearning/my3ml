@@ -28,7 +28,7 @@ import           Api.Types (SchoolId, SubjectId)
 data AccessScope
     = TeacherScope SubjectId SchoolId
     | StudentScope SubjectId SchoolId
-    | AdminScope
+    | AdminScope SubjectId
     | EditorScope
       deriving (Generic, FromJSON, ToJSON)
 

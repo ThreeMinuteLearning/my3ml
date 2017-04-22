@@ -79,9 +79,6 @@ updateDB (AtomicDB tDB) f =
         db <- readTVar tDB
         writeTVar tDB (f db)
 
-storyId :: Story -> Text
-storyId = id :: Story -> Text
-
 instance DB AtomicDB where
     getStories db =  Map.elems <$> withDB db stories
 
@@ -89,7 +86,7 @@ instance DB AtomicDB where
 
     createStory story db =
         updateDB db $ \d ->
-            let newStories = Map.insert (storyId story) story (stories (d ::InMemoryDB))
+            let newStories = Map.insert (id (story :: Story)) story (stories (d :: InMemoryDB))
             in  d { stories = newStories }
 
     getTrails sid db = filter (\t -> schoolId (t :: StoryTrail) == sid) <$> withDB db trails
