@@ -63,13 +63,13 @@ update mkRequest msg model =
                         Http.BadStatus resp ->
                             case resp.status.code of
                                 401 ->
-                                    resp.body
+                                    "Login failed"
 
                                 _ ->
                                     resp.status.message
 
                         _ ->
-                            "Login Error!"
+                            "Login Error"
             in
                 ( { model | error = Just errMsg }, Cmd.none, Nothing )
 
