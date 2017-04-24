@@ -60,6 +60,16 @@ data Class = Class
 
 type ClassId = Text
 
+data Answer = Answer
+    { id :: Text
+    , storyId :: Text
+    , studentId :: Text
+    , connect :: Text
+    , question :: Text
+    , summarise :: Text
+    , clarify :: Text
+    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
 data Teacher = Teacher
     { id :: Text
     , name :: Text
@@ -145,6 +155,7 @@ type SchoolsApi =
         :<|> Capture "schoolId" SchoolId :>
              (    ClassesApi
              :<|> StudentsApi
+             :<|> AnswersApi
              )
         )
 
@@ -152,6 +163,7 @@ type SchoolApi =
     "school" :> AccessTokenAuth :>
         (    ClassesApi
         :<|> StudentsApi
+        :<|> AnswersApi
         )
 
 type ClassesApi =
@@ -166,6 +178,12 @@ type StudentsApi =
         (    Get '[JSON] [Student]
         :<|> Capture "studentId" StudentId :> Get '[JSON] Student
         :<|> ReqBody '[JSON] [Text] :> Post '[JSON] [(Student, (Text, Text))]
+        )
+
+type AnswersApi =
+    "answers" :>
+        (    Get '[JSON] [Answer]
+        :<|> ReqBody '[JSON] Answer :> Post '[JSON] Answer
         )
 
 type TrailsApi =

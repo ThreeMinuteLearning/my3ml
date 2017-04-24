@@ -46,6 +46,7 @@ specs =
         sourceFor (Proxy :: Proxy Story)
         <> sourceFor (Proxy :: Proxy DictEntry)
         <> sourceFor (Proxy :: Proxy School)
+        <> sourceFor (Proxy :: Proxy Answer)
         <> sourceFor (Proxy :: Proxy Class)
         <> sourceFor (Proxy :: Proxy Login)
         <> sourceFor (Proxy :: Proxy UserType)

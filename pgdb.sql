@@ -75,3 +75,15 @@ CREATE TABLE dict
     , definition text NOT NULL
     , uses_words dict_entry[] NOT NULL
     );
+
+CREATE TABLE story_answer
+    ( id uuid PRIMARY KEY
+    , story_id text NOT NULL REFERENCES story
+    , student_id uuid NOT NULL REFERENCES student
+    , school_id uuid NOT NULL REFERENCES school
+    , connect text NOT NULL
+    , question text NOT NULL
+    , summarise text NOT NULL
+    , clarify text NOT NULL
+    , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )

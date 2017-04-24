@@ -1,5 +1,6 @@
-module Rest exposing (handleRemoteData, getStories, getDictionary, getSchoolClasses, getSchoolStudents, createStudentAccounts, createClass)
+module Rest exposing (handleRemoteData, getStories, getDictionary, getSchoolClasses, getSchoolStudents, createStudentAccounts, createClass, submitAnswers)
 
+import AnswersForm exposing (Answers)
 import Api
 import Html exposing (Html, text)
 import Http exposing (Request)
@@ -56,3 +57,12 @@ createStudentAccounts (AccessToken t) studentNames =
 createClass : AccessToken -> ( String, String ) -> Cmd Msg
 createClass (AccessToken t) classInfo =
     sendRequest (Api.postSchoolClasses t classInfo) (SchoolDataMsg << AddClassResponse)
+
+
+submitAnswers : AccessToken -> Api.Story -> Answers -> Cmd Msg
+submitAnswers (AccessToken t) s ans =
+    let
+        answer =
+            Api.Answer "" s.id "" ans.connectAnswer ans.questionAnswer ans.summary ans.clarification
+    in
+        sendRequest (Api.postSchoolAnswers t answer) (StoriesMsg << AnswersResponse)

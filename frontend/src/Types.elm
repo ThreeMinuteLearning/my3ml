@@ -3,7 +3,7 @@ module Types exposing (..)
 import AddClassForm
 import AddStudentsForm
 import AnswersForm
-import Api exposing (Class, Story, Student, DictEntry)
+import Api exposing (Answer, Class, Story, Student, DictEntry)
 import Dict exposing (Dict)
 import Form
 import Login
@@ -43,7 +43,8 @@ type StoriesMsg
     | SetTableState Table.State
     | ToggleDrawer DrawerType
     | ClearAnswers
-    | FormMsg Form.Msg
+    | AnswersFormMsg Form.Msg
+    | AnswersResponse (WebData Answer)
 
 
 type DrawerType
@@ -65,9 +66,10 @@ type alias StoryData =
     { stories : WebData (List Story)
     , storyFilter : String
     , currentPicWidth : Int
+    , currentStory : Maybe Story
     , tableState : Table.State
     , showDrawer : Maybe DrawerType
-    , answersForm : AnswersForm.Model
+    , answersForm : Maybe AnswersForm.Model
     , wordDict : WebData WordDict
     }
 

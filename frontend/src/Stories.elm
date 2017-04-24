@@ -1,8 +1,9 @@
-module Stories exposing (tableView, tilesView, viewStory, viewAnswersForm)
+module Stories exposing (tableView, tilesView, viewStory, findById, viewAnswersForm)
 
 import AnswersForm
 import Api exposing (Story)
 import Bootstrap
+import Exts.List exposing (firstMatch)
 import Html exposing (Html, br, div, img, h2, h3, p, text, label, input)
 import Html.Attributes exposing (id, class, for, src, style, type_, value)
 import Html.Events exposing (onInput)
@@ -117,28 +118,33 @@ filterStories storyFilter stories =
             List.filter match stories
 
 
-viewStory : StoryData -> String -> Html Msg
-viewStory sd id_ =
+findById : StoryData -> String -> Maybe Story
+findById sd id_ =
     case sd.stories of
         RemoteData.Success stories ->
-            case List.filter (\s -> s.id == id_) stories of
-                s :: _ ->
-                    div [ class "panel panel-default" ]
-                        [ h2 [] [ text s.title ]
-                        , div [ id "storypic", picStyle sd.currentPicWidth ]
-                            [ img [ onLoadGetWidth, src ("pix/" ++ s.img) ] []
-                            ]
-                        , Markdown.toHtml [ id "storycontent" ] s.content
-                        , div [ id "storyfooter" ]
-                            [ p [] [ text (String.join ", " s.tags), br [] [], text ("Level: " ++ toString s.level) ]
-                            ]
-                        ]
-
-                _ ->
-                    text "Story not found"
+            firstMatch (\s -> s.id == id_) stories
 
         _ ->
-            text "Stories have not been loaded"
+            Nothing
+
+
+viewStory : StoryData -> String -> Html Msg
+viewStory sd id_ =
+    case findById sd id_ of
+        Just s ->
+            div [ class "panel panel-default" ]
+                [ h2 [] [ text s.title ]
+                , div [ id "storypic", picStyle sd.currentPicWidth ]
+                    [ img [ onLoadGetWidth, src ("pix/" ++ s.img) ] []
+                    ]
+                , Markdown.toHtml [ id "storycontent" ] s.content
+                , div [ id "storyfooter" ]
+                    [ p [] [ text (String.join ", " s.tags), br [] [], text ("Level: " ++ toString s.level) ]
+                    ]
+                ]
+
+        _ ->
+            text "Story not found"
 
 
 picStyle : Int -> Html.Attribute msg
@@ -156,8 +162,13 @@ onLoadGetWidth =
 
 viewAnswersForm : StoryData -> Html Msg
 viewAnswersForm sd =
-    Html.map StoriesMsg <|
-        div [ id "activities", class "panel panel-default" ]
-            [ h2 [] [ text "Answers" ]
-            , Html.map FormMsg (AnswersForm.view sd.answersForm)
-            ]
+    case sd.answersForm of
+        Nothing ->
+            div [] []
+
+        Just f ->
+            Html.map StoriesMsg <|
+                div [ id "activities", class "panel panel-default" ]
+                    [ h2 [] [ text "Answers" ]
+                    , Html.map AnswersFormMsg (AnswersForm.view f)
+                    ]

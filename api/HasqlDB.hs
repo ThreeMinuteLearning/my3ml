@@ -78,6 +78,9 @@ instance DB HasqlDB where
 
     lookupWord = runQuery selectWord
 
+    getAnswers = runQuery selectAnswersBySchool
+
+    createAnswer = runQuery insertAnswer
 
 dictWord :: [(Text, b)] -> (Text, [b])
 dictWord ((w, meaning):ws) = (w, meaning : map snd ws)
@@ -382,3 +385,37 @@ insertWordDefinition = Q.statement sql encoder D.unit True
         <> contramap (fst . snd) evText
         <> contramap (map fst . snd . snd) (eArray E.text)
         <> contramap (map (fromIntegral . snd) . snd . snd) (eArray E.int2)
+
+-- Answers
+
+selectAnswersSql :: ByteString
+selectAnswersSql = "SELECT id, story_id, student_id, connect, question, summarise, clarify FROM story_answer"
+
+selectAnswersBySchool :: Query SchoolId [Answer]
+selectAnswersBySchool = Q.statement sql evText (D.rowsList answerRow) True
+  where
+    sql = selectAnswersSql <> " WHERE school_id = $1"
+
+answerRow :: D.Row Answer
+answerRow = Answer
+    <$> dvUUID
+    <*> dvUUID
+    <*> dvUUID
+    <*> dvText
+    <*> dvText
+    <*> dvText
+    <*> dvText
+
+insertAnswer :: Query (Answer, SchoolId) ()
+insertAnswer = Q.statement sql encode D.unit True
+  where
+    sql = "INSERT INTO story_answer (id, story_id, student_id, school_id, connect, question, summarise, clarify) \
+          \ VALUES ($1 :: uuid, $2, $3 :: uuid, $4 :: uuid, $5, $6, $7, $8)"
+    encode = contramap ((id :: Answer -> Text) . fst) evText
+        <> contramap ((storyId :: Answer -> Text) . fst) evText
+        <> contramap ((studentId :: Answer -> Text) . fst) evText
+        <> contramap snd evText
+        <> contramap (connect . fst) evText
+        <> contramap (question . fst) evText
+        <> contramap (summarise . fst) evText
+        <> contramap (clarify . fst) evText

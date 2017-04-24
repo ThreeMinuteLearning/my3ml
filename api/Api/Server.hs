@@ -24,7 +24,7 @@ import           Jose.Jwk
 import           Prelude hiding (id)
 import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, err401, err403, err404, errBody, Handler)
 
-import           Api.Auth (AccessScope(..), mkAccessToken)
+import           Api.Auth (AccessScope(..), mkAccessToken, scopeSubjectId)
 import           Api.Types hiding (AccessToken)
 import           DB (DB)
 import qualified DB
@@ -70,7 +70,7 @@ loginServer authReq = do
         (scope, nm) <- case userType (role (acct :: Account)) of
             "Student" -> do
                  stdnt <- runDB $ DB.getStudentBySubjectId subId
-                 return (StudentScope subId (schoolId (stdnt :: Student)), name (stdnt :: Student))
+                 return (StudentScope subId (schoolId (stdnt :: Student)) (id (stdnt :: Student)), name (stdnt :: Student))
             "Teacher" -> do
                  teachr <- runDB $ DB.getTeacherBySubjectId subId
                  return (TeacherScope subId (schoolId (teachr :: Teacher)), name (teachr :: Teacher))
@@ -107,7 +107,7 @@ trailsServer :: DB db => ApiServer TrailsApi db
 trailsServer Nothing = throwAll err401
 trailsServer (Just (TeacherScope _ sid)) =
     getTrailsForSchool sid :<|> createTrail
-trailsServer (Just (StudentScope _ sid)) =
+trailsServer (Just (StudentScope _ sid _)) =
     getTrailsForSchool sid :<|> throwAll err403
 trailsServer _ = throwAll err403
 
@@ -124,18 +124,19 @@ createTrail trail = do
 
 schoolsServer :: DB db => ApiServer SchoolsApi db
 schoolsServer Nothing = throwAll err401
-schoolsServer (Just (AdminScope subId)) = runDB DB.getSchools :<|> specificSchoolServer subId
+schoolsServer (Just scp@(AdminScope subId)) = runDB DB.getSchools :<|> specificSchoolServer scp
 schoolsServer _ = throwAll err403
 
 
 schoolServer :: DB db => ApiServer SchoolApi db
 schoolServer Nothing = throwAll err401
-schoolServer (Just (TeacherScope subId sid)) = specificSchoolServer subId sid
+schoolServer (Just scp@(TeacherScope subId sid)) = specificSchoolServer scp sid
+schoolServer (Just scp@(StudentScope _ _ _)) = throwAll err403 :<|> throwAll err403 :<|> answersServer scp
 schoolServer _ = throwAll err403
 
 
-specificSchoolServer :: DB db => SubjectId -> SchoolId -> ApiServer (ClassesApi :<|> StudentsApi) db
-specificSchoolServer subId sid = classesServer subId sid :<|> studentsServer sid
+specificSchoolServer :: DB db => AccessScope -> SchoolId -> ApiServer (ClassesApi :<|> StudentsApi :<|> AnswersApi) db
+specificSchoolServer scp sid = classesServer (scopeSubjectId scp) sid :<|> studentsServer sid :<|> answersServer scp
 
 
 classesServer :: DB db => SubjectId -> SchoolId -> ApiServer ClassesApi db
@@ -172,6 +173,18 @@ studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> getStudent :<|>
             creds = (username, password)
         runDB $ DB.createStudent stdnt creds
         return (stdnt, creds)
+
+
+answersServer :: DB db => AccessScope -> ApiServer AnswersApi db
+answersServer (TeacherScope _ schoolId_) = runDB (DB.getAnswers schoolId_) :<|> throwAll err403
+answersServer (StudentScope _ schoolId_ studentId_ ) = runDB (DB.getAnswers schoolId_) :<|> createAnswer
+  where
+    createAnswer a = do
+        uuid <- newUUID
+        let a_ = a { id = uuid, studentId = studentId_ } :: Answer
+        _ <- runDB $ DB.createAnswer (a_, schoolId_)
+        return a_
+answersServer _ = throwAll err403
 
 dictServer :: DB db => ApiServer DictApi db
 dictServer =

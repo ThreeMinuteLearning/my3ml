@@ -51,6 +51,9 @@ class DB db where
 
     lookupWord :: MonadIO m => Text -> db -> m [WordDefinition]
 
+    getAnswers :: MonadIO m => SchoolId -> db -> m [Answer]
+
+    createAnswer :: MonadIO m => (Answer, SchoolId) -> db -> m ()
 
 data InMemoryDB = InMemoryDB
     { stories :: Map.Map StoryId Story

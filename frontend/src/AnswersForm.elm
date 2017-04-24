@@ -1,13 +1,13 @@
-module AnswersForm exposing (Model, init, update, view)
+module AnswersForm exposing (Answers, Model, init, update, view)
 
+import Api exposing (Story)
 import Bootstrap exposing (errorClass, submitButton)
 import Dict
 import Form exposing (Form)
 import Form.Input as Input
-import Form.Validate as Validate exposing (Validation, field, nonEmpty, string)
+import Form.Validate as Validate exposing (Validation, field, nonEmpty, string, succeed)
 import Html exposing (Html, button, div, text, label)
 import Html.Attributes exposing (id, class, for, type_)
-import Html.Events exposing (onClick)
 
 
 type ClarifyMethod
@@ -30,17 +30,19 @@ type alias Answers =
 
 
 type alias Model =
-    Form CustomError Answers
+    { story : Story
+    , form : Form CustomError Answers
+    }
 
 
-init : Model
-init =
-    Form.initial [] answerFormValidation
+init : Story -> Model
+init s =
+    { story = s, form = Form.initial [] answerFormValidation }
 
 
 update : Form.Msg -> Model -> Model
-update msg form =
-    Form.update answerFormValidation msg form
+update msg m =
+    { m | form = Form.update answerFormValidation msg m.form }
 
 
 answerFormValidation : Validation CustomError Answers
@@ -76,11 +78,11 @@ answerFormValidation =
             (field "clarifyMethod" validateClarifyMethod)
 
 
-view : Form CustomError Answers -> Html Form.Msg
-view form =
+view : Model -> Html Form.Msg
+view m =
     let
         answerField nm lbl =
-            Form.getFieldAsString nm form
+            Form.getFieldAsString nm m.form
                 |> \fld ->
                     div [ class (errorClass fld.liveError) ]
                         [ label [ for (nm ++ "Input") ] [ text lbl ]
@@ -102,7 +104,7 @@ view form =
                 , answerField "clarify" "Work through the clarify methods, then type what you think the word means."
                 , div []
                     [ label [] [ text "Which clarify method worked best for you?" ]
-                    , Input.selectInput clarifyMethodOptions (Form.getFieldAsString "clarifyMethod" form) [ class "form-control" ]
+                    , Input.selectInput clarifyMethodOptions (Form.getFieldAsString "clarifyMethod" m.form) [ class "form-control" ]
                     ]
                 , submitButton "Submit your answers"
                 ]

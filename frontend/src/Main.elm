@@ -49,9 +49,10 @@ initStoryData =
     { stories = RemoteData.Loading
     , storyFilter = ""
     , currentPicWidth = 0
+    , currentStory = Nothing
     , tableState = Table.initialSort "Title"
     , showDrawer = Nothing
-    , answersForm = AnswersForm.init
+    , answersForm = Nothing
     , wordDict = RemoteData.Loading
     }
 
@@ -125,20 +126,24 @@ update msg m =
 
                 ( newPage, cmd ) =
                     authRedirect page mode
-            in
-                ( { m | page = newPage, storyData = { sd | showDrawer = Nothing } }, cmd )
 
-        ( Navigate page, _ ) ->
-            let
-                sd =
-                    case page of
-                        StoryPage _ ->
-                            updateStories ClearAnswers m.storyData
+                newSd =
+                    case newPage of
+                        StoryPage id_ ->
+                            -- TODO This is duplicated work here
+                            -- since the current story is also found in the view
+                            -- It should probably be cached in the model
+                            Stories.findById sd id_
+                                |> Maybe.andThen (\s -> Just { sd | answersForm = Just (AnswersForm.init s) })
+                                |> Maybe.withDefault sd
 
                         _ ->
-                            m.storyData
+                            sd
             in
-                ( { m | storyData = sd }, Navigation.newUrl <| pageToUrl page )
+                ( { m | page = newPage, storyData = { newSd | showDrawer = Nothing } }, cmd )
+
+        ( Navigate page, _ ) ->
+            ( m, Navigation.newUrl <| pageToUrl page )
 
         ( LoginMsg lmsg, Anon login ) ->
             let
@@ -162,8 +167,12 @@ update msg m =
             in
                 ( { m | mode = newMode }, allCmds )
 
-        ( StoriesMsg sMsg, _ ) ->
-            { m | storyData = updateStories sMsg m.storyData } ! []
+        ( StoriesMsg sMsg, mode ) ->
+            let
+                ( newSd, cmd ) =
+                    updateStories (userFromMode mode) sMsg m.storyData
+            in
+                { m | storyData = newSd } ! [ cmd ]
 
         ( SchoolDataMsg sdMsg, mode ) ->
             case mode of
@@ -194,6 +203,19 @@ update msg m =
         -- This shouldn't be possible
         ( LoginMsg _, _ ) ->
             m ! []
+
+
+userFromMode : AppMode -> User
+userFromMode mode =
+    case mode of
+        TeacherMode u _ ->
+            u
+
+        StudentMode u ->
+            u
+
+        _ ->
+            User "Guest" (AccessToken "")
 
 
 updateSchoolData : User -> SchoolDataMsg -> SchoolData -> ( SchoolData, Cmd Msg )
@@ -259,32 +281,74 @@ updateSchoolData (User _ token) msg sd =
                     sd ! []
 
 
-updateStories : StoriesMsg -> StoryData -> StoryData
-updateStories msg sd =
+formCompleted : Form.Msg -> Form.Form e output -> Maybe output
+formCompleted msg form =
+    case ( msg, Form.getOutput form ) of
+        ( Form.Submit, Just o ) ->
+            Just o
+
+        _ ->
+            Nothing
+
+
+updateStories : User -> StoriesMsg -> StoryData -> ( StoryData, Cmd Msg )
+updateStories (User _ token) msg sd =
     case msg of
         StoriesResponse s ->
-            { sd | stories = s }
+            { sd | stories = s } ! []
 
         DictResponse d ->
-            { sd | wordDict = d }
+            { sd | wordDict = d } ! []
 
         SetTableState t ->
-            { sd | tableState = t }
+            { sd | tableState = t } ! []
 
         StoryFilterInput f ->
-            { sd | storyFilter = f }
+            { sd | storyFilter = f } ! []
 
         ToggleDrawer d ->
             if sd.showDrawer == Just d then
-                { sd | showDrawer = Nothing }
+                { sd | showDrawer = Nothing } ! []
             else
-                { sd | showDrawer = Just d }
+                { sd | showDrawer = Just d } ! []
 
         ClearAnswers ->
-            { sd | answersForm = AnswersForm.init }
+            resetAnswersForm sd ! []
 
-        FormMsg formMsg ->
-            { sd | answersForm = AnswersForm.update formMsg sd.answersForm }
+        AnswersFormMsg formMsg ->
+            case sd.answersForm of
+                Just m ->
+                    case formCompleted formMsg (.form m) of
+                        Just answers ->
+                            sd ! [ Rest.submitAnswers token (.story m) answers ]
+
+                        _ ->
+                            { sd | answersForm = Maybe.map (AnswersForm.update formMsg) sd.answersForm } ! []
+
+                Nothing ->
+                    -- Shouldn't happen
+                    sd ! []
+
+        AnswersResponse r ->
+            case r of
+                RemoteData.Success answer ->
+                    -- TODO Add answer to completed answers
+                    -- and show answers, not the form
+                    resetAnswersForm sd ! []
+
+                -- TODO Post message on failure
+                _ ->
+                    sd ! []
+
+
+resetAnswersForm : StoryData -> StoryData
+resetAnswersForm sd =
+    case sd.answersForm of
+        Nothing ->
+            sd
+
+        Just m ->
+            { sd | answersForm = Just (AnswersForm.init (.story m)) }
 
 
 handleLoginResponse : Api.Login -> ( AppMode, List (Cmd Msg) )
