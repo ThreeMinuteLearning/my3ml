@@ -17,7 +17,7 @@ import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Logger
 import           Control.Monad.Reader
 import           Data.Monoid ((<>))
-import           Data.Text (Text)
+import           Data.Text (Text, toLower)
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Jose.Jwk
@@ -53,7 +53,7 @@ loginServer authReq = do
     logInfoN $ "Login request from: " <> uName
     user <- runDB $ DB.getAccountByUsername uName
     case user of
-        Nothing -> throwError err401
+        Nothing -> logInfoN ("User not found: " <> uName) >> throwError err401
         Just a -> do
             unless (validatePassword (password (a :: Account)) (password (authReq :: LoginRequest)))
                 (throwError err401)
@@ -61,7 +61,7 @@ loginServer authReq = do
 
             return $ Login (id (a :: Account)) uName nm (role (a :: Account)) accessToken
   where
-    uName = username (authReq :: LoginRequest)
+    uName = toLower $ username (authReq :: LoginRequest)
 
     validatePassword passwd encodedPasswd = passwd == encodedPasswd
 

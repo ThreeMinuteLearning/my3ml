@@ -145,7 +145,7 @@ selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
 insertStudentAccount :: Query (Text, Text) UUID.UUID
 insertStudentAccount = Q.statement sql encode (D.singleRow (D.value D.uuid))True
   where
-    sql = "INSERT INTO login (username, password) VALUES ($1, $2) RETURNING id"
+    sql = "INSERT INTO login (username, password) VALUES (lower($1), $2) RETURNING id"
     encode = contramap fst evText <> contramap snd evText
 
 -- Stories
