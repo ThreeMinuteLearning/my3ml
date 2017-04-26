@@ -4,6 +4,8 @@ module DB where
 
 import           Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import           Control.Monad.IO.Class (liftIO, MonadIO)
+import           Data.UUID (toText)
+import           Data.UUID.V4 (nextRandom)
 import           Data.Maybe (fromMaybe)
 import           Data.List (find)
 import qualified Data.Map.Strict as Map
@@ -39,11 +41,11 @@ class DB db where
 
     getStudents :: MonadIO m => SchoolId -> db -> m [Student]
 
-    getStudent :: MonadIO m => SchoolId -> StudentId -> db -> m (Maybe Student)
+    getStudent :: MonadIO m => SchoolId -> SubjectId -> db -> m (Maybe Student)
 
     getStudentBySubjectId :: MonadIO m => SubjectId -> db -> m Student
 
-    createStudent :: MonadIO m => Student -> (Text, Text) -> db -> m ()
+    createStudent :: MonadIO m => (Text, Int, SchoolId) -> (Text, Text) -> db -> m Student
 
     getTeacherBySubjectId :: MonadIO m => SubjectId -> db -> m Teacher
 
@@ -82,6 +84,9 @@ updateDB (AtomicDB tDB) f =
         db <- readTVar tDB
         writeTVar tDB (f db)
 
+newUUID :: MonadIO m => m Text
+newUUID = liftIO (toText <$> nextRandom)
+
 instance DB AtomicDB where
     getStories db =  Map.elems <$> withDB db stories
 
@@ -117,10 +122,13 @@ instance DB AtomicDB where
         studs <- getStudents schoolId_ db
         return $ find (\s -> id (s :: Student) == studentId_) studs
 
-    createStudent s creds db =
+    createStudent (nm, lvl, schoolId_) creds db = do
+        uuid <- newUUID
+        let s = Student uuid nm Nothing lvl schoolId_
         updateDB db $ \d ->
             let newStudents = s : students (d :: InMemoryDB)
             in  d { students = newStudents }
+        return s
 
     getDictionary db = withDB db dictionary
 

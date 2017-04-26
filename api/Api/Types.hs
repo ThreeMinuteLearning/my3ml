@@ -55,7 +55,7 @@ data Class = Class
     , description :: Maybe Text
     , schoolId :: SchoolId
     , createdBy :: SubjectId
-    , students :: [StudentId]
+    , students :: [SubjectId]
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 type ClassId = Text
@@ -71,21 +71,19 @@ data Answer = Answer
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 data Teacher = Teacher
-    { id :: Text
+    { id :: SubjectId
     , name :: Text
     , bio :: Maybe Text
     , schoolId :: SchoolId
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 data Student = Student
-    { id :: StudentId
+    { id :: SubjectId
     , name :: Text
     , description :: Maybe Text
     , level :: Int
     , schoolId :: SchoolId
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
-
-type StudentId = Text
 
 data LoginRequest = LoginRequest
     { username :: Text
@@ -176,7 +174,7 @@ type ClassesApi =
 type StudentsApi =
     "students" :>
         (    Get '[JSON] [Student]
-        :<|> Capture "studentId" StudentId :> Get '[JSON] Student
+        :<|> Capture "studentId" SubjectId :> Get '[JSON] Student
         :<|> ReqBody '[JSON] [Text] :> Post '[JSON] [(Student, (Text, Text))]
         )
 

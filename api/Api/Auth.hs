@@ -23,11 +23,11 @@ import           Servant (Context(..), AuthProtect, err400, errBody)
 import           Servant.Server.Experimental.Auth (AuthServerData, AuthHandler, mkAuthHandler)
 import           Network.Wai (Request, requestHeaders)
 
-import           Api.Types (SchoolId, SubjectId, StudentId)
+import           Api.Types (SchoolId, SubjectId)
 
 data AccessScope
     = TeacherScope SubjectId SchoolId
-    | StudentScope SubjectId SchoolId StudentId
+    | StudentScope SubjectId SchoolId
     | AdminScope SubjectId
     | EditorScope SubjectId
       deriving (Generic, FromJSON, ToJSON)
@@ -36,8 +36,8 @@ type instance AuthServerData (AuthProtect "access-token") = Maybe AccessScope
 
 
 scopeSubjectId :: AccessScope -> SubjectId
-scopeSubjectId (TeacherScope s _)= s
-scopeSubjectId (StudentScope s _ _) = s
+scopeSubjectId (TeacherScope s _) = s
+scopeSubjectId (StudentScope s _) = s
 scopeSubjectId (AdminScope s) = s
 scopeSubjectId (EditorScope s) = s
 

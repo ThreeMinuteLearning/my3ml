@@ -70,7 +70,7 @@ loginServer authReq = do
         (scope, nm) <- case userType (role (acct :: Account)) of
             "Student" -> do
                  stdnt <- runDB $ DB.getStudentBySubjectId subId
-                 return (StudentScope subId (schoolId (stdnt :: Student)) (id (stdnt :: Student)), name (stdnt :: Student))
+                 return (StudentScope subId (schoolId (stdnt :: Student)), name (stdnt :: Student))
             "Teacher" -> do
                  teachr <- runDB $ DB.getTeacherBySubjectId subId
                  return (TeacherScope subId (schoolId (teachr :: Teacher)), name (teachr :: Teacher))
@@ -107,7 +107,7 @@ trailsServer :: DB db => ApiServer TrailsApi db
 trailsServer Nothing = throwAll err401
 trailsServer (Just (TeacherScope _ sid)) =
     getTrailsForSchool sid :<|> createTrail
-trailsServer (Just (StudentScope _ sid _)) =
+trailsServer (Just (StudentScope _ sid)) =
     getTrailsForSchool sid :<|> throwAll err403
 trailsServer _ = throwAll err403
 
@@ -124,14 +124,14 @@ createTrail trail = do
 
 schoolsServer :: DB db => ApiServer SchoolsApi db
 schoolsServer Nothing = throwAll err401
-schoolsServer (Just scp@(AdminScope subId)) = runDB DB.getSchools :<|> specificSchoolServer scp
+schoolsServer (Just scp@(AdminScope _)) = runDB DB.getSchools :<|> specificSchoolServer scp
 schoolsServer _ = throwAll err403
 
 
 schoolServer :: DB db => ApiServer SchoolApi db
 schoolServer Nothing = throwAll err401
-schoolServer (Just scp@(TeacherScope subId sid)) = specificSchoolServer scp sid
-schoolServer (Just scp@(StudentScope _ _ _)) = throwAll err403 :<|> throwAll err403 :<|> answersServer scp
+schoolServer (Just scp@(TeacherScope _ sid)) = specificSchoolServer scp sid
+schoolServer (Just scp@(StudentScope _ _)) = throwAll err403 :<|> throwAll err403 :<|> answersServer scp
 schoolServer _ = throwAll err403
 
 
@@ -165,23 +165,21 @@ studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> getStudent :<|>
     generatePassword = return "password"
 
     createStudent nm = do
-        uuid <- liftIO (toText <$> nextRandom)
         username <- generateUsername nm
         password <- generatePassword
 
-        let stdnt = Student uuid nm Nothing 5 schoolId_
-            creds = (username, password)
-        runDB $ DB.createStudent stdnt creds
+        let creds = (username, password)
+        stdnt <- runDB $ DB.createStudent (nm, 5, schoolId_) creds
         return (stdnt, creds)
 
 
 answersServer :: DB db => AccessScope -> ApiServer AnswersApi db
 answersServer (TeacherScope _ schoolId_) = runDB (DB.getAnswers schoolId_) :<|> throwAll err403
-answersServer (StudentScope _ schoolId_ studentId_ ) = runDB (DB.getAnswers schoolId_) :<|> createAnswer
+answersServer (StudentScope subId schoolId_ ) = runDB (DB.getAnswers schoolId_) :<|> createAnswer
   where
     createAnswer a = do
         uuid <- newUUID
-        let a_ = a { id = uuid, studentId = studentId_ } :: Answer
+        let a_ = a { id = uuid, studentId = subId } :: Answer
         _ <- runDB $ DB.createAnswer (a_, schoolId_)
         return a_
 answersServer _ = throwAll err403

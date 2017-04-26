@@ -39,8 +39,7 @@ CREATE TABLE class
     );
 
 CREATE TABLE teacher
-    ( id uuid PRIMARY KEY
-    , sub uuid NOT NULL REFERENCES login
+    ( id uuid PRIMARY KEY REFERENCES login(id)
     , name text NOT NULL CHECK (length(name) > 0)
     , bio text
     , school_id uuid REFERENCES school
@@ -48,11 +47,10 @@ CREATE TABLE teacher
     );
 
 CREATE TABLE student
-    ( id uuid PRIMARY KEY
+    ( id uuid PRIMARY KEY REFERENCES login(id)
     , name text NOT NULL CHECK (length(name) > 0)
     , description text
     , level smallint NOT NULL CHECK (level >= 0 AND level < 10)
-    , sub uuid NOT NULL REFERENCES login
     , school_id uuid NOT NULL REFERENCES school
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
     );

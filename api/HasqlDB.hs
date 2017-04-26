@@ -66,9 +66,11 @@ instance DB HasqlDB where
 
     getStudentBySubjectId = runQuery selectStudentBySubjectId
 
-    createStudent stdnt creds db = runSession db $ do
+    createStudent (nm, lvl, schoolId_) creds db = runSession db $ do
         subId <- S.query creds insertStudentAccount
-        S.query (stdnt, subId) insertStudent
+        let s = Student (UUID.toText subId) nm Nothing lvl schoolId_
+        S.query (s, subId) insertStudent
+        return s
 
     getTeacherBySubjectId = runQuery selectTeacherBySubjectId
 
@@ -216,7 +218,7 @@ selectTeacherSql = "SELECT id, name, bio, school_id FROM teacher"
 selectTeacherBySubjectId :: Query SubjectId Teacher
 selectTeacherBySubjectId = Q.statement sql evText (D.singleRow teacherRow) True
   where
-    sql = selectTeacherSql <> " WHERE sub = $1 :: uuid"
+    sql = selectTeacherSql <> " WHERE id = $1 :: uuid"
 
 teacherRow :: D.Row Teacher
 teacherRow = Teacher
@@ -235,7 +237,7 @@ selectStudentsBySchool = Q.statement sql evText (D.rowsList studentRow) True
   where
     sql = selectStudentSql <> " WHERE school_id = $1 :: uuid"
 
-selectStudentById :: Query (StudentId, SchoolId) (Maybe Student)
+selectStudentById :: Query (SubjectId, SchoolId) (Maybe Student)
 selectStudentById = Q.statement sql encode (D.maybeRow studentRow) True
   where
     sql = selectStudentSql <> " WHERE id = $1 :: uuid AND school_id = $2 :: uuid"
@@ -244,7 +246,7 @@ selectStudentById = Q.statement sql encode (D.maybeRow studentRow) True
 selectStudentBySubjectId :: Query SubjectId Student
 selectStudentBySubjectId = Q.statement sql evText (D.singleRow studentRow) True
   where
-    sql = selectStudentSql <> " WHERE sub = $1 :: uuid"
+    sql = selectStudentSql <> " WHERE id = $1 :: uuid"
 
 studentRow :: D.Row Student
 studentRow = Student
@@ -257,12 +259,11 @@ studentRow = Student
 insertStudent :: Query (Student, UUID.UUID) ()
 insertStudent = Q.statement sql encode D.unit True
   where
-    sql = "INSERT INTO student (id, name, description, level, sub, school_id) values ($1 :: uuid, $2, $3, $4, $5, $6 :: uuid)"
-    encode = contramap ((id :: Student -> Text) . fst) evText
+    sql = "INSERT INTO student (id, name, description, level, school_id) values ($1, $2, $3, $4, $5 :: uuid)"
+    encode = contramap snd (E.value E.uuid)
         <> contramap ((name :: Student -> Text) . fst) evText
         <> contramap ((description :: Student -> Maybe Text) . fst) (E.nullableValue E.text)
         <> contramap ((fromIntegral . (level :: Student -> Int)) . fst) (E.value E.int4)
-        <> contramap snd (E.value E.uuid)
         <> contramap ((schoolId :: Student -> SchoolId) . fst) evText
 
 
