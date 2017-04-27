@@ -53,6 +53,7 @@ initStoryData =
     , tableState = Table.initialSort "Title"
     , showDrawer = Nothing
     , answersForm = Nothing
+    , myAnswers = RemoteData.NotAsked
     , wordDict = RemoteData.Loading
     }
 
@@ -329,12 +330,21 @@ updateStories (User _ token) msg sd =
                     -- Shouldn't happen
                     sd ! []
 
-        AnswersResponse r ->
+        GetAnswersResponse r ->
+            { sd | myAnswers = r } ! []
+
+        SubmitAnswersResponse r ->
             case r of
                 RemoteData.Success answer ->
-                    -- TODO Add answer to completed answers
-                    -- and show answers, not the form
-                    resetAnswersForm sd ! []
+                    -- TODO show answers, not the form
+                    let
+                        newAnswers =
+                            RemoteData.map ((::) answer) sd.myAnswers
+
+                        newSD =
+                            resetAnswersForm sd
+                    in
+                        { newSD | myAnswers = newAnswers } ! []
 
                 -- TODO Post message on failure
                 _ ->
@@ -374,7 +384,7 @@ handleLoginResponse login =
                 ( AdminMode user, [] )
 
             _ ->
-                ( StudentMode user, newStories )
+                ( StudentMode user, (Rest.getAnswers token) :: newStories )
 
 
 subscriptions : Model -> Sub Msg

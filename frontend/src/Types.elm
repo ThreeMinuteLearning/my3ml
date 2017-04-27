@@ -44,7 +44,8 @@ type StoriesMsg
     | ToggleDrawer DrawerType
     | ClearAnswers
     | AnswersFormMsg Form.Msg
-    | AnswersResponse (WebData Answer)
+    | SubmitAnswersResponse (WebData Answer)
+    | GetAnswersResponse (WebData (List Answer))
 
 
 type DrawerType
@@ -70,6 +71,7 @@ type alias StoryData =
     , tableState : Table.State
     , showDrawer : Maybe DrawerType
     , answersForm : Maybe AnswersForm.Model
+    , myAnswers : WebData (List Answer)
     , wordDict : WebData WordDict
     }
 

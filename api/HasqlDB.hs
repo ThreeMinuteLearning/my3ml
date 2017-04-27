@@ -80,7 +80,9 @@ instance DB HasqlDB where
 
     lookupWord = runQuery selectWord
 
-    getAnswers = runQuery selectAnswersBySchool
+    getAnswers schoolId_ studentId_ db = case studentId_ of
+        Just sid -> runQuery selectAnswersByStudent (schoolId_, sid) db
+        Nothing -> runQuery selectAnswersBySchool schoolId_ db
 
     createAnswer = runQuery insertAnswer
 
@@ -395,7 +397,15 @@ selectAnswersSql = "SELECT id, story_id, student_id, connect, question, summaris
 selectAnswersBySchool :: Query SchoolId [Answer]
 selectAnswersBySchool = Q.statement sql evText (D.rowsList answerRow) True
   where
-    sql = selectAnswersSql <> " WHERE school_id = $1"
+    sql = selectAnswersSql <> " WHERE school_id = $1 :: uuid"
+
+selectAnswersByStudent :: Query (SubjectId, SchoolId) [Answer]
+selectAnswersByStudent = Q.statement sql encode (D.rowsList answerRow) True
+  where
+    sql = selectAnswersSql <> " WHERE student_id = $1 :: uuid AND school_id = $2 :: uuid"
+    encode = contramap fst evText
+        <> contramap snd evText
+
 
 answerRow :: D.Row Answer
 answerRow = Answer

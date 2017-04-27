@@ -174,8 +174,8 @@ studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> getStudent :<|>
 
 
 answersServer :: DB db => AccessScope -> ApiServer AnswersApi db
-answersServer (TeacherScope _ schoolId_) = runDB (DB.getAnswers schoolId_) :<|> throwAll err403
-answersServer (StudentScope subId schoolId_ ) = runDB (DB.getAnswers schoolId_) :<|> createAnswer
+answersServer (TeacherScope _ schoolId_) = runDB (DB.getAnswers schoolId_ Nothing) :<|> throwAll err403
+answersServer (StudentScope subId schoolId_ ) = runDB (DB.getAnswers schoolId_ (Just subId)) :<|> createAnswer
   where
     createAnswer a = do
         uuid <- newUUID
