@@ -53,7 +53,7 @@ class DB db where
 
     lookupWord :: MonadIO m => Text -> db -> m [WordDefinition]
 
-    getAnswers :: MonadIO m => SchoolId -> Maybe SubjectId -> db -> m [Answer]
+    getAnswers :: MonadIO m => SchoolId -> Maybe SubjectId -> Maybe StoryId -> db -> m [Answer]
 
     createAnswer :: MonadIO m => (Answer, SchoolId) -> db -> m ()
 

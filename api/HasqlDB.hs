@@ -80,9 +80,10 @@ instance DB HasqlDB where
 
     lookupWord = runQuery selectWord
 
-    getAnswers schoolId_ studentId_ db = case studentId_ of
-        Just sid -> runQuery selectAnswersByStudent (schoolId_, sid) db
-        Nothing -> runQuery selectAnswersBySchool schoolId_ db
+    getAnswers schoolId_ studentId_ storyId_ db = case (studentId_, storyId_) of
+        (Just sid, _) -> runQuery selectAnswersByStudent (sid, schoolId_) db
+        (_, Just sid) -> runQuery selectAnswersByStory (schoolId_, sid) db
+        _ -> runQuery selectAnswersBySchool schoolId_ db
 
     createAnswer = runQuery insertAnswer
 
@@ -106,6 +107,9 @@ dvText = D.value D.text
 
 evText :: E.Params Text
 evText = E.value E.text
+
+eTextPair :: E.Params (Text, Text)
+eTextPair = contramap fst evText <> contramap snd evText
 
 dvUUID :: D.Row Text
 dvUUID = UUID.toText <$> D.value D.uuid
@@ -147,10 +151,9 @@ selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
         <*> userTypeValue
 
 insertStudentAccount :: Query (Text, Text) UUID.UUID
-insertStudentAccount = Q.statement sql encode (D.singleRow (D.value D.uuid))True
+insertStudentAccount = Q.statement sql eTextPair (D.singleRow (D.value D.uuid))True
   where
     sql = "INSERT INTO login (username, password) VALUES (lower($1), $2) RETURNING id"
-    encode = contramap fst evText <> contramap snd evText
 
 -- Stories
 
@@ -240,10 +243,9 @@ selectStudentsBySchool = Q.statement sql evText (D.rowsList studentRow) True
     sql = selectStudentSql <> " WHERE school_id = $1 :: uuid"
 
 selectStudentById :: Query (SubjectId, SchoolId) (Maybe Student)
-selectStudentById = Q.statement sql encode (D.maybeRow studentRow) True
+selectStudentById = Q.statement sql eTextPair (D.maybeRow studentRow) True
   where
     sql = selectStudentSql <> " WHERE id = $1 :: uuid AND school_id = $2 :: uuid"
-    encode = contramap fst evText <> contramap snd evText
 
 selectStudentBySubjectId :: Query SubjectId Student
 selectStudentBySubjectId = Q.statement sql evText (D.singleRow studentRow) True
@@ -400,17 +402,19 @@ selectAnswersBySchool = Q.statement sql evText (D.rowsList answerRow) True
     sql = selectAnswersSql <> " WHERE school_id = $1 :: uuid"
 
 selectAnswersByStudent :: Query (SubjectId, SchoolId) [Answer]
-selectAnswersByStudent = Q.statement sql encode (D.rowsList answerRow) True
+selectAnswersByStudent = Q.statement sql eTextPair (D.rowsList answerRow) True
   where
     sql = selectAnswersSql <> " WHERE student_id = $1 :: uuid AND school_id = $2 :: uuid"
-    encode = contramap fst evText
-        <> contramap snd evText
 
+selectAnswersByStory :: Query (SchoolId, StoryId) [Answer]
+selectAnswersByStory = Q.statement sql eTextPair (D.rowsList answerRow) True
+  where
+    sql = selectAnswersSql <> " WHERE school_id = $1 :: uuid AND story_id = $2 :: uuid"
 
 answerRow :: D.Row Answer
 answerRow = Answer
     <$> dvUUID
-    <*> dvUUID
+    <*> dvText
     <*> dvUUID
     <*> dvText
     <*> dvText

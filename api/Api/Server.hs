@@ -174,15 +174,19 @@ studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> getStudent :<|>
 
 
 answersServer :: DB db => AccessScope -> ApiServer AnswersApi db
-answersServer (TeacherScope _ schoolId_) = runDB (DB.getAnswers schoolId_ Nothing) :<|> throwAll err403
-answersServer (StudentScope subId schoolId_ ) = runDB (DB.getAnswers schoolId_ (Just subId)) :<|> createAnswer
+answersServer scope = case scope of
+    TeacherScope _ schoolId_ -> getAnswers schoolId_ Nothing :<|> throwAll err403
+    StudentScope subId schId -> getAnswers schId (Just subId) :<|> createAnswer schId subId
+    _ -> throwAll err403
   where
-    createAnswer a = do
+    createAnswer schId subId a = do
         uuid <- newUUID
         let a_ = a { id = uuid, studentId = subId } :: Answer
-        _ <- runDB $ DB.createAnswer (a_, schoolId_)
+        _ <- runDB $ DB.createAnswer (a_, schId)
         return a_
-answersServer _ = throwAll err403
+
+    getAnswers schId subId stId =
+        runDB (DB.getAnswers schId subId stId)
 
 dictServer :: DB db => ApiServer DictApi db
 dictServer =

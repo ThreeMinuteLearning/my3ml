@@ -59,9 +59,9 @@ createClass (AccessToken t) classInfo =
     sendRequest (Api.postSchoolClasses t classInfo) (SchoolDataMsg << AddClassResponse)
 
 
-getAnswers : AccessToken -> Cmd Msg
-getAnswers (AccessToken t) =
-    sendRequest (Api.getSchoolAnswers t) (StoriesMsg << GetAnswersResponse)
+getAnswers : AccessToken -> Maybe String -> Cmd Msg
+getAnswers (AccessToken t) storyId =
+    sendRequest (Api.getSchoolAnswers t storyId) (StoriesMsg << GetAnswersResponse)
 
 
 submitAnswers : AccessToken -> Api.Story -> Answers -> Cmd Msg
