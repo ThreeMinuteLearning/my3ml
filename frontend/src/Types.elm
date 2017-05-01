@@ -41,18 +41,10 @@ type StoriesMsg
     | DictResponse (WebData WordDict)
     | StoryFilterInput String
     | SetTableState Table.State
-    | ToggleDrawer DrawerType
     | ClearAnswers
-    | AnswersFormMsg Form.Msg
+    | AnswersFormMsg AnswersForm.Msg
     | SubmitAnswersResponse (WebData Answer)
     | GetAnswersResponse (WebData (List Answer))
-
-
-type DrawerType
-    = Connect
-    | Question
-    | Summarise
-    | Clarify
 
 
 type alias Definition =
@@ -69,7 +61,6 @@ type alias StoryData =
     , currentPicWidth : Int
     , currentStory : Maybe Story
     , tableState : Table.State
-    , showDrawer : Maybe DrawerType
     , answersForm : Maybe AnswersForm.Model
     , myAnswers : WebData (List Answer)
     , wordDict : WebData WordDict

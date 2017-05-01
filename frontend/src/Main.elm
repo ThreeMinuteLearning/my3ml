@@ -51,7 +51,6 @@ initStoryData =
     , currentPicWidth = 0
     , currentStory = Nothing
     , tableState = Table.initialSort "Title"
-    , showDrawer = Nothing
     , answersForm = Nothing
     , myAnswers = RemoteData.NotAsked
     , wordDict = RemoteData.Loading
@@ -141,7 +140,7 @@ update msg m =
                         _ ->
                             sd
             in
-                ( { m | page = newPage, storyData = { newSd | showDrawer = Nothing } }, cmd )
+                ( { m | page = newPage, storyData = newSd }, cmd )
 
         ( Navigate page, _ ) ->
             ( m, Navigation.newUrl <| pageToUrl page )
@@ -307,28 +306,21 @@ updateStories (User _ token) msg sd =
         StoryFilterInput f ->
             { sd | storyFilter = f } ! []
 
-        ToggleDrawer d ->
-            if sd.showDrawer == Just d then
-                { sd | showDrawer = Nothing } ! []
-            else
-                { sd | showDrawer = Just d } ! []
-
         ClearAnswers ->
             resetAnswersForm sd ! []
 
-        AnswersFormMsg formMsg ->
-            case sd.answersForm of
-                Just m ->
+        AnswersFormMsg answerFormMsg ->
+            case ( sd.answersForm, answerFormMsg ) of
+                ( Just m, AnswersForm.FormMsg formMsg ) ->
                     case formCompleted formMsg (.form m) of
                         Just answers ->
                             sd ! [ Rest.submitAnswers token (.story m) answers ]
 
                         _ ->
-                            { sd | answersForm = Maybe.map (AnswersForm.update formMsg) sd.answersForm } ! []
+                            { sd | answersForm = Maybe.map (AnswersForm.update answerFormMsg) sd.answersForm } ! []
 
-                Nothing ->
-                    -- Shouldn't happen
-                    sd ! []
+                ( _, _ ) ->
+                    { sd | answersForm = Maybe.map (AnswersForm.update answerFormMsg) sd.answersForm } ! []
 
         GetAnswersResponse r ->
             { sd | myAnswers = r } ! []
@@ -431,7 +423,6 @@ view m =
                     [ dashBoard m
                     , Stories.viewStory m.storyData id_
                     , Stories.viewAnswersForm m.storyData
-                    , drawer m.storyData.showDrawer
                     ]
 
                 ( StoryPage id_, _ ) ->

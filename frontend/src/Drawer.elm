@@ -1,12 +1,12 @@
 module Drawer exposing (drawer)
 
+import AnswersForm exposing (DrawerType(..), Msg(ToggleDrawer))
 import Html exposing (Html, div, img, h1, p, text, ul, li, input)
 import Html.Attributes exposing (id, class, checked, src, type_, width)
 import Html.Events exposing (onClick, onCheck)
-import Types exposing (..)
 
 
-drawer : Maybe DrawerType -> Html Msg
+drawer : Maybe DrawerType -> Html AnswersForm.Msg
 drawer showDrawer =
     let
         currentDrawer =
@@ -88,17 +88,16 @@ drawer showDrawer =
                         "clarifyblack.png"
                         "clarifypanel"
     in
-        Html.map StoriesMsg <|
-            div []
-                [ input
-                    [ type_ "checkbox"
-                    , id "toggle-drawer"
-                    , onCheck (\_ -> ToggleDrawer currentDrawer)
-                    , checked (showDrawer /= Nothing)
-                    ]
-                    []
-                , div [ id "drawer", class panelStyle ]
-                    [ drawerHeader
-                    , div [ id "drawercontent" ] content
-                    ]
+        div []
+            [ input
+                [ type_ "checkbox"
+                , id "toggle-drawer"
+                , onCheck (\_ -> ToggleDrawer currentDrawer)
+                , checked (showDrawer /= Nothing)
                 ]
+                []
+            , div [ id "drawer", class panelStyle ]
+                [ drawerHeader
+                , div [ id "drawercontent" ] content
+                ]
+            ]

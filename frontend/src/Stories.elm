@@ -3,6 +3,7 @@ module Stories exposing (tableView, tilesView, viewStory, findById, viewAnswersF
 import AnswersForm
 import Api exposing (Story)
 import Bootstrap
+import Drawer
 import Exts.List exposing (firstMatch)
 import Html exposing (Html, br, div, img, h2, h3, p, text, label, input)
 import Html.Attributes exposing (id, class, for, src, style, type_, value)
@@ -167,8 +168,9 @@ viewAnswersForm sd =
             div [] []
 
         Just f ->
-            Html.map StoriesMsg <|
+            Html.map (StoriesMsg << AnswersFormMsg) <|
                 div [ id "activities", class "panel panel-default" ]
                     [ h2 [] [ text "Answers" ]
-                    , Html.map AnswersFormMsg (AnswersForm.view f)
+                    , AnswersForm.view f
+                    , Drawer.drawer (.showDrawer f)
                     ]
