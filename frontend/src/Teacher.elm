@@ -5,11 +5,12 @@ import AddStudentsForm
 import Api exposing (Class, Student)
 import Bootstrap exposing (toolbar, btnGroup, btn)
 import Dialog
+import Dict
 import Exts.Html.Bootstrap exposing (formGroup, row)
 import Exts.List exposing (firstMatch)
 import Html exposing (Html, div, h3, p, text, label, input)
-import Html.Attributes exposing (id, class, for, href, selected, type_, value)
-import Html.Events exposing (on, onInput)
+import Html.Attributes exposing (id, checked, class, for, href, selected, type_, value)
+import Html.Events exposing (on, onCheck, onInput)
 import Regex
 import RemoteData
 import Rest exposing (handleRemoteData)
@@ -32,17 +33,34 @@ classesTableConfig =
         }
 
 
-studentsTableConfig : Table.Config Student Msg
+studentsTableConfig : Table.Config ( Bool, Student ) Msg
 studentsTableConfig =
     Table.customConfig
-        { toId = .id
+        { toId = .id << second
         , toMsg = SchoolDataMsg << SchoolDataTableState
         , columns =
-            [ Table.stringColumn "Name" .name
-            , Table.intColumn "Level" .level
+            [ checkboxColumn
+            , Table.stringColumn "Name" (.name << second)
+            , Table.intColumn "Level" (.level << second)
             ]
         , customizations = Bootstrap.tableCustomizations
         }
+
+
+checkboxColumn : Table.Column ( Bool, Student ) Msg
+checkboxColumn =
+    Table.veryCustomColumn
+        { name = ""
+        , viewData = viewCheckbox
+        , sorter = Table.unsortable
+        }
+
+
+viewCheckbox : ( Bool, Student ) -> Table.HtmlDetails Msg
+viewCheckbox ( selected, s ) =
+    Table.HtmlDetails []
+        [ input [ type_ "checkbox", onCheck (SchoolDataMsg << (SelectStudent s)), checked selected ] []
+        ]
 
 
 view : User -> SchoolData -> List (Html Msg)
@@ -205,6 +223,7 @@ viewStudentsFilter sd =
             , label [ for "studentClass" ] [ text "Filter by class" ]
             , Html.select [ onInput (\s -> onSelect s) ]
                 (emptyOption :: List.map classOption classes)
+            , btn ClearSelectedStudents [ text "Clear Selection" ]
             ]
 
 
@@ -214,7 +233,13 @@ viewStudentsTable sd =
         [ row [ viewNewAccounts sd.studentAccountsCreated ]
         , div [ class "row hidden-print" ] [ Html.map SchoolDataMsg (viewStudentsFilter sd) ]
         , div [ class "row hidden-print" ]
-            [ handleRemoteData (Table.view studentsTableConfig sd.tableState << filterStudents sd) sd.students
+            [ handleRemoteData
+                (Table.view studentsTableConfig
+                    sd.tableState
+                    << List.map (\s -> ( Dict.member s.id sd.selectedStudents, s ))
+                    << filterStudents sd
+                )
+                sd.students
             ]
         ]
 

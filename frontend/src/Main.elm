@@ -4,7 +4,7 @@ import AddClassForm
 import AddStudentsForm
 import AnswersForm
 import Api
-import Drawer exposing (drawer)
+import Dict
 import Form
 import Html exposing (Html, div, img, h2, text, li)
 import Html.Attributes exposing (id, class, href, src)
@@ -65,6 +65,7 @@ initSchoolData =
     , action = ViewStudents
     , addStudentsForm = AddStudentsForm.init
     , studentFilter = ( "", Nothing )
+    , selectedStudents = Dict.empty
     , addClassForm = AddClassForm.init
     , studentAccountsCreated = []
     }
@@ -239,6 +240,9 @@ updateSchoolData (User _ token) msg sd =
         StudentFilterClass c ->
             { sd | studentFilter = ( first sd.studentFilter, c ) } ! []
 
+        ClearSelectedStudents ->
+            { sd | selectedStudents = Dict.empty } ! []
+
         AddClassFormMsg formMsg ->
             case ( formMsg, Form.getOutput sd.addClassForm ) of
                 ( Form.Submit, Just newClass ) ->
@@ -279,6 +283,16 @@ updateSchoolData (User _ token) msg sd =
                 -- TODO Post message on failure
                 _ ->
                     sd ! []
+
+        SelectStudent s b ->
+            let
+                f =
+                    if b then
+                        Dict.insert (.id s) s
+                    else
+                        Dict.remove (.id s)
+            in
+                { sd | selectedStudents = f sd.selectedStudents } ! []
 
 
 formCompleted : Form.Msg -> Form.Form e output -> Maybe output
