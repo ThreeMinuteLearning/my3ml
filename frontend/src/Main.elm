@@ -11,7 +11,7 @@ import Html.Attributes exposing (id, class, href, src)
 import Login
 import Nav
 import Navigation exposing (Location)
-import Ports exposing (getImgWidth, imgWidth)
+import Ports exposing (getImgWidth, imgWidth, printWindow)
 import RemoteData
 import Rest
 import Routing exposing (Page(..), locationToPage, pageToUrl)
@@ -197,6 +197,9 @@ update msg m =
                     m.storyData
             in
                 { m | storyData = { sd | currentPicWidth = round w } } ! []
+
+        ( PrintWindow, _ ) ->
+            m ! [ printWindow () ]
 
         ( NoOp, _ ) ->
             m ! []

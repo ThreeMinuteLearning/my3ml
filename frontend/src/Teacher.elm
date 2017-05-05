@@ -10,7 +10,7 @@ import Exts.Html.Bootstrap exposing (formGroup, row)
 import Exts.List exposing (firstMatch)
 import Html exposing (Html, div, h3, p, text, label, input)
 import Html.Attributes exposing (id, checked, class, for, href, selected, type_, value)
-import Html.Events exposing (on, onCheck, onInput)
+import Html.Events exposing (on, onClick, onCheck, onInput)
 import Regex
 import RemoteData
 import Rest exposing (handleRemoteData)
@@ -251,7 +251,7 @@ viewNewAccounts accounts =
             Html.h4 [] [ text "New Accounts Created in this Session" ]
 
         printButton =
-            Html.a [ class "hidden-print", href "javascript:window.print()" ] [ text "Print this list" ]
+            Html.a [ class "hidden-print", onClick PrintWindow, href "#" ] [ text "Print this list" ]
 
         accountsTable =
             Html.table [ class "table" ]

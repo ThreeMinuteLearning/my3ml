@@ -7,6 +7,10 @@ app.ports.getImgWidth.subscribe(function(selector) {
     });
 });
 
+app.ports.printWindow.subscribe(function() {
+    window.print();
+});
+
 var getWidth = function (selector, count, callback) {
     var node = document.querySelector(selector);
     if (count > 10) {
