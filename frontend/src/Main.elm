@@ -246,6 +246,9 @@ updateSchoolData (User _ token) msg sd =
         ClearSelectedStudents ->
             { sd | selectedStudents = Dict.empty } ! []
 
+        ClearNewAccounts ->
+            { sd | studentAccountsCreated = [] } ! []
+
         AddClassFormMsg formMsg ->
             case ( formMsg, Form.getOutput sd.addClassForm ) of
                 ( Form.Submit, Just newClass ) ->

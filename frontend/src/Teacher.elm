@@ -3,7 +3,7 @@ module Teacher exposing (view)
 import AddClassForm
 import AddStudentsForm
 import Api exposing (Class, Student)
-import Bootstrap exposing (toolbar, btnGroup, btn)
+import Bootstrap exposing (toolbar, btnGroup, btn, closeBtn)
 import Dialog
 import Dict
 import Exts.Html.Bootstrap exposing (formGroup, row)
@@ -248,7 +248,7 @@ viewNewAccounts : List ( Student, ( String, String ) ) -> Html Msg
 viewNewAccounts accounts =
     let
         heading =
-            Html.h4 [] [ text "New Accounts Created in this Session" ]
+            Html.h4 [ class "panel-title" ] [ text "New Accounts Created in this Session" ]
 
         printButton =
             Html.a [ class "hidden-print", onClick PrintWindow, href "#" ] [ text "Print this list" ]
@@ -271,17 +271,23 @@ viewNewAccounts accounts =
                 , Html.td [] [ text username ]
                 , Html.td [] [ text password ]
                 ]
-
-        content =
-            case accounts of
-                [] ->
-                    []
-
-                _ ->
-                    [ heading, printButton, accountsTable ]
     in
-        div [ id "newAccounts" ]
-            content
+        case accounts of
+            [] ->
+                div [] []
+
+            _ ->
+                div [ class "panel panel-default" ]
+                    [ div [ class "panel-heading" ]
+                        [ div [ class "btn-group pull-right" ]
+                            [ closeBtn (SchoolDataMsg ClearNewAccounts) ]
+                        , heading
+                        ]
+                    , div [ class "panel-body" ]
+                        [ printButton
+                        , accountsTable
+                        ]
+                    ]
 
 
 viewClassesTable : SchoolData -> Html Msg

@@ -33,6 +33,7 @@ type SchoolDataMsg
     | SelectStudent Student Bool
     | TeacherAction TeacherAction
     | ClearSelectedStudents
+    | ClearNewAccounts
     | AddStudentsFormMsg Form.Msg
     | AddClassFormMsg Form.Msg
     | AddStudentsResponse (WebData (List ( Student, ( String, String ) )))
