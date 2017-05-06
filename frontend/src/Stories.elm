@@ -133,7 +133,7 @@ viewStory : StoryData -> String -> Html Msg
 viewStory sd id_ =
     case findById sd id_ of
         Just s ->
-            div [ class "panel panel-default" ]
+            div []
                 [ h2 [] [ text s.title ]
                 , div [ id "storypic", picStyle sd.currentPicWidth ]
                     [ img [ onLoadGetWidth, src ("pix/" ++ s.img) ] []
@@ -169,7 +169,7 @@ viewAnswersForm sd =
 
         Just f ->
             Html.map (StoriesMsg << AnswersFormMsg) <|
-                div [ id "activities", class "panel panel-default" ]
+                div [ id "activities" ]
                     [ h2 [] [ text "Answers" ]
                     , AnswersForm.view f
                     , Drawer.drawer (.showDrawer f)

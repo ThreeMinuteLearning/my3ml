@@ -6,7 +6,7 @@ import Dict
 import Form exposing (Form)
 import Form.Input as Input
 import Form.Validate as Validate exposing (Validation, field, nonEmpty, string, succeed)
-import Html exposing (Html, button, div, text, label)
+import Html exposing (Html, button, div, em, text, label)
 import Html.Attributes exposing (id, class, for, type_)
 import Html.Events exposing (onClick)
 
@@ -127,7 +127,7 @@ view m =
                 [ answerField "connect" [ drwrBtn "?" Connect, text " Connect this story with yourself or something you know about." ]
                 , answerField "question" [ drwrBtn "?" Question, text " Think of a question the story makes you want to ask and type it here." ]
                 , answerField "summarise" [ drwrBtn "?" Summarise, text " Write one sentence that captures the main idea." ]
-                , answerField "clarify" [ drwrBtn "?" Clarify, text " Work through the clarify methods then type what you think the word means." ]
+                , answerField "clarify" [ drwrBtn "?" Clarify, text " Work through the clarify methods then type what you think this word means: ", em [ class "clarify-word" ] [ text (.clarifyWord m.story) ] ]
                 , div []
                     [ label [] [ text "Which clarify method worked best for you?" ]
                     , Input.selectInput clarifyMethodOptions (Form.getFieldAsString "clarifyMethod" m.form) [ class "form-control" ]

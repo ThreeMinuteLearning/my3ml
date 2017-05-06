@@ -27,6 +27,7 @@ data Story = Story
     , tags :: [Text]
     , content :: Text
     , words :: [DictEntry]
+    , clarifyWord :: Text
     , date :: UTCTime
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 

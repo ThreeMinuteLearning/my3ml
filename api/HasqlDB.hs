@@ -158,7 +158,7 @@ insertStudentAccount = Q.statement sql eTextPair (D.singleRow (D.value D.uuid))T
 -- Stories
 
 selectStorySql :: ByteString
-selectStorySql = "SELECT id, title, img_url, level, curriculum, tags, content, words, created_at FROM story"
+selectStorySql = "SELECT id, title, img_url, level, curriculum, tags, content, words, clarify_word, created_at FROM story"
 
 selectAllStories :: Query () [Story]
 selectAllStories =
@@ -178,18 +178,19 @@ storyRow = Story
     <*> dArray D.text
     <*> dvText
     <*> dArray dictEntryValue
+    <*> dvText
     <*> D.value D.timestamptz
 
 insertStory :: Query Story ()
 insertStory = Q.statement sql storyEncoder D.unit True
   where
-    sql = "INSERT INTO story (id, title, img_url, level, curriculum, tags, content, words, created_at) \
+    sql = "INSERT INTO story (id, title, img_url, level, curriculum, tags, content, words, clarify_word) \
                  \VALUES ($1, $2, $3, $4, $5, $6, $7, (array(select word::dict_entry from unnest ($8, $9) as word)), $10)"
 
 updateStory :: Query Story ()
 updateStory = Q.statement sql storyEncoder D.unit True
   where
-    sql = "UPDATE story SET title=$2, img_url=$3, level=$4, curriculum=$5, tags=$6, content=$7, words=(array(select word::dict_entry from unnest ($8, $9) as word)) WHERE id=$1"
+    sql = "UPDATE story SET title=$2, img_url=$3, level=$4, curriculum=$5, tags=$6, content=$7, words=(array(select word::dict_entry from unnest ($8, $9) as word), clarify_word=$10) WHERE id=$1"
 
 storyEncoder :: E.Params Story
 storyEncoder = contramap (id :: Story -> Text) evText
@@ -201,6 +202,7 @@ storyEncoder = contramap (id :: Story -> Text) evText
     <> contramap content evText
     <> contramap (map word . words) (eArray E.text)
     <> contramap (map (fromIntegral . index) . words) (eArray E.int2)
+    <> contramap clarifyWord evText
     <> contramap date (E.value E.timestamptz)
   where
     storyLevel = level :: Story -> Int

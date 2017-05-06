@@ -21,6 +21,7 @@ CREATE TABLE story
     , tags text[] NOT NULL
     , content text NOT NULL CHECK (length(content) > 0)
     , words dict_entry[] NOT NULL
+    , clarify_word text NOT NULL CHECK (length(clarify_word) > 0)
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
