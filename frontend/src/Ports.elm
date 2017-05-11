@@ -15,4 +15,4 @@ port printWindow : () -> Cmd msg
 port postProcessStory : List DictEntry -> Cmd msg
 
 
-port dictLookup : (String -> msg) -> Sub msg
+port dictLookup : (( String, Int ) -> msg) -> Sub msg

@@ -20,7 +20,7 @@ type Msg
     | SchoolDataMsg SchoolDataMsg
     | GetImgWidth String
     | ImageWidth Float
-    | DictLookup String
+    | DictLookup ( String, Int )
     | PrintWindow
     | NoOp
 
@@ -69,6 +69,7 @@ type alias StoryData =
     , answersForm : Maybe AnswersForm.Model
     , myAnswers : WebData (List Answer)
     , wordDict : WebData WordDict
+    , dictLookup : Maybe DictEntry
     }
 
 

@@ -38,13 +38,13 @@ const nullOrEmpty = function (n) {
 };
 
 const renderStoryContent = function (elt, words) {
-    const isWord = function(word) {
+    const wordIndex = function(word) {
         for(var w of words) {
             if (w.word === word) {
-                return true;
+                return w.index;
             }
         }
-        return false;
+        return -1;
     };
 
     const go = function () {
@@ -56,13 +56,15 @@ const renderStoryContent = function (elt, words) {
             var ems = storyElt.querySelectorAll('p em');
             for (var em of ems) {
                 var w = em.innerText;
-                if (!isWord(w)) {
+                var i = wordIndex(w);
+                if (i < 0) {
                     continue;
                 }
-                em.innerHTML = '<span class="dict-lookup">' + em.innerText + '</span>';
+                em.innerHTML = '<span class="dict-lookup" data-index="' + i + '">' + em.innerText + '</span>';
                 em.addEventListener('click', function () {
                     var span = this.querySelector('span');
-                    app.ports.dictLookup.send(span.innerText);
+                    var index = span.getAttribute('data-index');
+                    app.ports.dictLookup.send([span.innerText, parseInt(index)]);
                 });
             }
         }

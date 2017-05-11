@@ -54,6 +54,7 @@ initStoryData =
     , answersForm = Nothing
     , myAnswers = RemoteData.NotAsked
     , wordDict = RemoteData.Loading
+    , dictLookup = Nothing
     }
 
 
@@ -201,8 +202,12 @@ update msg m =
             in
                 { m | storyData = { sd | currentPicWidth = round w } } ! []
 
-        ( DictLookup w, _ ) ->
-            m ! []
+        ( DictLookup ( w, i ), _ ) ->
+            let
+                sd =
+                    m.storyData
+            in
+                { m | storyData = { sd | dictLookup = Just (Api.DictEntry w i) } } ! []
 
         ( PrintWindow, _ ) ->
             m ! [ Ports.printWindow () ]
