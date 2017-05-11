@@ -11,7 +11,7 @@ import Html.Attributes exposing (id, class, href, src)
 import Login
 import Nav
 import Navigation exposing (Location)
-import Ports exposing (getImgWidth, imgWidth, printWindow)
+import Ports
 import RemoteData
 import Rest
 import Routing exposing (Page(..), locationToPage, pageToUrl)
@@ -128,20 +128,23 @@ update msg m =
                 ( newPage, cmd ) =
                     authRedirect page mode
 
-                newSd =
+                newStoryData s =
+                    Just ( { sd | answersForm = Just (AnswersForm.init s) }, Cmd.batch [ cmd, Ports.postProcessStory s.words ] )
+
+                ( newSd, newCmd ) =
                     case newPage of
                         StoryPage id_ ->
                             -- TODO This is duplicated work here
                             -- since the current story is also found in the view
                             -- It should probably be cached in the model
                             Stories.findById sd id_
-                                |> Maybe.andThen (\s -> Just { sd | answersForm = Just (AnswersForm.init s) })
-                                |> Maybe.withDefault sd
+                                |> Maybe.andThen newStoryData
+                                |> Maybe.withDefault ( sd, cmd )
 
                         _ ->
-                            sd
+                            ( sd, cmd )
             in
-                ( { m | page = newPage, storyData = newSd }, cmd )
+                ( { m | page = newPage, storyData = newSd }, newCmd )
 
         ( Navigate page, _ ) ->
             ( m, Navigation.newUrl <| pageToUrl page )
@@ -189,7 +192,7 @@ update msg m =
                     m ! []
 
         ( GetImgWidth s, _ ) ->
-            m ! [ getImgWidth s ]
+            m ! [ Ports.getImgWidth s ]
 
         ( ImageWidth w, _ ) ->
             let
@@ -198,8 +201,11 @@ update msg m =
             in
                 { m | storyData = { sd | currentPicWidth = round w } } ! []
 
+        ( DictLookup w, _ ) ->
+            m ! []
+
         ( PrintWindow, _ ) ->
-            m ! [ printWindow () ]
+            m ! [ Ports.printWindow () ]
 
         ( NoOp, _ ) ->
             m ! []
@@ -410,10 +416,15 @@ subscriptions m =
                 _ ->
                     Sub.none
 
-        storyImgSub =
-            imgWidth ImageWidth
+        storyPageSubs =
+            case m.page of
+                StoryPage _ ->
+                    Sub.batch [ Ports.imgWidth ImageWidth, Ports.dictLookup DictLookup ]
+
+                _ ->
+                    Sub.none
     in
-        Sub.batch [ storyImgSub, loginSub ]
+        Sub.batch [ storyPageSubs, loginSub ]
 
 
 view : Model -> Html Msg

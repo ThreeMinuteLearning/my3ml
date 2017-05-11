@@ -1,5 +1,7 @@
 port module Ports exposing (..)
 
+import Api exposing (DictEntry)
+
 
 port getImgWidth : String -> Cmd msg
 
@@ -8,3 +10,9 @@ port imgWidth : (Float -> msg) -> Sub msg
 
 
 port printWindow : () -> Cmd msg
+
+
+port postProcessStory : List DictEntry -> Cmd msg
+
+
+port dictLookup : (String -> msg) -> Sub msg

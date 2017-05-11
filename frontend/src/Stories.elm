@@ -138,7 +138,7 @@ viewStory sd id_ =
                 , div [ id "storypic", picStyle sd.currentPicWidth ]
                     [ img [ onLoadGetWidth, src ("pix/" ++ s.img) ] []
                     ]
-                , Markdown.toHtml [ id "storycontent" ] s.content
+                , Markdown.toHtml [ id "storycontent" ] (storyContent s)
                 , div [ id "storyfooter" ]
                     [ p [] [ text (String.join ", " s.tags), br [] [], text ("Level: " ++ toString s.level) ]
                     ]
@@ -146,6 +146,21 @@ viewStory sd id_ =
 
         _ ->
             text "Story not found"
+
+
+storyContent : Story -> String
+storyContent s =
+    let
+        replace m =
+            "*" ++ (String.dropRight 1 m.match) ++ "*" ++ (String.right 1 m.match)
+
+        re w =
+            Regex.regex ((Regex.escape w.word) ++ "[^a-zA-z\\-]")
+
+        replaceWord w content =
+            Regex.replace Regex.All (re w) replace content
+    in
+        List.foldl replaceWord s.content s.words
 
 
 picStyle : Int -> Html.Attribute msg

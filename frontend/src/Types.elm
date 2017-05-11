@@ -20,6 +20,7 @@ type Msg
     | SchoolDataMsg SchoolDataMsg
     | GetImgWidth String
     | ImageWidth Float
+    | DictLookup String
     | PrintWindow
     | NoOp
 
