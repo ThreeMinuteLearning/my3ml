@@ -132,3 +132,7 @@ html {
 .clarifypanel {
     background: rgba(96,125,203,1);
 }
+
+.dict-lookup {
+    cursor: pointer;
+}
