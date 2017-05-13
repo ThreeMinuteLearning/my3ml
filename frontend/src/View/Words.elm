@@ -3,6 +3,7 @@ module View.Words exposing (view)
 import Api exposing (DictEntry)
 import Dict
 import Html exposing (Html, div)
+import Html.Attributes exposing (class)
 import Types exposing (WordDict)
 
 
@@ -18,10 +19,18 @@ view dict words =
                 |> Maybe.withDefault (Html.text "")
 
         render w ( d, ws ) =
-            Html.p []
-                [ Html.strong [] [ Html.text w ]
-                , Html.text (": " ++ d)
-                ]
+            div [ class "dict-definition" ]
+                ([ Html.p
+                    []
+                    [ Html.strong [] [ Html.text w ]
+                    , Html.text (": " ++ d)
+                    ]
+                 ]
+                    ++ List.map (viewDefinition << mkEntry) ws
+                )
+
+        mkEntry ( w, i ) =
+            DictEntry w i
     in
         div []
             (List.map viewDefinition words)
