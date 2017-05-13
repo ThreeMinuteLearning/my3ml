@@ -3,6 +3,7 @@ module Stories exposing (tableView, tilesView, viewStory, findById, viewAnswersF
 import AnswersForm
 import Api exposing (Story)
 import Bootstrap
+import Dict
 import Drawer
 import Exts.List exposing (firstMatch)
 import Html exposing (Html, br, div, img, h2, h3, p, text, label, input)
@@ -16,6 +17,7 @@ import Rest exposing (handleRemoteData)
 import Routing exposing (pageToUrl, Page(..))
 import Table
 import Types exposing (Model, Msg(..), StoriesMsg(..), StoryData)
+import View.Words
 
 
 tilesView : StoryData -> List (Html Msg)
@@ -142,6 +144,7 @@ viewStory sd id_ =
                 , div [ id "storyfooter" ]
                     [ p [] [ text (String.join ", " s.tags), br [] [], text ("Level: " ++ toString s.level) ]
                     ]
+                , View.Words.view (RemoteData.withDefault Dict.empty sd.wordDict) (Maybe.withDefault [] (Maybe.map List.singleton sd.dictLookup))
                 ]
 
         _ ->
