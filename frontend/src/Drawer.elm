@@ -1,13 +1,19 @@
-module Drawer exposing (drawer)
+module Drawer exposing (DrawerType(..), view)
 
-import AnswersForm exposing (DrawerType(..), Msg(ToggleDrawer))
 import Html exposing (Html, div, img, h1, p, text, ul, li, input)
 import Html.Attributes exposing (id, class, checked, src, type_, width)
 import Html.Events exposing (onClick, onCheck)
 
 
-drawer : Maybe DrawerType -> Html AnswersForm.Msg
-drawer showDrawer =
+type DrawerType
+    = Connect
+    | Question
+    | Summarise
+    | Clarify
+
+
+view : Maybe DrawerType -> (DrawerType -> msg) -> Html msg
+view showDrawer toggleDrawer =
     let
         currentDrawer =
             Maybe.withDefault Connect showDrawer
@@ -25,7 +31,7 @@ drawer showDrawer =
                 , h1 []
                     [ text (toString currentDrawer)
                     ]
-                , Html.a [ class "closebutton", onClick (ToggleDrawer currentDrawer) ]
+                , Html.a [ class "closebutton", onClick (toggleDrawer currentDrawer) ]
                     [ img [ src "img/closeblack.png" ] [] ]
                 ]
 
@@ -92,7 +98,7 @@ drawer showDrawer =
             [ input
                 [ type_ "checkbox"
                 , id "toggle-drawer"
-                , onCheck (\_ -> ToggleDrawer currentDrawer)
+                , onCheck (\_ -> toggleDrawer currentDrawer)
                 , checked (showDrawer /= Nothing)
                 ]
                 []

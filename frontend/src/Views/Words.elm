@@ -1,10 +1,10 @@
-module View.Words exposing (view)
+module Views.Words exposing (view)
 
 import Api exposing (DictEntry)
+import Data.Words exposing (WordDict)
 import Dict
 import Html exposing (Html, div)
 import Html.Attributes exposing (class)
-import Types exposing (WordDict)
 
 
 {-| Shows a panel containing one or more dictionary word lookups

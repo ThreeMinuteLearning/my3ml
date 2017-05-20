@@ -1,14 +1,18 @@
-module AnswersForm exposing (Answers, DrawerType(..), Msg(..), Model, init, update, view)
+module AnswersForm exposing (Msg, Model, init, update, view)
 
-import Api exposing (Story)
+import Api
 import Bootstrap exposing (errorClass, submitButton)
+import Data.Session exposing (Session, authorization)
 import Dict
+import Drawer exposing (DrawerType(..))
 import Form exposing (Form)
 import Form.Input as Input
 import Form.Validate as Validate exposing (Validation, field, nonEmpty, string, succeed)
 import Html exposing (Html, button, div, em, text, label)
 import Html.Attributes exposing (id, class, for, type_)
 import Html.Events exposing (onClick)
+import Http
+import Util exposing ((=>))
 
 
 type ClarifyMethod
@@ -17,16 +21,10 @@ type ClarifyMethod
     | Substitution
 
 
-type DrawerType
-    = Connect
-    | Question
-    | Summarise
-    | Clarify
-
-
 type Msg
     = ToggleDrawer DrawerType
     | FormMsg Form.Msg
+    | SubmitAnswersResponse (Result Http.Error Api.Answer)
 
 
 type CustomError
@@ -43,28 +41,69 @@ type alias Answers =
 
 
 type alias Model =
-    { story : Story
+    { story : Api.Story
     , showDrawer : Maybe DrawerType
     , form : Form CustomError Answers
     }
 
 
-init : Story -> Model
+init : Api.Story -> Model
 init s =
     { story = s, showDrawer = Nothing, form = Form.initial [] answerFormValidation }
 
 
-update : Msg -> Model -> Model
-update msg m =
+update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Maybe Api.Answer )
+update session msg model =
     case msg of
         ToggleDrawer d ->
-            if m.showDrawer == Just d then
-                { m | showDrawer = Nothing }
+            if model.showDrawer == Just d then
+                { model | showDrawer = Nothing }
+                    => Cmd.none
+                    => Nothing
             else
-                { m | showDrawer = Just d }
+                { model | showDrawer = Just d }
+                    => Cmd.none
+                    => Nothing
 
         FormMsg fMsg ->
-            { m | form = Form.update answerFormValidation fMsg m.form }
+            case formCompleted fMsg model.form of
+                Just answers ->
+                    model
+                        => submitAnswers session model.story answers
+                        => Nothing
+
+                Nothing ->
+                    { model | form = Form.update answerFormValidation fMsg model.form }
+                        => Cmd.none
+                        => Nothing
+
+        SubmitAnswersResponse (Ok answer) ->
+            model
+                => Cmd.none
+                => Just answer
+
+        SubmitAnswersResponse (Err _) ->
+            model => Cmd.none => Nothing
+
+
+formCompleted : Form.Msg -> Form.Form e output -> Maybe output
+formCompleted msg form =
+    case ( msg, Form.getOutput form ) of
+        ( Form.Submit, Just o ) ->
+            Just o
+
+        _ ->
+            Nothing
+
+
+submitAnswers : Session -> Api.Story -> Answers -> Cmd Msg
+submitAnswers session story answers =
+    let
+        answer =
+            Api.Answer "" story.id "" answers.connectAnswer answers.questionAnswer answers.summary answers.clarification
+    in
+        Api.postSchoolAnswers (authorization session) answer
+            |> Http.send SubmitAnswersResponse
 
 
 answerFormValidation : Validation CustomError Answers
@@ -102,6 +141,14 @@ answerFormValidation =
 
 view : Model -> Html Msg
 view m =
+    div []
+        [ viewForm m
+        , Drawer.view (.showDrawer m) ToggleDrawer
+        ]
+
+
+viewForm : Model -> Html Msg
+viewForm m =
     let
         answerField nm lbl =
             Form.getFieldAsString nm m.form
