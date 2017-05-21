@@ -8,6 +8,15 @@ backend:
 .PHONY: frontend
 frontend: assets/app.js
 
+.PHONY: clean
+clean:
+	rm assets/app.js
+	rm -R elm-stuff/build-artifacts/0.18.0/ThreeMinuteLearning
+
+.PHONY: deep-clean
+deep-clean: clean
+	rm -R .stack-work
+
 .PHONY: debug
 debug:
 	mkdir -p $(@D) && elm-make frontend/src/Main.elm --debug --output assets/app.js
