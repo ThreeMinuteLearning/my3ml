@@ -2,18 +2,12 @@ html {
 }
 
 .container {
-    max-width: 900px;
+    max-width: 990px;
 }
-
 .row {
     margin-bottom: 20px;
 }
 /* Story tiles view */
-
-.storytiles {
-    padding: 20px 30px;
-    margin-bottom: 20px;
-}
 
 .storytile {
     width: 150px;
@@ -135,4 +129,25 @@ html {
 
 .dict-lookup {
     cursor: pointer;
+}
+
+.dict-defintion {
+    overflow: hidden;
+    width: 100%;
+}
+
+.dict-definition p {
+    animation: 1s slide-left;
+}
+
+@keyframes slide-left {
+    from {
+        margin-left: 100%;
+        width: 300%;
+    }
+
+    to {
+        margin-left: 0%;
+        width: 100%;
+    }
 }
