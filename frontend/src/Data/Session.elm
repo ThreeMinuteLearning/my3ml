@@ -9,6 +9,7 @@ import Task exposing (Task)
 
 type alias User =
     { name : String
+    , sub : String
     , role : Role
     , token : AccessToken
     }
@@ -48,7 +49,7 @@ authorization session =
 
 
 newLogin : Api.Login -> Session -> Session
-newLogin { name, token, role } s =
+newLogin { sub, name, token, role } s =
     let
         userRole =
             case .userType role of
@@ -59,7 +60,7 @@ newLogin { name, token, role } s =
                     Student
     in
         AccessToken token
-            |> User name userRole
+            |> User name sub userRole
             |> Just
             |> Session s.dict []
 

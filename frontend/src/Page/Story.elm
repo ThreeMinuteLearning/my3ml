@@ -2,10 +2,11 @@ module Page.Story exposing (Model, Msg, init, subscriptions, update, view)
 
 import AnswersForm
 import Api
-import Data.Session as Session exposing (Session)
+import Data.Session as Session exposing (Session, authorization)
 import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
 import Task exposing (Task)
@@ -20,6 +21,7 @@ type alias Model =
     { picWidth : Int
     , dictLookup : Maybe Api.DictEntry
     , story : Api.Story
+    , answers : List Api.Answer
     , answersForm : Maybe AnswersForm.Model
     }
 
@@ -33,24 +35,46 @@ type Msg
 
 
 init : Session -> String -> Task PageLoadError ( Model, Session )
-init session slug =
+init originalSession slug =
     let
         handleLoadError _ =
             pageLoadError Page.Other "Story is currently unavailable."
 
-        -- TODO: Check user type and whether user has already completed this story
-        mkAnswersForm story =
-            Just (AnswersForm.init story)
+        user =
+            originalSession.user
+
+        mkAnswersForm story answers =
+            Maybe.andThen (createFormIfUnanswered story answers) user
+
+        createFormIfUnanswered story answers user =
+            if List.any (\a -> a.studentId == .sub user) answers then
+                Nothing
+            else
+                Just (AnswersForm.init story)
 
         lookupStoryAndCreateModel session =
             case firstMatch (\s -> s.id == slug) session.stories of
                 Just story ->
-                    Task.succeed ( Model 0 Nothing story (mkAnswersForm story), session )
+                    lookupAnswers session story
+                        |> Task.andThen
+                            (\answers ->
+                                Task.succeed ( Model 0 Nothing story answers (mkAnswersForm story answers), session )
+                            )
 
                 Nothing ->
                     Task.fail (pageLoadError Page.Other "Sorry. That story couldn't be found.")
+
+        lookupAnswers session story =
+            case user of
+                Nothing ->
+                    Task.succeed []
+
+                _ ->
+                    Api.getSchoolAnswers (authorization session) (Just story.id) Nothing
+                        |> Http.toTask
+                        |> Task.mapError handleLoadError
     in
-        Session.loadDictionary session
+        Session.loadDictionary originalSession
             |> Task.andThen (\newSession -> Session.loadStories newSession)
             |> Task.mapError handleLoadError
             |> Task.andThen lookupStoryAndCreateModel
@@ -111,8 +135,9 @@ update session msg model =
                 Just ( ( subModel, cmd ), Nothing ) ->
                     { model | answersForm = Just subModel } => Cmd.map AnswersFormMsg cmd
 
-                Just ( ( _, cmd ), submittedAnswer ) ->
-                    { model | answersForm = Nothing } => Cmd.map AnswersFormMsg cmd
+                Just ( ( _, cmd ), Just submittedAnswer ) ->
+                    { model | answersForm = Nothing, answers = submittedAnswer :: model.answers }
+                        => Cmd.map AnswersFormMsg cmd
 
 
 resetAnswersForm : Model -> Model

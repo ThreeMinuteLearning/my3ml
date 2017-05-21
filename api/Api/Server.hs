@@ -175,8 +175,8 @@ studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> getStudent :<|>
 
 answersServer :: DB db => AccessScope -> ApiServer AnswersApi db
 answersServer scope = case scope of
-    TeacherScope _ schoolId_ -> getAnswers schoolId_ Nothing :<|> throwAll err403
-    StudentScope subId schId -> getAnswers schId (Just subId) :<|> createAnswer schId subId
+    TeacherScope _ schoolId_ -> getAnswers schoolId_ :<|> throwAll err403
+    StudentScope subId schoolId_ -> getStudentAnswers subId schoolId_  :<|> createAnswer schoolId_ subId
     _ -> throwAll err403
   where
     createAnswer schId subId a = do
@@ -185,7 +185,16 @@ answersServer scope = case scope of
         _ <- runDB $ DB.createAnswer (a_, schId)
         return a_
 
-    getAnswers schId subId stId =
+    -- Student can only query their answers or answers for a specific story,
+    -- not all the stories for the school, or other student's answers.
+    -- So, if a specific story hasn't been requested, we ignore the extra
+    -- "student" parameter value and use the student's own identity instead.
+    getStudentAnswers studentSubId schoolId_ storyId_ _ =
+        case storyId_ of
+            Nothing -> getAnswers schoolId_ Nothing (Just studentSubId)
+            sid -> getAnswers schoolId_ sid Nothing
+
+    getAnswers schId stId subId =
         runDB (DB.getAnswers schId subId stId)
 
 dictServer :: DB db => ApiServer DictApi db

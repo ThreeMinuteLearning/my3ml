@@ -411,7 +411,7 @@ selectAnswersByStudent = Q.statement sql eTextPair (D.rowsList answerRow) True
 selectAnswersByStory :: Query (SchoolId, StoryId) [Answer]
 selectAnswersByStory = Q.statement sql eTextPair (D.rowsList answerRow) True
   where
-    sql = selectAnswersSql <> " WHERE school_id = $1 :: uuid AND story_id = $2 :: uuid"
+    sql = selectAnswersSql <> " WHERE school_id = $1 :: uuid AND story_id = $2"
 
 answerRow :: D.Row Answer
 answerRow = Answer

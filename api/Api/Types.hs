@@ -181,7 +181,7 @@ type StudentsApi =
 
 type AnswersApi =
     "answers" :>
-        (    QueryParam "story" Text :> Get '[JSON] [Answer]
+        (    QueryParam "story" Text :> QueryParam "student" SubjectId :> Get '[JSON] [Answer]
         :<|> ReqBody '[JSON] Answer :> Post '[JSON] Answer
         )
 
