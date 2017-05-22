@@ -12,7 +12,7 @@ import Html exposing (Html, button, div, em, text, label)
 import Html.Attributes exposing (id, class, for, type_)
 import Html.Events exposing (onClick)
 import Http
-import Util exposing ((=>))
+import Util exposing ((=>), formCompleted)
 
 
 type ClarifyMethod
@@ -84,16 +84,6 @@ update session msg model =
 
         SubmitAnswersResponse (Err _) ->
             model => Cmd.none => Nothing
-
-
-formCompleted : Form.Msg -> Form.Form e output -> Maybe output
-formCompleted msg form =
-    case ( msg, Form.getOutput form ) of
-        ( Form.Submit, Just o ) ->
-            Just o
-
-        _ ->
-            Nothing
 
 
 submitAnswers : Session -> Api.Story -> Answers -> Cmd Msg

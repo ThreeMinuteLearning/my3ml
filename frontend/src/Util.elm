@@ -1,8 +1,9 @@
-module Util exposing ((=>), pair, onClickStopPropagation, viewIf, appendErrors)
+module Util exposing ((=>), pair, onClickStopPropagation, viewIf, appendErrors, formCompleted)
 
-import Json.Decode as Decode
-import Html.Events exposing (onWithOptions, defaultOptions)
+import Form
 import Html exposing (Attribute, Html)
+import Html.Events exposing (onWithOptions, defaultOptions)
+import Json.Decode as Decode
 
 
 (=>) : a -> b -> ( a, b )
@@ -48,3 +49,13 @@ onClickStopPropagation msg =
 appendErrors : { model | errors : List error } -> List error -> { model | errors : List error }
 appendErrors model errors =
     { model | errors = model.errors ++ errors }
+
+
+formCompleted : Form.Msg -> Form.Form e output -> Maybe output
+formCompleted msg form =
+    case ( msg, Form.getOutput form ) of
+        ( Form.Submit, Just o ) ->
+            Just o
+
+        _ ->
+            Nothing
