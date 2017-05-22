@@ -1,9 +1,9 @@
-module Views.Page exposing (frame, ActivePage(..), bodyId)
+module Views.Page exposing (frame, ActivePage(..))
 
 {-| The frame around a typical page - that is, the header and footer.
 -}
 
-import Data.Session exposing (User)
+import Data.Session as Session exposing (User)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Lazy exposing (lazy2)
@@ -75,10 +75,21 @@ viewSignIn page user =
             ]
 
         Just user ->
-            [ navbarLink (page == FindStory) Route.FindStory [ text " Find a story" ]
-            , navbarLink (page == Account) Route.Account [ i [ class "ion-gear-a" ] [], text " My3ML" ]
-            , navbarLink False Route.Logout [ text "Sign out" ]
-            ]
+            case user.role of
+                Session.Student ->
+                    standardNavLinks page
+
+                Session.Teacher ->
+                    (navbarLink (page == Teacher) (Route.Teacher Route.Students) [ text "Teacher" ])
+                        :: standardNavLinks page
+
+
+standardNavLinks : ActivePage -> List (Html msg)
+standardNavLinks page =
+    [ navbarLink (page == FindStory) Route.FindStory [ text " Find a story" ]
+    , navbarLink (page == Account) Route.Account [ text " My3ML" ]
+    , navbarLink False Route.Logout [ text "Sign out" ]
+    ]
 
 
 viewFooter : Html msg
@@ -99,12 +110,9 @@ navbarLink isActive route linkContent =
         [ a [ class "nav-link", Route.href route ] linkContent ]
 
 
-{-| This id comes from index.html.
 
-The Feed uses it to scroll to the top of the page (by ID) when switching pages
-in the pagination sense.
-
+{-
+   bodyId : String
+   bodyId =
+       "page-body"
 -}
-bodyId : String
-bodyId =
-    "page-body"

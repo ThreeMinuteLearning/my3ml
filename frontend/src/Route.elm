@@ -1,4 +1,4 @@
-module Route exposing (Route(..), href, modifyUrl, fromLocation, routeToString)
+module Route exposing (Route(..), TeacherSubRoute(..), href, modifyUrl, fromLocation, routeToString)
 
 import Html exposing (Attribute)
 import Html.Attributes as Attr

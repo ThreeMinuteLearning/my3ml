@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Data.Session exposing (Session, newLogin)
+import Data.Session as Session exposing (Session, Role)
 import Dict
 import Html exposing (..)
 import Navigation exposing (Location)
@@ -10,6 +10,7 @@ import Page.Home as Home
 import Page.Login as Login
 import Page.NotFound as NotFound
 import Page.Story as Story
+import Page.Students as Students
 import Ports
 import Route exposing (Route)
 import Task
@@ -25,6 +26,7 @@ type Page
     | Login Login.Model
     | Story Story.Model
     | FindStory FindStory.Model
+    | Students Students.Model
 
 
 type PageState
@@ -94,16 +96,22 @@ viewPage session isLoading page =
                     |> frame Page.Other
                     |> Html.map LoginMsg
 
+            Students subModel ->
+                Students.view subModel
+                    |> frame Page.Teacher
+                    |> Html.map StudentsMsg
+
 
 type MsgNew
     = SetRoute (Maybe Route)
     | HomeLoaded (Result PageLoadError Session)
     | StoryLoaded (Result PageLoadError ( Story.Model, Session ))
     | FindStoryLoaded (Result PageLoadError ( FindStory.Model, Session ))
+    | StudentsLoaded (Result PageLoadError Students.Model)
     | StoryMsg Story.Msg
     | LoginMsg Login.Msg
     | FindStoryMsg FindStory.Msg
-    | PrintWindow
+    | StudentsMsg Students.Msg
 
 
 getPage : PageState -> Page
@@ -125,30 +133,51 @@ setRoute maybeRoute model =
 
         errored =
             pageErrored model
+
+        session =
+            model.session
+
+        requireRole role page transition_ =
+            case session.user of
+                Nothing ->
+                    errored page "You are signed out. You need to sign-in to view this page."
+
+                Just u ->
+                    if u.role == role then
+                        transition_
+                    else
+                        errored page "You can't view this page as the current use. Perhaps you need to log in as a teacher?"
+
+        teacherRoute subRoute =
+            case subRoute of
+                Route.Students ->
+                    transition StudentsLoaded (Students.init session)
+
+                Route.Classes ->
+                    Debug.crash ("No classes page yet")
     in
         case maybeRoute of
             Nothing ->
                 { model | pageState = Loaded NotFound } => Cmd.none
 
             Just (Route.Home) ->
-                transition HomeLoaded (Home.init model.session)
+                transition HomeLoaded (Home.init session)
 
             Just (Route.Story slug) ->
-                transition StoryLoaded (Story.init model.session slug)
+                transition StoryLoaded (Story.init session slug)
 
             Just (Route.Login) ->
                 { model | pageState = Loaded (Login Login.initialModel) } => Cmd.none
 
             Just (Route.Logout) ->
-                let
-                    session =
-                        model.session
-                in
-                    { model | session = { session | user = Nothing } }
-                        => Route.modifyUrl Route.Home
+                { model | session = { session | user = Nothing } }
+                    => Route.modifyUrl Route.Home
 
             Just (Route.FindStory) ->
-                transition FindStoryLoaded (FindStory.init model.session)
+                transition FindStoryLoaded (FindStory.init session)
+
+            Just (Route.Teacher subRoute) ->
+                requireRole Session.Teacher Page.Teacher (teacherRoute subRoute)
 
             _ ->
                 Debug.log ("No route set for " ++ toString maybeRoute) (model ! [])
@@ -200,11 +229,20 @@ updatePage page msg model =
             ( FindStoryLoaded (Err error), _ ) ->
                 { model | pageState = Loaded (Errored error) } => Cmd.none
 
+            ( StudentsLoaded (Ok subModel), _ ) ->
+                { model | pageState = Loaded (Students subModel) } => Cmd.none
+
+            ( StudentsLoaded (Err error), _ ) ->
+                { model | pageState = Loaded (Errored error) } => Cmd.none
+
             ( StoryMsg subMsg, Story subModel ) ->
                 toPage Story StoryMsg (Story.update model.session) subMsg subModel
 
             ( FindStoryMsg subMsg, FindStory subModel ) ->
                 toPage FindStory FindStoryMsg (FindStory.update model.session) subMsg subModel
+
+            ( StudentsMsg subMsg, Students subModel ) ->
+                toPage Students StudentsMsg (Students.update model.session) subMsg subModel
 
             ( LoginMsg subMsg, Login subModel ) ->
                 let
@@ -217,115 +255,13 @@ updatePage page msg model =
                                 model
 
                             Login.LoginSuccess login ->
-                                { model | session = newLogin login model.session }
+                                { model | session = Session.newLogin login model.session }
                 in
                     { newModel | pageState = Loaded (Login pageModel) }
                         => Cmd.map LoginMsg cmd
 
-            ( PrintWindow, _ ) ->
-                model => Ports.printWindow ()
-
             ( _, _ ) ->
                 model => Cmd.none
-
-
-
-{-
-
-   initSchoolData : SchoolData
-   initSchoolData =
-       { classes = RemoteData.Loading
-       , students = RemoteData.Loading
-       , tableState = Table.initialSort "Name"
-       , action = ViewStudents
-       , addStudentsForm = AddStudentsForm.init
-       , studentFilter = ( "", Nothing )
-       , selectedStudents = Dict.empty
-       , addClassForm = AddClassForm.init
-       , studentAccountsCreated = []
-       }
--}
-{-
-   updateSchoolData : User -> SchoolDataMsg -> SchoolData -> ( SchoolData, Cmd Msg )
-   updateSchoolData (User _ token) msg sd =
-       case msg of
-           ClassesResponse cs ->
-               { sd | classes = cs } ! []
-
-           StudentsResponse ss ->
-               { sd | students = ss } ! []
-
-           SchoolDataTableState ts ->
-               { sd | tableState = ts } ! []
-
-           TeacherAction ta ->
-               { sd | action = ta } ! []
-
-           StudentFilterInput f ->
-               { sd | studentFilter = ( f, second sd.studentFilter ) } ! []
-
-           StudentFilterClass c ->
-               { sd | studentFilter = ( first sd.studentFilter, c ) } ! []
-
-           ClearSelectedStudents ->
-               { sd | selectedStudents = Dict.empty } ! []
-
-           ClearNewAccounts ->
-               { sd | studentAccountsCreated = [] } ! []
-
-           AddClassFormMsg formMsg ->
-               case ( formMsg, Form.getOutput sd.addClassForm ) of
-                   ( Form.Submit, Just newClass ) ->
-                       { sd | action = ViewClasses, addClassForm = AddClassForm.init } ! [ Rest.createClass token newClass ]
-
-                   _ ->
-                       { sd | addClassForm = AddClassForm.update formMsg sd.addClassForm } ! []
-
-           AddStudentsFormMsg formMsg ->
-               case ( formMsg, Form.getOutput sd.addStudentsForm ) of
-                   ( Form.Submit, Just newStudents ) ->
-                       { sd | action = ViewStudents, addStudentsForm = AddStudentsForm.init } ! [ Rest.createStudentAccounts token (List.filter (not << String.isEmpty) newStudents) ]
-
-                   _ ->
-                       { sd | addStudentsForm = AddStudentsForm.update formMsg sd.addStudentsForm } ! []
-
-           AddStudentsResponse r ->
-               case r of
-                   RemoteData.Success newAccounts ->
-                       let
-                           accountsCreated =
-                               newAccounts ++ sd.studentAccountsCreated
-
-                           newStudents =
-                               List.map first newAccounts
-                       in
-                           { sd | studentAccountsCreated = accountsCreated, students = RemoteData.map (List.append newStudents) sd.students } ! []
-
-                   -- TODO Post message on failure
-                   _ ->
-                       sd ! []
-
-           AddClassResponse r ->
-               case r of
-                   RemoteData.Success newClass ->
-                       { sd | classes = RemoteData.map ((::) newClass) sd.classes } ! []
-
-                   -- TODO Post message on failure
-                   _ ->
-                       sd ! []
-
-           SelectStudent s b ->
-               let
-                   f =
-                       if b then
-                           Dict.insert (.id s) s
-                       else
-                           Dict.remove (.id s)
-               in
-                   { sd | selectedStudents = f sd.selectedStudents } ! []
-
-
--}
 
 
 subscriptions : Model -> Sub MsgNew

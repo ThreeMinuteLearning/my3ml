@@ -1,4 +1,4 @@
-module Data.Session exposing (AccessToken, Session, User, Role, authorization, isStudent, newLogin, loadStories, loadDictionary)
+module Data.Session exposing (AccessToken, Session, User, Role(..), authorization, isStudent, newLogin, loadStories, loadDictionary)
 
 import Api
 import Data.Words exposing (WordDict)

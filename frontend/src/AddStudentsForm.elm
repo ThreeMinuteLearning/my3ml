@@ -7,6 +7,7 @@ import Form.Input as Input
 import Form.Validate as Validate exposing (Validation, andThen, emptyString, field, nonEmpty, oneOf, minLength, maxLength, sequence, string, succeed)
 import Html exposing (Html, button, div, p, text, label)
 import Html.Attributes exposing (class, id)
+import Util exposing (formCompleted)
 
 
 type alias Model =
@@ -18,9 +19,14 @@ init =
     Form.initial [] validation
 
 
-update : Form.Msg -> Model -> Model
+update : Form.Msg -> Model -> ( Model, Maybe (List String) )
 update msg form =
-    Form.update validation msg form
+    case formCompleted msg form of
+        Just names ->
+            ( form, Just (List.filter (not << String.isEmpty) names) )
+
+        Nothing ->
+            ( Form.update validation msg form, Nothing )
 
 
 validation : Validation () (List String)
