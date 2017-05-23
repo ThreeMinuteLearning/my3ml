@@ -69,7 +69,7 @@ view session m =
                 ]
             ]
         , div [ class "table-responsive" ]
-            [ (Table.view tableConfig m.tableState << filterStories m.storyFilter) session.stories ]
+            [ Table.view tableConfig m.tableState (filterStories m.storyFilter session.stories) ]
         ]
 
 
