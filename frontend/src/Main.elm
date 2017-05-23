@@ -106,7 +106,7 @@ type MsgNew
     | HomeLoaded (Result PageLoadError Session)
     | StoryLoaded (Result PageLoadError ( Story.Model, Session ))
     | FindStoryLoaded (Result PageLoadError ( FindStory.Model, Session ))
-    | StudentsLoaded (Result PageLoadError Students.Model)
+    | StudentsLoaded (Result PageLoadError ( Students.Model, Session ))
     | StoryMsg Story.Msg
     | LoginMsg Login.Msg
     | FindStoryMsg FindStory.Msg
@@ -228,8 +228,8 @@ updatePage page msg model =
             ( FindStoryLoaded (Err error), _ ) ->
                 { model | pageState = Loaded (Errored error) } => Cmd.none
 
-            ( StudentsLoaded (Ok subModel), _ ) ->
-                { model | pageState = Loaded (Students subModel) } => Cmd.none
+            ( StudentsLoaded (Ok ( subModel, newSession )), _ ) ->
+                { model | session = newSession, pageState = Loaded (Students subModel) } => Cmd.none
 
             ( StudentsLoaded (Err error), _ ) ->
                 { model | pageState = Loaded (Errored error) } => Cmd.none
