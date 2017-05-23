@@ -53,7 +53,7 @@ init originalSession slug =
                 Just (AnswersForm.init story)
 
         lookupStoryAndCreateModel session =
-            case firstMatch (\s -> s.id == slug) session.stories of
+            case firstMatch (\s -> s.id == slug) (.stories session.cache) of
                 Just story ->
                     lookupAnswers session story
                         |> Task.andThen
@@ -93,7 +93,7 @@ view session m =
         , m.dictLookup
             |> Maybe.map List.singleton
             |> Maybe.withDefault []
-            |> Words.view session.dict
+            |> Words.view (.dict session.cache)
         , viewIf (Session.isStudent session) (viewAnswersForm m)
         ]
 

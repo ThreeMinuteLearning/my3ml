@@ -1,7 +1,6 @@
 module Main exposing (main)
 
 import Data.Session as Session exposing (Session, Role)
-import Dict
 import Html exposing (..)
 import Navigation exposing (Location)
 import Page.Errored as Errored exposing (PageLoadError)
@@ -44,7 +43,7 @@ init : Location -> ( Model, Cmd MsgNew )
 init location =
     setRoute (Route.fromLocation location)
         { pageState = Loaded Blank
-        , session = { user = Nothing, stories = [], dict = Dict.empty }
+        , session = Session.emptySession
         }
 
 

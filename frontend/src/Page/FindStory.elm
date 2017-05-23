@@ -53,7 +53,7 @@ update session msg model =
 
 
 view : Session -> Model -> Html Msg
-view session m =
+view { cache } m =
     div [ class "container page" ]
         [ RobotPanel.view
         , div []
@@ -69,7 +69,7 @@ view session m =
                 ]
             ]
         , div [ class "table-responsive" ]
-            [ Table.view tableConfig m.tableState (filterStories m.storyFilter session.stories) ]
+            [ Table.view tableConfig m.tableState (filterStories m.storyFilter cache.stories) ]
         ]
 
 

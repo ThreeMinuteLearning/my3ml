@@ -21,13 +21,13 @@ init session =
 
 
 view : Session -> Html msg
-view session =
+view { cache } =
     div [ class "home-page" ]
         [ div [ class "container page" ]
             [ RobotPanel.view
             , div []
                 [ h2 [] [ text "Starter Stories" ]
-                , StoryTiles.view (List.take 24 session.stories)
+                , StoryTiles.view (List.take 24 cache.stories)
                 ]
             ]
         ]

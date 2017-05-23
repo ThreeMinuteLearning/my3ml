@@ -1,4 +1,4 @@
-module Data.Session exposing (AccessToken, Session, User, Role(..), authorization, isStudent, newLogin, loadStories, loadDictionary)
+module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, isStudent, newLogin, loadStories, loadDictionary, loadStudents, loadClasses)
 
 import Api
 import Data.Words exposing (WordDict)
@@ -20,15 +20,27 @@ type AccessToken
 
 
 type alias Session =
+    { cache : Cache
+    , user : Maybe User
+    }
+
+
+type alias Cache =
     { dict : WordDict
     , stories : List Api.Story
-    , user : Maybe User
+    , students : List Api.Student
+    , classes : List Api.Class
     }
 
 
 type Role
     = Student
     | Teacher
+
+
+emptySession : Session
+emptySession =
+    Session (Cache Dict.empty [] [] []) Nothing
 
 
 isStudent : Session -> Bool
@@ -62,35 +74,69 @@ newLogin { sub, name, token, role } s =
         AccessToken token
             |> User name sub userRole
             |> Just
-            |> Session s.dict []
+            |> Session s.cache
 
 
 loadStories : Session -> Task Http.Error Session
 loadStories session =
     let
-        load =
-            case session.stories of
-                [] ->
-                    Api.getStories (authorization session)
-                        |> Http.toTask
-
-                _ ->
-                    Task.succeed session.stories
+        cache =
+            session.cache
     in
-        Task.map (\newStories -> { session | stories = newStories }) load
+        case cache.stories of
+            [] ->
+                Api.getStories (authorization session)
+                    |> Http.toTask
+                    |> Task.map (\newStories -> { session | cache = { cache | stories = newStories } })
+
+            _ ->
+                Task.succeed session
 
 
 loadDictionary : Session -> Task Http.Error Session
 loadDictionary session =
     let
-        load =
-            if Dict.isEmpty session.dict then
-                Api.getDictionary
-                    |> Http.toTask
-            else
-                Task.succeed session.dict
+        cache =
+            session.cache
     in
-        Task.map (\newDict -> { session | dict = newDict }) load
+        if Dict.isEmpty cache.dict then
+            Api.getDictionary
+                |> Http.toTask
+                |> Task.map (\newDict -> { session | cache = { cache | dict = newDict } })
+        else
+            Task.succeed session
+
+
+loadStudents : Session -> Task Http.Error Session
+loadStudents session =
+    let
+        cache =
+            session.cache
+    in
+        case cache.students of
+            [] ->
+                Api.getSchoolStudents (authorization session)
+                    |> Http.toTask
+                    |> Task.map (\newStudents -> { session | cache = { cache | students = newStudents } })
+
+            _ ->
+                Task.succeed session
+
+
+loadClasses : Session -> Task Http.Error Session
+loadClasses session =
+    let
+        cache =
+            session.cache
+    in
+        case cache.classes of
+            [] ->
+                Api.getSchoolClasses (authorization session)
+                    |> Http.toTask
+                    |> Task.map (\newClasses -> { session | cache = { cache | classes = newClasses } })
+
+            _ ->
+                Task.succeed session
 
 
 
