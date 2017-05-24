@@ -58,11 +58,11 @@ view { cache } m =
         [ RobotPanel.view
         , div []
             [ div [ class "form-group" ]
-                [ label [ for "storyfilter" ] [ text "Search" ]
-                , input
+                [ input
                     [ type_ "text"
                     , value m.storyFilter
                     , onInput StoryFilterInput
+                    , placeholder "Search text"
                     , id "storyfilter"
                     ]
                     []

@@ -243,7 +243,7 @@ viewStudentsFilter model =
                 [ text (c.name ++ format c.description) ]
 
         emptyOption =
-            Html.option [ value "" ] [ text "" ]
+            Html.option [ value "" ] [ text "Filter by class" ]
 
         onSelect classId =
             SetClassFilter <|
@@ -253,15 +253,14 @@ viewStudentsFilter model =
                     (Just classId)
     in
         formGroup
-            [ label [ for "studentNameFilter" ] [ text "Search by name" ]
-            , input
+            [ input
                 [ type_ "text"
                 , value (first model.studentFilter)
                 , onInput StudentFilterInput
+                , placeholder "Name search"
                 , id "studentNameFilter"
                 ]
                 []
-            , label [ for "studentClass" ] [ text "Filter by class" ]
             , Html.select [ onInput (\s -> onSelect s) ]
                 (emptyOption :: List.map classOption model.classes)
             , Bootstrap.btn ClearSelectedStudents [ text "Clear Selection" ]
