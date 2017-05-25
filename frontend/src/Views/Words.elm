@@ -2,7 +2,7 @@ module Views.Words exposing (view)
 
 import Api exposing (DictEntry)
 import Data.Words exposing (WordDict)
-import Dict
+import Dict exposing (Dict)
 import Html exposing (Html, div)
 import Html.Attributes exposing (class)
 
@@ -12,25 +12,33 @@ import Html.Attributes exposing (class)
 view : WordDict -> List DictEntry -> Html msg
 view dict words =
     let
-        viewDefinition entry =
-            Dict.get entry.word dict
-                |> Maybe.andThen (List.head << List.drop entry.index)
-                |> Maybe.andThen (Just << render entry.word)
-                |> Maybe.withDefault (Html.text "")
+        collectDefinitions : DictEntry -> Dict String String -> Dict String String
+        collectDefinitions entry defs =
+            if Dict.member entry.word defs then
+                defs
+            else
+                Dict.get entry.word dict
+                    |> Maybe.andThen (List.head << List.drop entry.index)
+                    |> Maybe.map
+                        (\( defn, subwords ) ->
+                            List.foldl collectDefinitions (Dict.insert entry.word defn defs) (List.map mkEntry subwords)
+                        )
+                    |> Maybe.withDefault Dict.empty
 
-        render w ( d, ws ) =
+        render ( w, d ) =
             div [ class "dict-definition" ]
-                ([ Html.p
+                [ Html.p
                     []
                     [ Html.strong [] [ Html.text w ]
                     , Html.text (": " ++ d)
                     ]
-                 ]
-                    ++ List.map (viewDefinition << mkEntry) ws
-                )
+                ]
 
         mkEntry ( w, i ) =
             DictEntry w i
+
+        uniqueDefinitions =
+            Dict.toList
+                (List.foldl collectDefinitions Dict.empty words)
     in
-        div []
-            (List.map viewDefinition words)
+        div [] (List.map render uniqueDefinitions)
