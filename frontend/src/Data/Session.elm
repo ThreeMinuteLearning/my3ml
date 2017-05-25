@@ -60,6 +60,11 @@ authorization session =
         |> Maybe.withDefault ""
 
 
+clearCache : Cache -> Cache
+clearCache c =
+    Cache c.dict [] [] []
+
+
 newLogin : Api.Login -> Session -> Session
 newLogin { sub, name, token, role } s =
     let
@@ -74,7 +79,7 @@ newLogin { sub, name, token, role } s =
         AccessToken token
             |> User name sub userRole
             |> Just
-            |> Session s.cache
+            |> Session (clearCache s.cache)
 
 
 loadStories : Session -> Task Http.Error Session
