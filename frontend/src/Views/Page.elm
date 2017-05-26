@@ -45,7 +45,7 @@ viewHeader page user isLoading =
                     [ mobileToggleButton
                     , a [ class "navbar-brand", Route.href Route.Home ] [ text "3ML" ]
                     ]
-                , div [ class "navbar-collapse collapse" ]
+                , div [ id "navbar", class "navbar-collapse collapse" ]
                     [ ul [ class "nav navbar-nav navbar-right" ] <|
                         lazy2 Util.viewIf isLoading spinner
                             :: (navbarLink (page == Home) Route.Home [ text "Home" ])
