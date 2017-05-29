@@ -37,8 +37,14 @@ view dict words =
         mkEntry ( w, i ) =
             DictEntry w i
 
+        originalWords =
+            List.map .word words
+
         uniqueDefinitions =
-            Dict.toList
-                (List.foldl collectDefinitions Dict.empty words)
+            Dict.toList (List.foldl collectDefinitions Dict.empty words)
+
+        sortedDefinitions =
+            List.partition (\( w, d ) -> List.member w originalWords) uniqueDefinitions
+                |> \( defs, subdefs ) -> List.append defs subdefs
     in
-        div [] (List.map render uniqueDefinitions)
+        div [] (List.map render sortedDefinitions)
