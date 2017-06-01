@@ -322,10 +322,11 @@ classRow = Class
 insertClassMembers :: Query (SchoolId, ClassId, [SubjectId]) ()
 insertClassMembers = Q.statement sql encode D.unit True
   where
-    sql = "INSERT INTO student_class (class_id, student_id) \
-          \ SELECT $1 :: uuid, studentId FROM unnest $2 :: uuid[] as studentId \
+    sql = "INSERT INTO student_class (school_id, class_id, student_id) \
+          \ SELECT $1 :: uuid, $2 :: uuid, studentId FROM unnest $2 :: uuid[] as studentId \
           \ ON CONFLICT DO NOTHING"
-    encode = contramap (\(_, cid, _) -> cid) evText
+    encode = contramap (\(sid, _, _) -> sid) evText
+        <> contramap (\(_, cid, _) -> cid) evText
         <> contramap (\(_, _, sids) -> sids) (eArray E.text)
 
 

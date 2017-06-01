@@ -37,6 +37,7 @@ CREATE TABLE class
     , description text
     , school_id uuid NOT NULL REFERENCES school
     , created_by uuid NOT NULL REFERENCES login
+    , UNIQUE (id, school_id)
     );
 
 CREATE TABLE teacher
@@ -54,12 +55,16 @@ CREATE TABLE student
     , level smallint NOT NULL CHECK (level >= 0 AND level < 10)
     , school_id uuid NOT NULL REFERENCES school
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
+    , UNIQUE (id, school_id)
     );
 
 CREATE TABLE student_class
-    ( student_id uuid NOT NULL REFERENCES student
-    , class_id uuid NOT NULL REFERENCES class
+    ( student_id uuid NOT NULL
+    , class_id uuid NOT NULL
+    , school_id uuid NOT NULL
     , PRIMARY KEY (student_id, class_id)
+    , FOREIGN KEY (student_id, school_id) REFERENCES student (id, school_id)
+    , FOREIGN KEY (class_id, school_id) REFERENCES class (id, school_id)
     );
 
 CREATE TABLE trail
