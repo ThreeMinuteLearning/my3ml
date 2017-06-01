@@ -56,7 +56,12 @@ instance DB HasqlDB where
 
     getClasses = runQuery selectClassesBySchool
 
-    addClassMembers schoolId_ classId_ studentIds = runQuery insertClassMembers (schoolId_, classId_, studentIds)
+    addClassMembers schoolId_ classId_ studentIds db = runSession db $ do
+        S.query (schoolId_, classId_, studentIds) insertClassMembers
+        mc <- S.query classId_ selectClassById
+        case mc of
+            Just c -> return c
+            Nothing -> liftIO $ throwString "Couldn't find class after updating members. Shouldn't happen."
 
     getClass = runQuery selectClassById
 

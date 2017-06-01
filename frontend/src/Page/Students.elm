@@ -48,7 +48,7 @@ type Msg
     | AddStudentsFormMsg Form.Msg
     | AddStudentsToClass (Maybe String)
     | AddStudentsResponse (Result Http.Error (List ( Api.Student, ( String, String ) )))
-    | ClassMembersResponse (Result Http.Error Api.NoContent)
+    | ClassMembersResponse (Result Http.Error Api.Class)
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -155,8 +155,19 @@ update session msg model =
                                )
                             => session
 
-        ClassMembersResponse (Ok (Api.NoContent)) ->
-            model => Cmd.none => session
+        ClassMembersResponse (Ok updatedClass) ->
+            let
+                cache =
+                    session.cache
+
+                newClasses =
+                    updatedClass
+                        :: List.filter (\c -> c.id /= updatedClass.id) cache.classes
+
+                newSession =
+                    { session | cache = { cache | classes = newClasses } }
+            in
+                model => Cmd.none => newSession
 
         ClassMembersResponse (Err _) ->
             model => Cmd.none => session

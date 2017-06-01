@@ -148,9 +148,8 @@ classesServer subId sid = runDB (DB.getClasses sid) :<|> specificClassServer :<|
         c <- runDB (DB.getClass cid)
         maybe (throwError err404) return c
 
-    setClassMembers cid studentIds = do
+    setClassMembers cid studentIds =
         runDB (DB.addClassMembers sid cid studentIds)
-        return NoContent
 
     createClass (nm, desc) = do
         uuid <- newUUID

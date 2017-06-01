@@ -37,7 +37,7 @@ class DB db where
 
     getClass :: MonadIO m => ClassId -> db -> m (Maybe Class)
 
-    addClassMembers :: MonadIO m => SchoolId -> ClassId -> [SubjectId] -> db -> m ()
+    addClassMembers :: MonadIO m => SchoolId -> ClassId -> [SubjectId] -> db -> m Class
 
     createClass :: MonadIO m => Class -> db -> m ()
 
