@@ -22,7 +22,7 @@ import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Jose.Jwk
 import           Prelude hiding (id)
-import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, err401, err403, err404, errBody, Handler)
+import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, Handler, NoContent(..), err401, err403, err404, errBody)
 
 import           Api.Auth (AccessScope(..), mkAccessToken, scopeSubjectId)
 import           Api.Types hiding (AccessToken)
@@ -140,11 +140,17 @@ specificSchoolServer scp sid = classesServer (scopeSubjectId scp) sid :<|> stude
 
 
 classesServer :: DB db => SubjectId -> SchoolId -> ApiServer ClassesApi db
-classesServer subId sid = runDB (DB.getClasses sid) :<|> getClass :<|> createClass
+classesServer subId sid = runDB (DB.getClasses sid) :<|> specificClassServer :<|> createClass
   where
+    specificClassServer cid = getClass cid :<|> setClassMembers cid
+
     getClass cid = do
         c <- runDB (DB.getClass cid)
         maybe (throwError err404) return c
+
+    setClassMembers cid studentIds = do
+        runDB (DB.addClassMembers sid cid studentIds)
+        return NoContent
 
     createClass (nm, desc) = do
         uuid <- newUUID

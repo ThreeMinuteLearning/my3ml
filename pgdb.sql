@@ -59,6 +59,7 @@ CREATE TABLE student
 CREATE TABLE student_class
     ( student_id uuid NOT NULL REFERENCES student
     , class_id uuid NOT NULL REFERENCES class
+    , PRIMARY KEY (student_id, class_id)
     );
 
 CREATE TABLE trail
@@ -73,6 +74,7 @@ CREATE TABLE dict
     , index smallint NOT NULL check (index >= 0 AND index < 20)
     , definition text NOT NULL
     , uses_words dict_entry[] NOT NULL
+    , PRIMARY KEY (word, index)
     );
 
 CREATE TABLE story_answer

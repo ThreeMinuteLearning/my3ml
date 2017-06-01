@@ -35,6 +35,7 @@ specs =
             ,  defElmImports
             ]
            <> typeSources
+           <> [ toElmTypeSource (Proxy :: Proxy NoContent)]
            <> generateElmForAPIWith elmOpts (Proxy :: Proxy Api)
            <> codecSources
         )

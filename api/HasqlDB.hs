@@ -56,6 +56,8 @@ instance DB HasqlDB where
 
     getClasses = runQuery selectClassesBySchool
 
+    addClassMembers schoolId_ classId_ studentIds = runQuery insertClassMembers (schoolId_, classId_, studentIds)
+
     getClass = runQuery selectClassById
 
     createClass = runQuery insertClass
@@ -316,6 +318,16 @@ classRow = Class
     <*> dvUUID
     <*> dvUUID
     <*> dArray D.text
+
+insertClassMembers :: Query (SchoolId, ClassId, [SubjectId]) ()
+insertClassMembers = Q.statement sql encode D.unit True
+  where
+    sql = "INSERT INTO student_class (class_id, student_id) \
+          \ SELECT $1 :: uuid, studentId FROM unnest $2 :: uuid[] as studentId \
+          \ ON CONFLICT DO NOTHING"
+    encode = contramap (\(_, cid, _) -> cid) evText
+        <> contramap (\(_, _, sids) -> sids) (eArray E.text)
+
 
 insertClass :: Query Class ()
 insertClass = Q.statement sql encode D.unit True
