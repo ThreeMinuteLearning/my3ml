@@ -20,16 +20,14 @@ import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
 import Tuple exposing (second)
-import Util exposing ((=>))
+import Util exposing ((=>), viewIf)
 import Views.NewAccounts as NewAccounts
 import Views.Page as Page
 import Views.TeacherToolbar as TeacherToolbar
 
 
 type alias Model =
-    { students : List Api.Student
-    , classes : List Api.Class
-    , tableState : Table.State
+    { tableState : Table.State
     , selectedStudents : Dict String Api.Student
     , studentAccountsCreated : List ( Api.Student, ( String, String ) )
     , addStudentsForm : Maybe AddStudentsForm.Model
@@ -48,7 +46,9 @@ type Msg
     | SetTableState Table.State
     | SelectStudent Api.Student Bool
     | AddStudentsFormMsg Form.Msg
+    | AddStudentsToClass (Maybe String)
     | AddStudentsResponse (Result Http.Error (List ( Api.Student, ( String, String ) )))
+    | ClassMembersResponse (Result Http.Error Api.NoContent)
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -58,7 +58,7 @@ init session =
             pageLoadError Page.Other "Unable to load student data."
 
         createModel session =
-            Model (.students session.cache) (.classes session.cache) (Table.initialSort "Name") Dict.empty [] Nothing ( "", Nothing )
+            Model (Table.initialSort "Name") Dict.empty [] Nothing ( "", Nothing )
                 => session
     in
         Session.loadStudents session
@@ -67,23 +67,23 @@ init session =
             |> Task.map createModel
 
 
-update : Session -> Msg -> Model -> ( Model, Cmd Msg )
+update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
 update session msg model =
     case msg of
         ClearSelectedStudents ->
-            { model | selectedStudents = Dict.empty } => Cmd.none
+            { model | selectedStudents = Dict.empty } => Cmd.none => session
 
         ClearNewAccounts ->
-            { model | studentAccountsCreated = [] } => Cmd.none
+            { model | studentAccountsCreated = [] } => Cmd.none => session
 
         StudentFilterInput txt ->
-            { model | studentFilter = ( txt, second model.studentFilter ) } => Cmd.none
+            { model | studentFilter = ( txt, second model.studentFilter ) } => Cmd.none => session
 
         PrintWindow ->
-            model => Ports.printWindow ()
+            model => Ports.printWindow () => session
 
         SetClassFilter c ->
-            { model | studentFilter = ( first model.studentFilter, c ) } => Cmd.none
+            { model | studentFilter = ( first model.studentFilter, c ) } => Cmd.none => session
 
         SelectStudent student checked ->
             let
@@ -93,50 +93,80 @@ update session msg model =
                     else
                         Dict.remove student.id
             in
-                { model | selectedStudents = f model.selectedStudents } => Cmd.none
+                { model | selectedStudents = f model.selectedStudents } => Cmd.none => session
 
         AddStudentsFormMsg subMsg ->
             case Maybe.map (AddStudentsForm.update subMsg) model.addStudentsForm of
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( model, Cmd.none ) => session
 
                 Just ( subModel, Nothing ) ->
-                    { model | addStudentsForm = Just subModel } => Cmd.none
+                    { model | addStudentsForm = Just subModel } => Cmd.none => session
 
                 Just ( _, Just names ) ->
                     { model | addStudentsForm = Nothing }
                         => (Api.postSchoolStudents (authorization session) names
                                 |> Http.send AddStudentsResponse
                            )
+                        => session
 
         SetTableState state ->
-            { model | tableState = state } => Cmd.none
+            { model | tableState = state } => Cmd.none => session
 
         AddStudentsResponse (Ok newAccounts) ->
             let
+                cache =
+                    session.cache
+
                 accountsCreated =
                     newAccounts ++ model.studentAccountsCreated
 
                 newStudents =
                     List.map first newAccounts
+
+                newSession =
+                    { session | cache = { cache | students = List.append newStudents cache.students } }
             in
-                { model | studentAccountsCreated = accountsCreated, students = List.append newStudents model.students } => Cmd.none
+                { model | studentAccountsCreated = accountsCreated } => Cmd.none => newSession
 
         ShowAddStudents ->
-            { model | addStudentsForm = Just AddStudentsForm.init } => Cmd.none
+            { model | addStudentsForm = Just AddStudentsForm.init } => Cmd.none => session
 
         DismissAddStudents ->
-            { model | addStudentsForm = Nothing } => Cmd.none
+            { model | addStudentsForm = Nothing } => Cmd.none => session
 
         AddStudentsResponse (Err _) ->
-            model => Cmd.none
+            model => Cmd.none => session
+
+        AddStudentsToClass classId ->
+            case classId of
+                Nothing ->
+                    model => Cmd.none => session
+
+                Just cid ->
+                    let
+                        studentsToAdd =
+                            Dict.values model.selectedStudents
+                                |> List.map (.id)
+                    in
+                        { model | selectedStudents = Dict.empty }
+                            => (Api.postSchoolClassesByClassIdMembers (authorization session) cid studentsToAdd
+                                    |> Http.send ClassMembersResponse
+                               )
+                            => session
+
+        ClassMembersResponse (Ok (Api.NoContent)) ->
+            model => Cmd.none => session
+
+        ClassMembersResponse (Err _) ->
+            model => Cmd.none => session
 
 
-view : Model -> Html Msg
-view model =
+view : Session -> Model -> Html Msg
+view session model =
     div [ class "container page" ]
         [ TeacherToolbar.view subtools
-        , viewTable model
+        , viewTable session.cache model
         , Dialog.view (Maybe.map addStudentsDialog model.addStudentsForm)
         ]
 
@@ -146,16 +176,16 @@ subtools =
     [ Bootstrap.btn ShowAddStudents [ text "Add Students" ] ]
 
 
-viewTable : Model -> Html Msg
-viewTable model =
+viewTable : Session.Cache -> Model -> Html Msg
+viewTable cache model =
     let
         elements =
-            filterStudents model model.students
+            filterStudents cache model
                 |> List.map (\s -> ( Dict.member s.id model.selectedStudents, s ))
     in
         div []
             [ row [ NewAccounts.view PrintWindow ClearNewAccounts model.studentAccountsCreated ]
-            , div [ class "row hidden-print" ] [ viewStudentsFilter model ]
+            , div [ class "row hidden-print" ] [ viewStudentsFilter cache model ]
             , div [ class "row hidden-print" ]
                 [ Table.view tableConfig model.tableState elements
                 ]
@@ -192,24 +222,24 @@ viewCheckbox ( selected, s ) =
         ]
 
 
-filterStudents : Model -> List Api.Student -> List Api.Student
-filterStudents sd students =
-    case sd.studentFilter of
+filterStudents : Session.Cache -> Model -> List Api.Student
+filterStudents cache model =
+    case model.studentFilter of
         ( _, Just classId ) ->
-            findStudentsInClass sd classId
-                |> Maybe.map (filterByStudentIds students)
+            findStudentsInClass cache classId
+                |> Maybe.map (filterByStudentIds cache.students)
                 |> Maybe.withDefault []
 
         ( nameFilter, Nothing ) ->
             if String.length nameFilter < 3 then
-                students
+                cache.students
             else
-                filterStudentsByName nameFilter students
+                filterStudentsByName nameFilter cache.students
 
 
-findStudentsInClass : Model -> String -> Maybe (List String)
-findStudentsInClass model classId =
-    firstMatch (\c -> c.id == classId) model.classes
+findStudentsInClass : Session.Cache -> String -> Maybe (List String)
+findStudentsInClass cache classId =
+    firstMatch (\c -> c.id == classId) cache.classes
         |> Maybe.map .students
 
 
@@ -224,29 +254,11 @@ filterStudentsByName nameFilter students =
         |> \r -> List.filter (\s -> Regex.contains r s.name) students
 
 
-viewStudentsFilter : Model -> Html Msg
-viewStudentsFilter model =
+viewStudentsFilter : Session.Cache -> Model -> Html Msg
+viewStudentsFilter cache model =
     let
-        selectedClass =
-            Maybe.withDefault "" (second model.studentFilter)
-
-        format description =
-            description
-                |> Maybe.map (\d -> " (" ++ d ++ ")")
-                |> Maybe.withDefault ""
-
-        classOption c =
-            Html.option
-                [ selected (selectedClass == c.id)
-                , value c.id
-                ]
-                [ text (c.name ++ format c.description) ]
-
-        emptyOption =
-            Html.option [ value "" ] [ text "Filter by class" ]
-
-        onSelect classId =
-            SetClassFilter <|
+        onSelect msg classId =
+            msg <|
                 if classId == "" then
                     Nothing
                 else
@@ -261,10 +273,36 @@ viewStudentsFilter model =
                 , id "studentNameFilter"
                 ]
                 []
-            , Html.select [ onInput (\s -> onSelect s) ]
-                (emptyOption :: List.map classOption model.classes)
+            , viewClassSelect cache.classes (second model.studentFilter) "Filter by class" (onSelect SetClassFilter)
             , Bootstrap.btn ClearSelectedStudents [ text "Clear Selection" ]
+            , viewIf (not (Dict.isEmpty model.selectedStudents))
+                (viewClassSelect cache.classes Nothing "Add selected students to class" (onSelect AddStudentsToClass))
             ]
+
+
+viewClassSelect : List Api.Class -> Maybe String -> String -> (String -> Msg) -> Html Msg
+viewClassSelect classes selection name onSelect =
+    let
+        selectedClass =
+            Maybe.withDefault "" selection
+
+        emptyOption =
+            Html.option [ value "" ] [ text name ]
+
+        format description =
+            description
+                |> Maybe.map (\d -> " (" ++ d ++ ")")
+                |> Maybe.withDefault ""
+
+        classOption c =
+            Html.option
+                [ selected (selectedClass == c.id)
+                , value c.id
+                ]
+                [ text (c.name ++ format c.description) ]
+    in
+        Html.select [ onInput (\s -> onSelect s) ]
+            (emptyOption :: List.map classOption classes)
 
 
 addStudentsDialog : AddStudentsForm.Model -> Dialog.Config Msg

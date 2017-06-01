@@ -98,7 +98,7 @@ viewPage session isLoading page =
                     |> Html.map LoginMsg
 
             Students subModel ->
-                Students.view subModel
+                Students.view session subModel
                     |> frame Page.Teacher
                     |> Html.map StudentsMsg
 
@@ -256,7 +256,12 @@ updatePage page msg model =
                 toPage FindStory FindStoryMsg (FindStory.update model.session) subMsg subModel
 
             ( StudentsMsg subMsg, Students subModel ) ->
-                toPage Students StudentsMsg (Students.update model.session) subMsg subModel
+                let
+                    ( ( pageModel, cmd ), newSession ) =
+                        Students.update model.session subMsg subModel
+                in
+                    { model | session = newSession, pageState = Loaded (Students pageModel) }
+                        => Cmd.map StudentsMsg cmd
 
             ( ClassesMsg subMsg, Classes subModel ) ->
                 let
