@@ -21,6 +21,7 @@ import Task exposing (Task)
 import Tuple exposing (first, second)
 import Tuple exposing (second)
 import Util exposing ((=>), viewIf)
+import Views.ClassSelect as ClassSelect
 import Views.NewAccounts as NewAccounts
 import Views.Page as Page
 import Views.TeacherToolbar as TeacherToolbar
@@ -284,36 +285,11 @@ viewStudentsFilter cache model =
                 , id "studentNameFilter"
                 ]
                 []
-            , viewClassSelect cache.classes (second model.studentFilter) "Filter by class" (onSelect SetClassFilter)
+            , ClassSelect.view cache.classes (second model.studentFilter) "Filter by class" (onSelect SetClassFilter)
             , Bootstrap.btn ClearSelectedStudents [ text "Clear Selection" ]
             , viewIf (not (Dict.isEmpty model.selectedStudents))
-                (viewClassSelect cache.classes Nothing "Add selected students to class" (onSelect AddStudentsToClass))
+                (ClassSelect.view cache.classes Nothing "Add selected students to class" (onSelect AddStudentsToClass))
             ]
-
-
-viewClassSelect : List Api.Class -> Maybe String -> String -> (String -> Msg) -> Html Msg
-viewClassSelect classes selection name onSelect =
-    let
-        selectedClass =
-            Maybe.withDefault "" selection
-
-        emptyOption =
-            Html.option [ value "" ] [ text name ]
-
-        format description =
-            description
-                |> Maybe.map (\d -> " (" ++ d ++ ")")
-                |> Maybe.withDefault ""
-
-        classOption c =
-            Html.option
-                [ selected (selectedClass == c.id)
-                , value c.id
-                ]
-                [ text (c.name ++ format c.description) ]
-    in
-        Html.select [ onInput (\s -> onSelect s) ]
-            (emptyOption :: List.map classOption classes)
 
 
 addStudentsDialog : AddStudentsForm.Model -> Dialog.Config Msg
