@@ -1,71 +1,135 @@
-module AddClassForm exposing (Model, init, update, view)
+module AddClassForm exposing (Model, Msg, init, update, view)
 
-import Bootstrap exposing (errorClass, submitButton)
-import Exts.Html.Bootstrap exposing (formGroup)
-import Form exposing (Form)
-import Form.Input as Input
-import Form.Validate as Validate exposing (Validation, andThen, emptyString, field, nonEmpty, oneOf, minLength, maxLength, sequence, string, succeed)
-import Html exposing (Html, button, div, p, text, label)
-import Html.Attributes exposing (class, id, for)
-import Util exposing (formCompleted)
+import Api
+import Bootstrap exposing (errorClass)
+import Data.Session exposing (Session, authorization)
+import Exts.List exposing (firstMatch)
+import Html exposing (..)
+import Html.Attributes exposing (class, id, placeholder)
+import Html.Events exposing (onInput, onSubmit)
+import Http
+import Util exposing ((=>))
+import Validate exposing (Validator, ifBlank, ifInvalid)
+import Views.Form as Form
 
 
 type alias Model =
-    Form () ( String, String )
+    { errors : List Error
+    , name : String
+    , description : String
+    }
 
 
 init : Model
 init =
-    Form.initial [] validation
+    Model [] "" ""
 
 
-update : Form.Msg -> Model -> ( Model, Maybe ( String, String ) )
-update msg form =
-    case formCompleted msg form of
-        Nothing ->
-            ( Form.update validation msg form, Nothing )
-
-        class ->
-            ( form, class )
+type Msg
+    = SubmitForm
+    | SetName String
+    | SetDescription String
+    | AddClassResponse (Result Http.Error Api.Class)
 
 
-validation : Validation () ( String, String )
-validation =
-    Validate.map2 (,)
-        (field "className" validName)
-        (field "description" string |> Validate.andThen nonEmpty)
+update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Maybe Api.Class )
+update session msg model =
+    case msg of
+        SubmitForm ->
+            case validate model of
+                [] ->
+                    { model | errors = [] }
+                        => sendNewClassRequest session model
+                        => Nothing
+
+                errors ->
+                    { model | errors = errors }
+                        => Cmd.none
+                        => Nothing
+
+        SetName name ->
+            { model | name = name }
+                => Cmd.none
+                => Nothing
+
+        SetDescription d ->
+            { model | description = d }
+                => Cmd.none
+                => Nothing
+
+        AddClassResponse (Ok newClass) ->
+            ( model, Cmd.none ) => Just newClass
+
+        AddClassResponse (Err e) ->
+            { model | errors = model.errors ++ [ (Form => "Server error while trying to create new class") ] }
+                => Cmd.none
+                => Nothing
 
 
-validName : Validation () String
-validName =
-    string |> andThen (minLength 2) |> andThen (maxLength 50)
+sendNewClassRequest : Session -> Model -> Cmd Msg
+sendNewClassRequest session model =
+    Api.postSchoolClasses (authorization session) ( model.name, model.description )
+        |> Http.send AddClassResponse
 
 
-view : Model -> Html Form.Msg
-view form =
+type Field
+    = Form
+    | Name
+    | Description
+
+
+type alias Error =
+    ( Field, String )
+
+
+fieldError : Field -> List Error -> Maybe Error
+fieldError field errors =
+    firstMatch (\e -> Tuple.first e == field) errors
+
+
+validate : Model -> List Error
+validate =
+    Validate.all
+        [ .name >> ifInvalid (not << validName) (Name => "You must enter a valid name for the class")
+        , .description >> ifBlank (Description => "A description for the class is required")
+        ]
+
+
+validName : String -> Bool
+validName name =
+    String.length (String.trim name)
+        |> \l -> l > 1 && l < 50
+
+
+view : Model -> Html Msg
+view model =
     let
-        input nm lbl =
-            Form.getFieldAsString nm form
-                |> \fld ->
-                    div [ class (errorClass fld.liveError) ]
-                        [ label [ for nm ] [ text lbl ]
-                        , Input.textInput fld [ class "form-control", id nm ]
+        submitButton =
+            Html.button [ class "btn btn-primary pull-xs-right" ] [ text "Create class" ]
+
+        viewForm =
+            Html.form
+                [ onSubmit SubmitForm ]
+                [ Html.fieldset []
+                    [ div [ class (errorClass (fieldError Name model.errors)) ]
+                        [ Form.input
+                            [ onInput SetName
+                            , placeholder "Class name"
+                            ]
+                            []
                         ]
-
-        errorMsg =
-            if List.isEmpty (Form.getErrors form) || not (Form.isSubmitted form) then
-                ""
-            else
-                "Please enter both a name and description for the class."
-
-        errors =
-            p [ class "help-block" ]
-                [ text errorMsg ]
+                    , div [ class (errorClass (fieldError Description model.errors)) ]
+                        [ Form.input
+                            [ onInput SetDescription
+                            , placeholder "Class description"
+                            ]
+                            []
+                        ]
+                    , submitButton
+                    ]
+                ]
     in
-        Html.form []
-            [ formGroup <| input "className" "Class name" :: input "description" "Description" :: errors :: [ submitButton "Create Class" ]
+        div []
+            [ Form.viewErrors model.errors
+            , viewForm
             ]
-
-
-formFieldNames =
-    List.range 1 10 |> List.map (toString >> (++) "Input" >> (++) "name")

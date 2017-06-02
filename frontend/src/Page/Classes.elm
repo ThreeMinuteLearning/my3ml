@@ -5,10 +5,8 @@ import Api
 import Bootstrap
 import Data.Session as Session exposing (Session, authorization)
 import Dialog
-import Form
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Table
 import Task exposing (Task)
@@ -25,10 +23,9 @@ type alias Model =
 
 type Msg
     = SetTableState Table.State
-    | AddClassFormMsg Form.Msg
+    | AddClassFormMsg AddClassForm.Msg
     | DismissAddClass
     | ShowAddClass
-    | AddClassResponse (Result Http.Error Api.Class)
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -65,37 +62,29 @@ update session msg model =
                 => session
 
         AddClassFormMsg subMsg ->
-            case Maybe.map (AddClassForm.update subMsg) model.addClassForm of
+            case Maybe.map (AddClassForm.update session subMsg) model.addClassForm of
                 Nothing ->
                     ( ( model, Cmd.none ), session )
 
-                Just ( subModel, Nothing ) ->
+                Just ( ( subModel, subSubMsg ), Nothing ) ->
                     { model | addClassForm = Just subModel }
-                        => Cmd.none
+                        => Cmd.map AddClassFormMsg subSubMsg
                         => session
 
-                Just ( _, Just classInfo ) ->
-                    { model | addClassForm = Nothing }
-                        => (Api.postSchoolClasses (authorization session) classInfo
-                                |> Http.send AddClassResponse
-                           )
-                        => session
+                Just ( _, Just newClass ) ->
+                    let
+                        cache =
+                            session.cache
 
-        AddClassResponse (Ok class) ->
-            let
-                cache =
-                    session.cache
+                        newClasses =
+                            newClass :: cache.classes
 
-                newClasses =
-                    class :: cache.classes
-
-                newSession =
-                    { session | cache = { cache | classes = newClasses } }
-            in
-                ( ( model, Cmd.none ), newSession )
-
-        AddClassResponse (Err _) ->
-            ( ( model, Cmd.none ), session )
+                        newSession =
+                            { session | cache = { cache | classes = newClasses } }
+                    in
+                        { model | addClassForm = Nothing }
+                            => Cmd.none
+                            => newSession
 
 
 view : Session -> Model -> Html Msg
