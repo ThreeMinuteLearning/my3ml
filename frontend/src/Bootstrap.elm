@@ -1,15 +1,9 @@
-module Bootstrap exposing (errorClass, tableCustomizations, toolbar, btnGroup, btn, closeBtn, submitButton)
+module Bootstrap exposing (errorClass, tableCustomizations, toolbar, btnGroup, btn, closeBtn)
 
-import Form
 import Html exposing (Html, button, div, span, text, tr)
 import Html.Attributes exposing (attribute, id, class, type_)
 import Html.Events exposing (onClick)
 import Table
-
-
-submitButton : String -> Html Form.Msg
-submitButton txt =
-    button [ class "btn btn-primary", type_ "submit", onClick Form.Submit ] [ text txt ]
 
 
 toolbar id_ =
