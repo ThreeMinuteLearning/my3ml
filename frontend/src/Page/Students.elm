@@ -8,7 +8,6 @@ import Dialog
 import Dict exposing (Dict)
 import Exts.Html.Bootstrap exposing (formGroup, row)
 import Exts.List exposing (firstMatch)
-import Form
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onCheck, onInput)
@@ -46,9 +45,8 @@ type Msg
     | SetClassFilter (Maybe String)
     | SetTableState Table.State
     | SelectStudent Api.Student Bool
-    | AddStudentsFormMsg Form.Msg
+    | AddStudentsFormMsg AddStudentsForm.Msg
     | AddStudentsToClass (Maybe String)
-    | AddStudentsResponse (Result Http.Error (List ( Api.Student, ( String, String ) )))
     | ClassMembersResponse (Result Http.Error Api.Class)
 
 
@@ -97,47 +95,39 @@ update session msg model =
                 { model | selectedStudents = f model.selectedStudents } => Cmd.none => session
 
         AddStudentsFormMsg subMsg ->
-            case Maybe.map (AddStudentsForm.update subMsg) model.addStudentsForm of
+            case Maybe.map (AddStudentsForm.update session subMsg) model.addStudentsForm of
                 Nothing ->
                     ( model, Cmd.none ) => session
 
-                Just ( subModel, Nothing ) ->
-                    { model | addStudentsForm = Just subModel } => Cmd.none => session
+                Just ( ( subModel, subSubMsg ), Nothing ) ->
+                    { model | addStudentsForm = Just subModel } => Cmd.map AddStudentsFormMsg subSubMsg => session
 
-                Just ( _, Just names ) ->
-                    { model | addStudentsForm = Nothing }
-                        => (Api.postSchoolStudents (authorization session) names
-                                |> Http.send AddStudentsResponse
-                           )
-                        => session
+                Just ( _, Just newAccounts ) ->
+                    let
+                        cache =
+                            session.cache
+
+                        accountsCreated =
+                            newAccounts ++ model.studentAccountsCreated
+
+                        newStudents =
+                            List.map first newAccounts
+
+                        newSession =
+                            { session | cache = { cache | students = List.append newStudents cache.students } }
+                    in
+                        { model | addStudentsForm = Nothing, studentAccountsCreated = accountsCreated }
+                            => Cmd.none
+                            => newSession
 
         SetTableState state ->
             { model | tableState = state } => Cmd.none => session
-
-        AddStudentsResponse (Ok newAccounts) ->
-            let
-                cache =
-                    session.cache
-
-                accountsCreated =
-                    newAccounts ++ model.studentAccountsCreated
-
-                newStudents =
-                    List.map first newAccounts
-
-                newSession =
-                    { session | cache = { cache | students = List.append newStudents cache.students } }
-            in
-                { model | studentAccountsCreated = accountsCreated } => Cmd.none => newSession
 
         ShowAddStudents ->
             { model | addStudentsForm = Just AddStudentsForm.init } => Cmd.none => session
 
         DismissAddStudents ->
             { model | addStudentsForm = Nothing } => Cmd.none => session
-
-        AddStudentsResponse (Err _) ->
-            model => Cmd.none => session
 
         AddStudentsToClass classId ->
             case classId of

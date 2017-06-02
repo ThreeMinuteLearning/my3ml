@@ -1,80 +1,169 @@
-module AddStudentsForm exposing (Model, init, update, view)
+module AddStudentsForm exposing (Model, Msg, init, update, view)
 
-import Bootstrap exposing (errorClass, submitButton)
-import Exts.Html.Bootstrap exposing (formGroup)
-import Form exposing (Form)
-import Form.Input as Input
-import Form.Validate as Validate exposing (Validation, andThen, emptyString, field, nonEmpty, oneOf, minLength, maxLength, sequence, string, succeed)
-import Html exposing (Html, button, div, p, text, label)
-import Html.Attributes exposing (class, id)
-import Util exposing (formCompleted)
+import Api
+import Bootstrap exposing (errorClass)
+import Data.Session exposing (Session, authorization)
+import Exts.List exposing (firstMatch)
+import Html exposing (..)
+import Html.Attributes exposing (class, id, selected)
+import Html.Events exposing (onInput, onSubmit)
+import Http
+import Util exposing ((=>))
+import Validate exposing (Validator, ifBlank, ifInvalid)
+import Views.Form as Form
 
 
 type alias Model =
-    Form () (List String)
+    { errors : List Error
+    , level : Int
+    , class : Maybe String
+    , names : List String
+    }
 
 
 init : Model
 init =
-    Form.initial [] validation
+    { errors = []
+    , level = 5
+    , class = Nothing
+    , names = List.repeat 10 ""
+    }
 
 
-update : Form.Msg -> Model -> ( Model, Maybe (List String) )
-update msg form =
-    case formCompleted msg form of
-        Just names ->
-            ( form, Just (List.filter (not << String.isEmpty) names) )
-
-        Nothing ->
-            ( Form.update validation msg form, Nothing )
+type Msg
+    = SubmitForm
+    | SetClass (Maybe String)
+    | SetLevel String
+    | SetName Int String
+    | AddStudentsResponse (Result Http.Error (List NewAccount))
 
 
-validation : Validation () (List String)
-validation =
-    let
-        validateFirstItem =
-            field "nameInput1" validName
-
-        validateRemaining =
-            List.tail formFieldNames
-                |> Maybe.withDefault []
-                |> List.map (flip field (oneOf [ emptyString, validName ]))
-    in
-        sequence (validateFirstItem :: validateRemaining)
+type alias NewAccount =
+    ( Api.Student, ( String, String ) )
 
 
-validName : Validation () String
-validName =
-    string |> andThen (minLength 3) |> andThen (maxLength 50)
+update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Maybe (List NewAccount) )
+update session msg model =
+    case msg of
+        SubmitForm ->
+            case validate model of
+                [] ->
+                    { model | errors = [] }
+                        => sendNewAccountsRequest session model
+                        => Nothing
+
+                errors ->
+                    { model | errors = errors }
+                        => Cmd.none
+                        => Nothing
+
+        SetClass class ->
+            { model | class = class }
+                => Cmd.none
+                => Nothing
+
+        SetLevel level ->
+            { model | level = Result.withDefault (model.level) (String.toInt level) }
+                => Cmd.none
+                => Nothing
+
+        SetName index name ->
+            { model | names = setNameAtIndex index name model.names }
+                => Cmd.none
+                => Nothing
+
+        AddStudentsResponse (Ok newAccounts) ->
+            ( model, Cmd.none ) => Just newAccounts
+
+        AddStudentsResponse (Err e) ->
+            { model | errors = model.errors ++ [ (Form => "Server error while trying to save new accounts") ] }
+                => Cmd.none
+                => Nothing
 
 
-view : Model -> Html Form.Msg
-view form =
-    let
-        input nm =
-            Form.getFieldAsString nm form
-                |> \fld ->
-                    div [ class (errorClass fld.liveError) ]
-                        [ Input.textInput fld [ class "form-control", id (nm ++ "Input") ]
-                        ]
-
-        fields =
-            List.map input formFieldNames
-
-        errorMsg =
-            if List.isEmpty (Form.getErrors form) || not (Form.isSubmitted form) then
-                ""
+setNameAtIndex : Int -> String -> List String -> List String
+setNameAtIndex index name =
+    List.indexedMap
+        (\i n ->
+            if i == index then
+                name
             else
-                "You must enter at least one valid name."
+                n
+        )
 
-        errors =
-            p [ class "help-block" ]
-                [ text errorMsg ]
+
+sendNewAccountsRequest : Session -> Model -> Cmd Msg
+sendNewAccountsRequest session model =
+    List.filter (not << String.isEmpty) model.names
+        |> Api.postSchoolStudents (authorization session)
+        |> Http.send AddStudentsResponse
+
+
+type Field
+    = Form
+    | Name Int
+
+
+type alias Error =
+    ( Field, String )
+
+
+fieldError : Field -> List Error -> Maybe Error
+fieldError field errors =
+    firstMatch (\e -> Tuple.first e == field) errors
+
+
+validate : Model -> List Error
+validate model =
+    let
+        validateName index =
+            if index == 0 then
+                ifInvalid (not << validName) (Name 0 => "You must enter at least one valid name")
+            else
+                ifInvalid (\n -> not (String.isEmpty n || validName n)) (Name index => "Invalid name")
     in
-        Html.form []
-            [ formGroup <| List.append fields <| errors :: [ submitButton "Create Accounts" ]
+        List.indexedMap validateName model.names
+            |> List.concat
+
+
+validName : String -> Bool
+validName name =
+    String.length (String.trim name)
+        |> \l -> l > 2 && l < 50
+
+
+view : Model -> Html Msg
+view model =
+    let
+        nameInput index =
+            div [ class (errorClass (fieldError (Name index) model.errors)) ]
+                [ Form.input [ onInput (SetName index) ] []
+                ]
+
+        nameFields =
+            List.map nameInput (List.range 0 9)
+
+        submitButton =
+            Html.button [ class "btn btn-primary pull-xs-right" ] [ text "Create Accounts" ]
+
+        viewForm =
+            Html.form
+                [ onSubmit SubmitForm ]
+                [ Html.fieldset []
+                    (List.append nameFields [ submitButton ])
+                ]
+    in
+        div []
+            [ Form.viewErrors model.errors
+            , viewForm
             ]
 
 
-formFieldNames =
-    List.range 1 10 |> List.map (toString >> (++) "Input" >> (++) "name")
+viewLevelSelect : Model -> Html Msg
+viewLevelSelect model =
+    let
+        levelOption lvl =
+            option [ selected (model.level == lvl) ] [ text (toString lvl) ]
+    in
+        Html.select [ onInput SetLevel ]
+            (List.map levelOption (List.range 1 10))
