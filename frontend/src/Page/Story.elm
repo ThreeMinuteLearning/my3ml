@@ -56,9 +56,9 @@ init originalSession slug =
             case firstMatch (\s -> s.id == slug) (.stories session.cache) of
                 Just story ->
                     lookupAnswers session story
-                        |> Task.andThen
+                        |> Task.map
                             (\answers ->
-                                Task.succeed ( Model 0 Nothing story answers (mkAnswersForm story answers), session )
+                                ( Model 0 Nothing story answers (mkAnswersForm story answers), session )
                             )
 
                 Nothing ->
