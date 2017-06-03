@@ -15,6 +15,7 @@ import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
 import Regex
+import Route
 import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
@@ -201,7 +202,7 @@ tableConfig =
         , toMsg = SetTableState
         , columns =
             [ checkboxColumn
-            , Table.stringColumn "Name" (.name << second)
+            , nameColumn
             , Table.intColumn "Level" (.level << second)
             ]
         , customizations = Bootstrap.tableCustomizations
@@ -221,6 +222,24 @@ viewCheckbox : ( Bool, Api.Student ) -> Table.HtmlDetails Msg
 viewCheckbox ( selected, s ) =
     Table.HtmlDetails []
         [ input [ type_ "checkbox", onCheck (SelectStudent s), checked selected ] []
+        ]
+
+
+nameColumn : Table.Column ( Bool, Api.Student ) Msg
+nameColumn =
+    Table.veryCustomColumn
+        { name = "Name"
+        , viewData = viewStudentLink
+        , sorter = Table.unsortable
+        }
+
+
+viewStudentLink : ( Bool, Api.Student ) -> Table.HtmlDetails Msg
+viewStudentLink ( _, student ) =
+    Table.HtmlDetails []
+        [ a [ Route.href (Route.Teacher (Route.Student student.id)) ]
+            [ text student.name
+            ]
         ]
 
 
