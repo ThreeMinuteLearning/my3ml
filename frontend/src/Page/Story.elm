@@ -2,8 +2,7 @@ module Page.Story exposing (Model, Msg, init, subscriptions, update, view)
 
 import AnswersForm
 import Api
-import Data.Session as Session exposing (Session, authorization)
-import Exts.List exposing (firstMatch)
+import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Http
@@ -53,7 +52,7 @@ init originalSession slug =
                 Just (AnswersForm.init story)
 
         lookupStoryAndCreateModel session =
-            case firstMatch (\s -> s.id == slug) (.stories session.cache) of
+            case findStoryById session.cache slug of
                 Just story ->
                     lookupAnswers session story
                         |> Task.map

@@ -1,8 +1,9 @@
-module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, isStudent, newLogin, loadStories, loadDictionary, loadStudents, loadClasses)
+module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, isStudent, newLogin, loadStories, loadDictionary, loadStudents, loadClasses, findStoryById)
 
 import Api
 import Data.Words exposing (WordDict)
 import Dict
+import Exts.List exposing (firstMatch)
 import Http
 import Task exposing (Task)
 
@@ -142,6 +143,11 @@ loadClasses session =
 
             _ ->
                 Task.succeed session
+
+
+findStoryById : Cache -> String -> Maybe Api.Story
+findStoryById cache storyId =
+    firstMatch (\s -> s.id == storyId) (.stories cache)
 
 
 
