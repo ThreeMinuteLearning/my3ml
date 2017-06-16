@@ -1,7 +1,7 @@
 module Page.Student exposing (Model, Msg, init, update, view)
 
 import Api
-import Data.Session as Session exposing (Session, authorization)
+import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Http
@@ -13,6 +13,7 @@ import Views.Page as Page
 
 type alias Model =
     { student : Api.Student
+    , answers : List ( Api.Answer, Api.Story )
     }
 
 
@@ -25,11 +26,23 @@ init session slug =
     let
         handleLoadError _ =
             pageLoadError Page.Other "Unable to load data for page."
+
+        loadStudent =
+            Api.getSchoolStudentsByStudentId (authorization session) slug
+                |> Http.toTask
+
+        loadAnswers =
+            Api.getSchoolAnswers (authorization session) Nothing (Just slug)
+                |> Http.toTask
+
+        zipWithStory a =
+            Maybe.map ((,) a) (findStoryById session.cache a.storyId)
+
+        mkModel newSession student answers =
+            ( Model student (List.filterMap zipWithStory answers), newSession )
     in
-        Api.getSchoolStudentsByStudentId (authorization session) slug
-            |> Http.toTask
+        Task.map3 mkModel (Session.loadStories session) loadStudent loadAnswers
             |> Task.mapError handleLoadError
-            |> Task.map (\s -> ( Model s, session ))
 
 
 update : Msg -> Model -> ( Model, Cmd msg )
