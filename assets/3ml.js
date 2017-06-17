@@ -1,5 +1,5 @@
-const node = document.getElementById('app');
-const app = Elm.Main.embed(node);
+var node = document.getElementById('app');
+var app = Elm.Main.embed(node);
 
 app.ports.getImgWidth.subscribe(function(selector) {
     getWidth(selector, 0, function (result) {
@@ -15,7 +15,7 @@ app.ports.postProcessStory.subscribe(function (words) {
     renderStoryContent ("storycontent", words);
 });
 
-const getWidth = function (selector, count, callback) {
+var getWidth = function (selector, count, callback) {
     var node = document.querySelector(selector);
 
     if (count > 10) {
@@ -33,13 +33,14 @@ const getWidth = function (selector, count, callback) {
     return callback(0);
 };
 
-const nullOrEmpty = function (n) {
+var nullOrEmpty = function (n) {
     return n === null || n === undefined || n.naturalWidth === 0;
 };
 
-const renderStoryContent = function (elt, words) {
-    const wordIndex = function(word) {
-        for(var w of words) {
+var renderStoryContent = function (elt, words) {
+    var wordIndex = function(word) {
+        for (var i=0; i < words.length; i++) {
+            var w = words[i];
             if (w.word === word) {
                 return w.index;
             }
@@ -47,20 +48,22 @@ const renderStoryContent = function (elt, words) {
         return -1;
     };
 
-    const go = function () {
+    var go = function () {
         var storyElt = document.getElementById(elt);
 
         if (!storyElt) {
             window.requestAnimationFrame(go);
         } else {
             var ems = storyElt.querySelectorAll('p em');
-            for (var em of ems) {
+
+            for (var i=0; i < ems.length; i++) {
+                var em = ems[i];
                 var w = em.innerText;
-                var i = wordIndex(w);
-                if (i < 0) {
+                var ix = wordIndex(w);
+                if (ix < 0) {
                     continue;
                 }
-                em.innerHTML = '<span class="dict-lookup" data-index="' + i + '">' + em.innerText + '</span>';
+                em.innerHTML = '<span class="dict-lookup" data-index="' + ix + '">' + em.innerText + '</span>';
                 em.addEventListener('click', function () {
                     var span = this.querySelector('span');
                     var index = span.getAttribute('data-index');
