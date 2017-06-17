@@ -159,11 +159,17 @@ classesServer subId sid = runDB (DB.getClasses sid) :<|> specificClassServer :<|
 
 
 studentsServer :: DB db => SchoolId -> ApiServer StudentsApi db
-studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> getStudent :<|> mapM createStudent
+studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStudentServer :<|> mapM createStudent
   where
+    specificStudentServer studId = getStudent studId :<|> changePassword studId
+
     getStudent studId = do
         s <- runDB $ DB.getStudent schoolId_ studId
         maybe (throwError err404) return s
+
+    changePassword studId password_ = do
+        runDB $ DB.setStudentPassword schoolId_ studId password_
+        return NoContent
 
     generateUsername nm = return nm
 

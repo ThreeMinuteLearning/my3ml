@@ -49,6 +49,8 @@ class DB db where
 
     createStudent :: MonadIO m => (Text, Int, SchoolId) -> (Text, Text) -> db -> m Student
 
+    setStudentPassword :: MonadIO m => SchoolId -> SubjectId -> Text -> db -> m ()
+
     getTeacherBySubjectId :: MonadIO m => SubjectId -> db -> m Teacher
 
     getDictionary :: MonadIO m => db -> m WordDictionary

@@ -79,6 +79,9 @@ instance DB HasqlDB where
         S.query (s, subId) insertStudent
         return s
 
+    setStudentPassword schoolId_ studentId_ password =
+        runQuery updateStudentPassword (schoolId_, studentId_, password)
+
     getTeacherBySubjectId = runQuery selectTeacherBySubjectId
 
     getDictionary db = do
@@ -161,6 +164,15 @@ insertStudentAccount :: Query (Text, Text) UUID.UUID
 insertStudentAccount = Q.statement sql eTextPair (D.singleRow (D.value D.uuid))True
   where
     sql = "INSERT INTO login (username, password) VALUES (lower($1), $2) RETURNING id"
+
+updateStudentPassword :: Query (SchoolId, SubjectId, Text) ()
+updateStudentPassword = Q.statement sql encode D.unit True
+  where
+    sql = "UPDATE login SET password = $3 \
+          \ WHERE id = (SELECT id from student WHERE id = $2 :: uuid and school_id = $1 :: uuid)"
+    encode = contramap (\(sid, _, _) -> sid) evText
+        <> contramap (\(_, sid, _) -> sid) evText
+        <> contramap (\(_, _, pwd) -> pwd) evText
 
 -- Stories
 

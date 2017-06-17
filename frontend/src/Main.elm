@@ -281,6 +281,9 @@ updatePage page msg model =
                     { model | session = newSession, pageState = Loaded (Students pageModel) }
                         => Cmd.map StudentsMsg cmd
 
+            ( StudentMsg subMsg, Student subModel ) ->
+                toPage Student StudentMsg (Student.update model.session) subMsg subModel
+
             ( ClassesMsg subMsg, Classes subModel ) ->
                 let
                     ( ( pageModel, cmd ), newSession ) =
