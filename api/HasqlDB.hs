@@ -75,7 +75,7 @@ instance DB HasqlDB where
 
     createStudent (nm, lvl, schoolId_) creds db = runSession db $ do
         subId <- S.query creds insertStudentAccount
-        let s = Student (UUID.toText subId) nm Nothing lvl schoolId_
+        let s = Student (UUID.toText subId) nm Nothing lvl schoolId_ False Nothing
         S.query (s, subId) insertStudent
         return s
 
@@ -156,7 +156,7 @@ userTypeValue = -- D.composite (uType <$> D.compositeValue D.text)
 selectAccountByUsername :: Query Text (Maybe Account)
 selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
   where
-    sql = "SELECT id, username, password, user_type :: text FROM login WHERE username = $1"
+    sql = "SELECT id, username, password, user_type :: text FROM login WHERE username = $1 AND locked = false"
     decode = Account
         <$> dvUUID
         <*> dvText
@@ -268,7 +268,7 @@ teacherRow = Teacher
 -- Students
 
 selectStudentSql :: ByteString
-selectStudentSql = "SELECT id, name, description, level, school_id FROM student"
+selectStudentSql = "SELECT id, name, description, level, school_id, hidden, deleted FROM student"
 
 selectStudentsBySchool :: Query SchoolId [Student]
 selectStudentsBySchool = Q.statement sql evText (D.rowsList studentRow) True
@@ -292,6 +292,8 @@ studentRow = Student
     <*> D.nullableValue D.text
     <*> (fromIntegral <$> D.value D.int2)
     <*> dvUUID
+    <*> D.value D.bool
+    <*> D.nullableValue D.timestamptz
 
 insertStudent :: Query (Student, UUID.UUID) ()
 insertStudent = Q.statement sql encode D.unit True

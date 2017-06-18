@@ -9,6 +9,7 @@ CREATE TABLE login
     , username text NOT NULL UNIQUE CHECK (length(username) > 0)
     , password text NOT NULL CHECK (length(password) > 0)
     , user_type user_type DEFAULT 'Student' NOT NULL
+    , locked boolean NOT NULL DEFAULT false
     , otp_key text
     );
 
@@ -54,6 +55,8 @@ CREATE TABLE student
     , description text
     , level smallint NOT NULL CHECK (level >= 0 AND level < 10)
     , school_id uuid NOT NULL REFERENCES school
+    , hidden boolean NOT NULL default false
+    , deleted timestamptz
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
     , UNIQUE (id, school_id)
     );
@@ -91,5 +94,6 @@ CREATE TABLE story_answer
     , question text NOT NULL
     , summarise text NOT NULL
     , clarify text NOT NULL
+    , hidden boolean NOT NULL
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
     )

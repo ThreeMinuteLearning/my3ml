@@ -130,7 +130,7 @@ instance DB AtomicDB where
 
     createStudent (nm, lvl, schoolId_) creds db = do
         uuid <- newUUID
-        let s = Student uuid nm Nothing lvl schoolId_
+        let s = Student uuid nm Nothing lvl schoolId_ False Nothing
         updateDB db $ \d ->
             let newStudents = s : students (d :: InMemoryDB)
             in  d { students = newStudents }

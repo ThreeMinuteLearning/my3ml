@@ -84,6 +84,8 @@ data Student = Student
     , description :: Maybe Text
     , level :: Int
     , schoolId :: SchoolId
+    , hidden :: Bool
+    , deleted :: Maybe UTCTime
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 data LoginRequest = LoginRequest
