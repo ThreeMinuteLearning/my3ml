@@ -43,7 +43,7 @@ viewHeader page user isLoading =
             [ div [ class "container" ]
                 [ div [ class "navbar-header" ]
                     [ mobileToggleButton
-                    , a [ class "navbar-brand", Route.href Route.Home ] [ text "3ML" ]
+                    , a [ class "navbar-brand", tabindex -1, Route.href Route.Home ] [ text "3ML" ]
                     ]
                 , div [ id "navbar", class "navbar-collapse collapse" ]
                     [ ul [ class "nav navbar-nav navbar-right" ] <|
@@ -96,7 +96,7 @@ viewFooter : Html msg
 viewFooter =
     footer []
         [ div [ class "container" ]
-            [ a [ class "logo-font", href "/" ] [ text "3ML " ]
+            [ a [ class "logo-font", tabindex -1, href "/" ] [ text "3ML " ]
             , span [ class "attribution" ]
                 [ text "An interactive learning project from Three Minute Learning Ltd."
                 ]
