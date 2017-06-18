@@ -17,12 +17,13 @@ import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Logger
 import           Control.Monad.Reader
 import           Data.Monoid ((<>))
-import           Data.Text (Text, toLower)
+import           Data.Text (Text)
+import qualified Data.Text as T
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Jose.Jwk
 import           Prelude hiding (id)
-import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, Handler, NoContent(..), err401, err403, err404, errBody)
+import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, Handler, NoContent(..), err400, err401, err403, err404, errBody)
 
 import           Api.Auth (AccessScope(..), mkAccessToken, scopeSubjectId)
 import           Api.Types hiding (AccessToken)
@@ -61,7 +62,7 @@ loginServer authReq = do
 
             return $ Login (id (a :: Account)) uName nm (role (a :: Account)) accessToken
   where
-    uName = toLower $ username (authReq :: LoginRequest)
+    uName = T.toLower $ username (authReq :: LoginRequest)
 
     validatePassword passwd encodedPasswd = passwd == encodedPasswd
 
@@ -168,6 +169,8 @@ studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStudent
         maybe (throwError err404) return s
 
     changePassword studId password_ = do
+        logInfoN $ "Setting password for student: " <> studId
+        when (T.length password_ < 8) (throwError err400)
         runDB $ DB.setStudentPassword schoolId_ studId password_
         return NoContent
 
@@ -176,6 +179,7 @@ studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStudent
     generatePassword = return "password"
 
     createStudent nm = do
+        logInfoN $ "Creating new student account: " <> nm
         username <- generateUsername nm
         password <- generatePassword
 

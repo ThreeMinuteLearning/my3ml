@@ -7,6 +7,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
 import Http
 import Util exposing ((=>))
+import Validate exposing (Validator, ifInvalid)
 import Views.Form as Form
 
 
@@ -83,12 +84,19 @@ type alias Error =
 
 
 validate : Model -> List Error
-validate model =
-    let
-        errors =
-            []
-    in
-        []
+validate =
+    Validate.all
+        [ \m ->
+            (ifNotLongEnough m.minLength)
+                ( "", "Password must be at least " ++ toString m.minLength ++ " characters" )
+                m.password
+        , ifInvalid (\m -> m.password /= m.confirmPassword) ( "", "Passwords don't match" )
+        ]
+
+
+ifNotLongEnough : Int -> Error -> String -> List Error
+ifNotLongEnough l =
+    ifInvalid (\s -> String.length s < l)
 
 
 view : Model -> Html Msg
