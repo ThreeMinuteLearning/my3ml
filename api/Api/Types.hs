@@ -181,6 +181,7 @@ type StudentsApi =
         :<|> Capture "studentId" SubjectId :>
              (    Get '[JSON] Student
              :<|> "password" :> ReqBody '[JSON] Text :> PostNoContent '[JSON] NoContent
+             :<|> "username" :> ReqBody '[JSON] Text :> PostNoContent '[JSON] NoContent
              )
         :<|> ReqBody '[JSON] [Text] :> Post '[JSON] [(Student, (Text, Text))]
         )
