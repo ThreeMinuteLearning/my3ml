@@ -22,6 +22,8 @@ type alias Model =
     , answers : List ( Api.Answer, Api.Story )
     , changePasswordForm : Maybe ChangePassword.Model
     , changeUsernameForm : Maybe ChangeUsername.Model
+    , showConfirmDelete : Bool
+    , showTimer : Bool
     }
 
 
@@ -32,6 +34,12 @@ type Msg
     | ShowChangeUsername
     | DismissChangeUsername
     | ChangeUsernameMsg ChangeUsername.Msg
+    | ToggleHiddenStatus
+    | ToggleDeletedStatus
+    | ConfirmDelete
+    | DismissConfirmDelete
+    | UpdateStudentResponse (Result Http.Error Api.Student)
+    | UndeleteResponse (Result Http.Error Api.NoContent)
 
 
 init : Session -> String -> Task PageLoadError ( Model, Session )
@@ -52,7 +60,7 @@ init session slug =
             Maybe.map ((,) a) (findStoryById session.cache a.storyId)
 
         mkModel newSession student answers =
-            ( Model student (List.filterMap zipWithStory answers) Nothing Nothing, newSession )
+            ( Model student (List.filterMap zipWithStory answers) Nothing Nothing False False, newSession )
     in
         Task.map3 mkModel (Session.loadStories session) loadStudent loadAnswers
             |> Task.mapError handleLoadError
@@ -103,24 +111,101 @@ update session msg model =
                     { model | changeUsernameForm = Nothing }
                         => Cmd.none
 
+        ToggleHiddenStatus ->
+            let
+                s =
+                    model.student
+
+                newStudent =
+                    { s | hidden = not s.hidden }
+            in
+                model
+                    => (Api.postSchoolStudentsByStudentId (authorization session) s.id newStudent
+                            |> Http.send UpdateStudentResponse
+                       )
+
+        ToggleDeletedStatus ->
+            case .deleted model.student of
+                Nothing ->
+                    { model | showConfirmDelete = True } => Cmd.none
+
+                Just _ ->
+                    let
+                        s =
+                            model.student
+                    in
+                        model
+                            => (Api.postSchoolStudentsByStudentIdUndelete (authorization session) (.id model.student)
+                                    |> Http.send UndeleteResponse
+                               )
+
+        ConfirmDelete ->
+            model
+                => (Api.deleteSchoolStudentsByStudentId (authorization session) (.id model.student)
+                        |> Http.send UpdateStudentResponse
+                   )
+
+        DismissConfirmDelete ->
+            { model | showConfirmDelete = False } => Cmd.none
+
+        UndeleteResponse (Ok _) ->
+            let
+                student =
+                    model.student
+            in
+                { model | student = { student | deleted = Nothing } } => Cmd.none
+
+        UndeleteResponse (Err _) ->
+            model => Cmd.none
+
+        UpdateStudentResponse (Ok student) ->
+            { model | student = student, showConfirmDelete = False } => Cmd.none
+
+        UpdateStudentResponse (Err _) ->
+            model => Cmd.none
+
 
 view : Model -> Html Msg
 view model =
     div [ class "container page" ]
         [ h3 [] [ text (.name model.student) ]
-        , viewToolbar
+        , viewToolbar model.student
         , Dialog.view (Maybe.map changePasswordDialog model.changePasswordForm)
         , Dialog.view (Maybe.map changeUsernameDialog model.changeUsernameForm)
+        , Dialog.view
+            (if model.showConfirmDelete then
+                Just confirmDeleteDialog
+             else
+                Nothing
+            )
         ]
 
 
-viewToolbar : Html Msg
-viewToolbar =
+viewToolbar : Api.Student -> Html Msg
+viewToolbar student =
     row
         [ toolbar "toolbar"
             [ btnGroup
                 [ button [ class "btn btn-default", onClick ShowChangePassword ] [ text "Change password" ]
                 , button [ class "btn btn-default", onClick ShowChangeUsername ] [ text "Change username" ]
+                , button [ class "btn btn-default", onClick ToggleDeletedStatus ]
+                    [ text
+                        (case student.deleted of
+                            Nothing ->
+                                "Delete"
+
+                            _ ->
+                                "Un-delete"
+                        )
+                    ]
+                , button [ class "btn btn-default", onClick ToggleHiddenStatus ]
+                    [ text
+                        (if student.hidden then
+                            "Un-hide"
+                         else
+                            "Hide"
+                        )
+                    ]
                 ]
             ]
         ]
@@ -151,6 +236,23 @@ changeUsernameDialog form =
             div []
                 [ ChangeUsername.view form
                     |> Html.map ChangeUsernameMsg
+                ]
+    , footer = Nothing
+    }
+
+
+confirmDeleteDialog : Dialog.Config Msg
+confirmDeleteDialog =
+    { closeMessage = Just DismissConfirmDelete
+    , containerClass = Nothing
+    , header = Nothing
+    , body =
+        Just <|
+            div []
+                [ p [] [ text "Are you sure you want to delete this student account? It will be marked for deletion and removed automatically at a later date (you can un-delete it if you change your mind)." ]
+                , button [ class "btn btn-default", onClick ConfirmDelete ]
+                    [ text "Delete student"
+                    ]
                 ]
     , footer = Nothing
     }

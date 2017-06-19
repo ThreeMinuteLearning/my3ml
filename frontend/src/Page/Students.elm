@@ -204,6 +204,22 @@ tableConfig =
             [ checkboxColumn
             , nameColumn
             , Table.intColumn "Level" (.level << second)
+            , Table.stringColumn "Hidden"
+                (\( _, s ) ->
+                    if s.hidden then
+                        "x"
+                    else
+                        ""
+                )
+            , Table.stringColumn "Deleted"
+                (\( _, s ) ->
+                    case s.deleted of
+                        Nothing ->
+                            ""
+
+                        _ ->
+                            "x"
+                )
             ]
         , customizations = Bootstrap.tableCustomizations
         }

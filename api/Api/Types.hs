@@ -16,7 +16,7 @@ import           Data.Text (Text)
 import           Elm (ElmType)
 import           GHC.Generics (Generic)
 import           Prelude hiding (id)
-import           Servant ((:<|>), (:>), AuthProtect, Capture, QueryParam, ReqBody, Post, PostNoContent, NoContent, Get, JSON)
+import           Servant ((:<|>), (:>), AuthProtect, Capture, QueryParam, ReqBody, Delete, Post, PostNoContent, NoContent, Get, JSON)
 
 data Story = Story
     { id :: StoryId
@@ -182,8 +182,11 @@ type StudentsApi =
         (    Get '[JSON] [Student]
         :<|> Capture "studentId" SubjectId :>
              (    Get '[JSON] Student
+             :<|> ReqBody '[JSON] Student :> Post '[JSON] Student
+             :<|> Delete '[JSON] Student
              :<|> "password" :> ReqBody '[JSON] Text :> PostNoContent '[JSON] NoContent
              :<|> "username" :> ReqBody '[JSON] Text :> PostNoContent '[JSON] NoContent
+             :<|> "undelete" :> PostNoContent '[JSON] NoContent
              )
         :<|> ReqBody '[JSON] [Text] :> Post '[JSON] [(Student, (Text, Text))]
         )

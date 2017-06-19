@@ -47,7 +47,13 @@ class DB db where
 
     getStudentBySubjectId :: MonadIO m => SubjectId -> db -> m Student
 
+    updateStudent :: MonadIO m => Student -> SchoolId -> db -> m Student
+
     createStudent :: MonadIO m => (Text, Int, SchoolId) -> (Text, Text) -> db -> m Student
+
+    deleteStudent :: MonadIO m => SubjectId -> SchoolId -> db -> m Student
+
+    undeleteStudent :: MonadIO m => SubjectId -> SchoolId -> db -> m ()
 
     setStudentPassword :: MonadIO m => SchoolId -> SubjectId -> Text -> db -> m ()
 

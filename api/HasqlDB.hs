@@ -79,6 +79,28 @@ instance DB HasqlDB where
         S.query (s, subId) insertStudent
         return s
 
+    updateStudent student_ schoolId_ db = runSession db $ do
+        S.query (student_, schoolId_) updateStudent_
+        S.query ((id :: Student -> SubjectId) student_) selectStudentBySubjectId
+
+
+    deleteStudent subjectId_ schoolId_ db = runSession db $ do
+        S.query (subjectId_, schoolId_) $
+            Q.statement "UPDATE student SET deleted=now() WHERE id=$1 :: uuid AND school_id = $2 :: uuid AND deleted is null"
+              (contramap fst evText <>  contramap snd evText) D.unit True
+        S.query subjectId_ $
+            Q.statement "UPDATE login SET locked=true WHERE id=$1 :: uuid"
+              evText D.unit True
+        S.query subjectId_ selectStudentBySubjectId
+
+    undeleteStudent subjectId_ schoolId_ db = runSession db $ do
+        S.query (subjectId_, schoolId_) $
+            Q.statement "UPDATE student SET deleted=null WHERE id=$1 :: uuid AND school_id = $2 :: uuid"
+              (contramap fst evText <>  contramap snd evText) D.unit True
+        S.query subjectId_ $
+            Q.statement "UPDATE login SET locked=false WHERE id=$1 :: uuid"
+              evText D.unit True
+
     setStudentPassword schoolId_ studentId_ password_ =
         runQuery updateStudentPassword (schoolId_, studentId_, password_)
 
@@ -305,6 +327,17 @@ insertStudent = Q.statement sql encode D.unit True
         <> contramap ((fromIntegral . (level :: Student -> Int)) . fst) (E.value E.int4)
         <> contramap ((schoolId :: Student -> SchoolId) . fst) evText
 
+updateStudent_ :: Query (Student, SchoolId) ()
+updateStudent_ = Q.statement sql encode D.unit True
+  where
+    sql = "UPDATE student SET name=$1, description=$2, level=$3, hidden=$4 \
+          \ WHERE id=$5 :: uuid AND school_id=$6 :: uuid"
+    encode = contramap ((name :: Student -> Text) . fst) evText
+        <> contramap ((description :: Student -> Maybe Text) . fst) (E.nullableValue E.text)
+        <> contramap ((fromIntegral . (level :: Student -> Int)) . fst) (E.value E.int4)
+        <> contramap ((hidden :: Student -> Bool) . fst) (E.value E.bool)
+        <> contramap ((id :: Student -> SubjectId) . fst) evText
+        <> contramap snd evText
 
 -- Schools
 
