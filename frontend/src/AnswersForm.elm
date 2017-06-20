@@ -203,7 +203,7 @@ viewForm model =
             Html.button [ class "btn btn-primary pull-xs-right" ] [ text "Submit your answers" ]
 
         drwrBtn s evt =
-            button [ class "btn btn-sm btn-default", onClick (ToggleDrawer evt) ] [ text s ]
+            button [ class "btn btn-sm btn-default", onClick (ToggleDrawer evt), type_ "button" ] [ text s ]
     in
         Html.form [ onSubmit SubmitForm ]
             [ div [ class "form-group" ]
