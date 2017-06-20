@@ -33,4 +33,10 @@ viewStoryAnswer : ( Api.Answer, Api.Story ) -> Html msg
 viewStoryAnswer ( answer, story ) =
     div [ class "row" ]
         [ h4 [] [ text story.title ]
+        , div [ class "col-md-9" ]
+            [ p [] [ text answer.connect ]
+            , p [] [ text answer.question ]
+            , p [] [ text answer.summarise ]
+            , p [] [ text answer.clarify ]
+            ]
         ]

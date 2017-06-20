@@ -12,6 +12,7 @@ import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
 import Util exposing ((=>))
+import Views.Answers as Answers
 import Views.ChangePasswordForm as ChangePassword
 import Views.ChangeUsernameForm as ChangeUsername
 import Views.Page as Page
@@ -170,6 +171,7 @@ view model =
     div [ class "container page" ]
         [ h3 [] [ text (.name model.student) ]
         , viewToolbar model.student
+        , Answers.viewWithStories model.answers
         , Dialog.view (Maybe.map changePasswordDialog model.changePasswordForm)
         , Dialog.view (Maybe.map changeUsernameDialog model.changeUsernameForm)
         , Dialog.view

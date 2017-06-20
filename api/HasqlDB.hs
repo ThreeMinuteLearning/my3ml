@@ -483,12 +483,12 @@ selectAnswersBySchool = Q.statement sql evText (D.rowsList answerRow) True
 selectAnswersByStudent :: Query (SubjectId, SchoolId) [Answer]
 selectAnswersByStudent = Q.statement sql eTextPair (D.rowsList answerRow) True
   where
-    sql = selectAnswersSql <> " WHERE student_id = $1 :: uuid AND school_id = $2 :: uuid"
+    sql = selectAnswersSql <> " WHERE student_id = $1 :: uuid AND school_id = $2 :: uuid ORDER BY created_at DESC"
 
 selectAnswersByStory :: Query (SchoolId, StoryId) [Answer]
 selectAnswersByStory = Q.statement sql eTextPair (D.rowsList answerRow) True
   where
-    sql = selectAnswersSql <> " WHERE school_id = $1 :: uuid AND story_id = $2"
+    sql = selectAnswersSql <> " WHERE school_id = $1 :: uuid AND story_id = $2 ORDER BY created_at DESC"
 
 answerRow :: D.Row Answer
 answerRow = Answer
