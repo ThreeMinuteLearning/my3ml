@@ -10,6 +10,7 @@ import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
 import Task exposing (Task)
 import Util exposing ((=>), viewIf)
+import Views.Answers as Answers
 import Views.Page as Page
 import Views.RobotPanel as RobotPanel
 import Views.Story as Story
@@ -94,6 +95,7 @@ view session m =
             |> Maybe.withDefault []
             |> Words.view (.dict session.cache)
         , viewIf (Session.isStudent session) (viewAnswersForm m)
+        , viewIf (m.answersForm == Nothing) (Answers.view m.answers)
         ]
 
 
