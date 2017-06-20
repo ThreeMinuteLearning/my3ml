@@ -43,26 +43,26 @@ type Msg
 
 
 init : Session -> String -> Task PageLoadError ( Model, Session )
-init session slug =
+init session_ slug =
     let
         handleLoadError _ =
             pageLoadError Page.Other "Unable to load data for page."
 
         loadStudent =
-            Api.getSchoolStudentsByStudentId (authorization session) slug
+            Api.getSchoolStudentsByStudentId (authorization session_) slug
                 |> Http.toTask
 
         loadAnswers =
-            Api.getSchoolAnswers (authorization session) Nothing (Just slug)
+            Api.getSchoolAnswers (authorization session_) Nothing (Just slug)
                 |> Http.toTask
 
-        zipWithStory a =
+        zipWithStory session a =
             Maybe.map ((,) a) (findStoryById session.cache a.storyId)
 
         mkModel newSession student answers =
-            ( Model student (List.filterMap zipWithStory answers) Nothing Nothing False False, newSession )
+            ( Model student (List.filterMap (zipWithStory newSession) answers) Nothing Nothing False False, newSession )
     in
-        Task.map3 mkModel (Session.loadStories session) loadStudent loadAnswers
+        Task.map3 mkModel (Session.loadStories session_) loadStudent loadAnswers
             |> Task.mapError handleLoadError
 
 
