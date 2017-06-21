@@ -27,5 +27,5 @@ view classes selection name onSelect =
                 ]
                 [ text (c.name ++ format c.description) ]
     in
-        Html.select [ onInput (\s -> onSelect s) ]
+        Html.select [ class "form-control", onInput (\s -> onSelect s) ]
             (emptyOption :: List.map classOption classes)

@@ -193,29 +193,29 @@ viewToolbar : Api.Student -> Html Msg
 viewToolbar student =
     let
         inputGroupBtn msg txt =
-            span [ class "input-group-btn" ]
-                [ button [ class "btn btn-default", onClick msg, type_ "button" ] [ text txt ]
-                ]
+            button [ class "btn btn-default", onClick msg, type_ "button" ] [ text txt ]
     in
         row
             [ div [ class "col-lg-8" ]
                 [ div [ class "input-group" ]
-                    [ inputGroupBtn ShowChangePassword "Change password"
-                    , inputGroupBtn ShowChangeUsername "Change username"
-                    , inputGroupBtn ToggleDeletedStatus
-                        (case student.deleted of
-                            Nothing ->
-                                "Delete"
+                    [ div [ class "input-group-btn" ]
+                        [ inputGroupBtn ShowChangePassword "Change password"
+                        , inputGroupBtn ShowChangeUsername "Change username"
+                        , inputGroupBtn ToggleDeletedStatus
+                            (case student.deleted of
+                                Nothing ->
+                                    "Delete"
 
-                            _ ->
-                                "Un-delete"
-                        )
-                    , inputGroupBtn ToggleHiddenStatus
-                        (if student.hidden then
-                            "Un-hide"
-                         else
-                            "Hide"
-                        )
+                                _ ->
+                                    "Un-delete"
+                            )
+                        , inputGroupBtn ToggleHiddenStatus
+                            (if student.hidden then
+                                "Un-hide"
+                             else
+                                "Hide"
+                            )
+                        ]
                     , SelectLevel.view SetLevel student.level
                     ]
                 ]

@@ -10,7 +10,7 @@ import Exts.Html.Bootstrap exposing (formGroup, row)
 import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onCheck, onInput)
+import Html.Events exposing (..)
 import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
@@ -188,7 +188,7 @@ viewTable cache model =
     in
         div []
             [ row [ NewAccounts.view PrintWindow ClearNewAccounts model.studentAccountsCreated ]
-            , div [ class "row hidden-print" ] [ viewStudentsFilter cache model ]
+            , viewStudentsFilter cache model
             , div [ class "row hidden-print" ]
                 [ Table.view tableConfig model.tableState elements
                 ]
@@ -300,20 +300,36 @@ viewStudentsFilter cache model =
                     Nothing
                 else
                     (Just classId)
-    in
-        formGroup
-            [ input
-                [ type_ "text"
-                , value (first model.studentFilter)
-                , onInput StudentFilterInput
-                , placeholder "Name search"
-                , id "studentNameFilter"
+
+        inputGroupBtn msg txt =
+            span [ class "input-group-btn" ]
+                [ button [ class "btn btn-default", onClick msg, type_ "button" ] [ text txt ]
                 ]
-                []
-            , ClassSelect.view cache.classes (second model.studentFilter) "Filter by class" (onSelect SetClassFilter)
-            , Bootstrap.btn ClearSelectedStudents [ text "Clear Selection" ]
-            , viewIf (not (Dict.isEmpty model.selectedStudents))
-                (ClassSelect.view cache.classes Nothing "Add selected students to class" (onSelect AddStudentsToClass))
+    in
+        div [ class "row hidden-print" ]
+            [ div [ class "form-inline" ]
+                [ formGroup
+                    [ input
+                        [ class "form-control"
+                        , type_ "text"
+                        , value (first model.studentFilter)
+                        , onInput StudentFilterInput
+                        , placeholder "Name search"
+                        , id "studentNameFilter"
+                        ]
+                        []
+                    , ClassSelect.view cache.classes (second model.studentFilter) "Filter by class" (onSelect SetClassFilter)
+                    ]
+                , if Dict.isEmpty model.selectedStudents then
+                    div [] []
+                  else
+                    div [ class "input-group" ]
+                        [ span [ class "input-group-btn" ]
+                            [ button [ class "btn btn-default", onClick ClearSelectedStudents, type_ "button" ] [ text "Clear selection" ]
+                            ]
+                        , ClassSelect.view cache.classes Nothing "Add selected students to class" (onSelect AddStudentsToClass)
+                        ]
+                ]
             ]
 
 
