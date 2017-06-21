@@ -1,7 +1,6 @@
 module Page.Student exposing (Model, Msg, init, update, view)
 
 import Api
-import Bootstrap exposing (toolbar, btnGroup)
 import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Dialog
 import Exts.Html.Bootstrap exposing (row)
@@ -16,6 +15,7 @@ import Views.Answers as Answers
 import Views.ChangePasswordForm as ChangePassword
 import Views.ChangeUsernameForm as ChangeUsername
 import Views.Page as Page
+import Views.SelectLevel as SelectLevel
 
 
 type alias Model =
@@ -41,6 +41,7 @@ type Msg
     | DismissConfirmDelete
     | UpdateStudentResponse (Result Http.Error Api.Student)
     | UndeleteResponse (Result Http.Error Api.NoContent)
+    | SetLevel Int
 
 
 init : Session -> String -> Task PageLoadError ( Model, Session )
@@ -120,10 +121,7 @@ update session msg model =
                 newStudent =
                     { s | hidden = not s.hidden }
             in
-                model
-                    => (Api.postSchoolStudentsByStudentId (authorization session) s.id newStudent
-                            |> Http.send UpdateStudentResponse
-                       )
+                model => sendUpdateStudent session newStudent
 
         ToggleDeletedStatus ->
             case .deleted model.student of
@@ -165,6 +163,23 @@ update session msg model =
         UpdateStudentResponse (Err _) ->
             model => Cmd.none
 
+        SetLevel newLevel ->
+            if newLevel == (.level model.student) then
+                model => Cmd.none
+            else
+                let
+                    s =
+                        model.student
+                in
+                    model
+                        => sendUpdateStudent session { s | level = newLevel }
+
+
+sendUpdateStudent : Session -> Api.Student -> Cmd Msg
+sendUpdateStudent session student =
+    Api.postSchoolStudentsByStudentId (authorization session) student.id student
+        |> Http.send UpdateStudentResponse
+
 
 view : Model -> Html Msg
 view model =
@@ -185,13 +200,18 @@ view model =
 
 viewToolbar : Api.Student -> Html Msg
 viewToolbar student =
-    row
-        [ toolbar "toolbar"
-            [ btnGroup
-                [ button [ class "btn btn-default", onClick ShowChangePassword ] [ text "Change password" ]
-                , button [ class "btn btn-default", onClick ShowChangeUsername ] [ text "Change username" ]
-                , button [ class "btn btn-default", onClick ToggleDeletedStatus ]
-                    [ text
+    let
+        inputGroupBtn msg txt =
+            span [ class "input-group-btn" ]
+                [ button [ class "btn btn-default", onClick msg, type_ "button" ] [ text txt ]
+                ]
+    in
+        row
+            [ div [ class "col-lg-8" ]
+                [ div [ class "input-group" ]
+                    [ inputGroupBtn ShowChangePassword "Change password"
+                    , inputGroupBtn ShowChangeUsername "Change username"
+                    , inputGroupBtn ToggleDeletedStatus
                         (case student.deleted of
                             Nothing ->
                                 "Delete"
@@ -199,18 +219,16 @@ viewToolbar student =
                             _ ->
                                 "Un-delete"
                         )
-                    ]
-                , button [ class "btn btn-default", onClick ToggleHiddenStatus ]
-                    [ text
+                    , inputGroupBtn ToggleHiddenStatus
                         (if student.hidden then
                             "Un-hide"
                          else
                             "Hide"
                         )
+                    , SelectLevel.view SetLevel student.level
                     ]
                 ]
             ]
-        ]
 
 
 changePasswordDialog : ChangePassword.Model -> Dialog.Config Msg
