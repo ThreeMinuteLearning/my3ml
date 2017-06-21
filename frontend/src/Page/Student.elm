@@ -30,18 +30,16 @@ type alias Model =
 
 type Msg
     = ShowChangePassword
-    | DismissChangePassword
     | ChangePasswordMsg ChangePassword.Msg
     | ShowChangeUsername
-    | DismissChangeUsername
     | ChangeUsernameMsg ChangeUsername.Msg
     | ToggleHiddenStatus
     | ToggleDeletedStatus
     | ConfirmDelete
-    | DismissConfirmDelete
     | UpdateStudentResponse (Result Http.Error Api.Student)
     | UndeleteResponse (Result Http.Error Api.NoContent)
     | SetLevel Int
+    | DismissDialog
 
 
 init : Session -> String -> Task PageLoadError ( Model, Session )
@@ -75,10 +73,6 @@ update session msg model =
             { model | changePasswordForm = Just <| ChangePassword.init (.id model.student) 8 }
                 => Cmd.none
 
-        DismissChangePassword ->
-            { model | changePasswordForm = Nothing }
-                => Cmd.none
-
         ChangePasswordMsg subMsg ->
             case Maybe.map (ChangePassword.update session subMsg) model.changePasswordForm of
                 Nothing ->
@@ -94,10 +88,6 @@ update session msg model =
 
         ShowChangeUsername ->
             { model | changeUsernameForm = Just <| ChangeUsername.init (.id model.student) }
-                => Cmd.none
-
-        DismissChangeUsername ->
-            { model | changeUsernameForm = Nothing }
                 => Cmd.none
 
         ChangeUsernameMsg subMsg ->
@@ -144,9 +134,6 @@ update session msg model =
                         |> Http.send UpdateStudentResponse
                    )
 
-        DismissConfirmDelete ->
-            { model | showConfirmDelete = False } => Cmd.none
-
         UndeleteResponse (Ok _) ->
             let
                 student =
@@ -173,6 +160,10 @@ update session msg model =
                 in
                     model
                         => sendUpdateStudent session { s | level = newLevel }
+
+        DismissDialog ->
+            { model | changeUsernameForm = Nothing, changePasswordForm = Nothing, showConfirmDelete = False }
+                => Cmd.none
 
 
 sendUpdateStudent : Session -> Api.Student -> Cmd Msg
@@ -233,46 +224,43 @@ viewToolbar student =
 
 changePasswordDialog : ChangePassword.Model -> Dialog.Config Msg
 changePasswordDialog form =
-    { closeMessage = Just DismissChangePassword
-    , containerClass = Nothing
-    , header = Just (h3 [] [ text "Change password" ])
-    , body =
-        Just <|
-            div []
-                [ ChangePassword.view form
-                    |> Html.map ChangePasswordMsg
-                ]
-    , footer = Nothing
-    }
+    dialog
+        (Just (h3 [] [ text "Change password" ]))
+        (div []
+            [ ChangePassword.view form
+                |> Html.map ChangePasswordMsg
+            ]
+        )
 
 
 changeUsernameDialog : ChangeUsername.Model -> Dialog.Config Msg
 changeUsernameDialog form =
-    { closeMessage = Just DismissChangeUsername
-    , containerClass = Nothing
-    , header = Just (h3 [] [ text "Change username" ])
-    , body =
-        Just <|
-            div []
-                [ ChangeUsername.view form
-                    |> Html.map ChangeUsernameMsg
-                ]
-    , footer = Nothing
-    }
+    dialog
+        (Just (h3 [] [ text "Change username" ]))
+        (div []
+            [ ChangeUsername.view form
+                |> Html.map ChangeUsernameMsg
+            ]
+        )
 
 
 confirmDeleteDialog : Dialog.Config Msg
 confirmDeleteDialog =
-    { closeMessage = Just DismissConfirmDelete
-    , containerClass = Nothing
-    , header = Nothing
-    , body =
-        Just <|
-            div []
-                [ p [] [ text "Are you sure you want to delete this student account? It will be marked for deletion and removed automatically at a later date (you can un-delete it if you change your mind)." ]
-                , button [ class "btn btn-default", onClick ConfirmDelete ]
-                    [ text "Delete student"
-                    ]
+    dialog Nothing
+        (div []
+            [ p [] [ text "Are you sure you want to delete this student account? It will be marked for deletion and removed automatically at a later date (you can un-delete it if you change your mind)." ]
+            , button [ class "btn btn-default", onClick ConfirmDelete ]
+                [ text "Delete student"
                 ]
+            ]
+        )
+
+
+dialog : Maybe (Html Msg) -> Html Msg -> Dialog.Config Msg
+dialog hdr body =
+    { closeMessage = Just DismissDialog
+    , containerClass = Nothing
+    , header = hdr
+    , body = Just body
     , footer = Nothing
     }
