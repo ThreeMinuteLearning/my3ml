@@ -48,28 +48,44 @@ var renderStoryContent = function (elt, words) {
         return -1;
     };
 
+    var decorateDictWords = function (elt) {
+        var ems = elt.querySelectorAll('p em');
+
+        for (var i=0; i < ems.length; i++) {
+            var em = ems[i];
+            var w = em.innerText;
+            var ix = wordIndex(w);
+            if (ix < 0) {
+                continue;
+            }
+            em.innerHTML = '<span class="dict-lookup" data-index="' + ix + '">' + em.innerText + '</span>';
+            em.addEventListener('click', function () {
+                var span = this.querySelector('span');
+                var index = span.getAttribute('data-index');
+                app.ports.dictLookup.send([span.innerText, parseInt(index)]);
+            });
+        }
+    };
+
+    var decorateExternalLinks = function (elt) {
+        var links = elt.querySelectorAll('a');
+
+        for (var i=0; i < links.length; i++) {
+            var a = links[i];
+            if (a.host !== location.host) {
+                a.target = '_blank';
+            }
+        }
+    };
+
     var go = function () {
         var storyElt = document.getElementById(elt);
 
         if (!storyElt) {
             window.requestAnimationFrame(go);
         } else {
-            var ems = storyElt.querySelectorAll('p em');
-
-            for (var i=0; i < ems.length; i++) {
-                var em = ems[i];
-                var w = em.innerText;
-                var ix = wordIndex(w);
-                if (ix < 0) {
-                    continue;
-                }
-                em.innerHTML = '<span class="dict-lookup" data-index="' + ix + '">' + em.innerText + '</span>';
-                em.addEventListener('click', function () {
-                    var span = this.querySelector('span');
-                    var index = span.getAttribute('data-index');
-                    app.ports.dictLookup.send([span.innerText, parseInt(index)]);
-                });
-            }
+            decorateDictWords(storyElt);
+            decorateExternalLinks(storyElt);
         }
     };
     go();
