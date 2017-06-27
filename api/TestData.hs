@@ -40,13 +40,13 @@ mkTestDB = do
 
 users :: [(Text, Account)]
 users =
-    [ ("admin", Account "aid" "admin" "admin" admin)
-    , ("editor", Account "eid" "editor" "editor" editor)
-    , ("teacher", Account "tid1" "teacher" "teacher" teacher)
-    , ("mammy", Account "tid2" "mammy" "mammy" teacher)
-    , ("jerry", Account "uid1" "jerry" "jerry" student)
-    , ("tom", Account "uid2" "tom" "tom" student)
-    , ("jack", Account "uid3" "jack" "jack" student)
+    [ ("admin", Account "aid" "admin" "admin" admin 10)
+    , ("editor", Account "eid" "editor" "editor" editor 10)
+    , ("teacher", Account "tid1" "teacher" "teacher" teacher 10)
+    , ("mammy", Account "tid2" "mammy" "mammy" teacher 10)
+    , ("jerry", Account "uid1" "jerry" "jerry" student 5)
+    , ("tom", Account "uid2" "tom" "tom" student 3)
+    , ("jack", Account "uid3" "jack" "jack" student 8)
     ]
 
 

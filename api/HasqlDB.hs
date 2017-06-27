@@ -178,12 +178,18 @@ userTypeValue = -- D.composite (uType <$> D.compositeValue D.text)
 selectAccountByUsername :: Query Text (Maybe Account)
 selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
   where
-    sql = "SELECT id, username, password, user_type :: text FROM login WHERE username = $1 AND locked = false"
+    sql = "SELECT login.id, username, password, user_type :: text, level \
+          \ FROM login \
+          \ LEFT JOIN student \
+          \ ON login.id = student.id \
+          \ WHERE username = $1 AND locked = false"
+
     decode = Account
         <$> dvUUID
         <*> dvText
         <*> dvText
         <*> userTypeValue
+        <*> (maybe 10 fromIntegral <$> D.nullableValue D.int2)
 
 insertStudentAccount :: Query (Text, Text) UUID.UUID
 insertStudentAccount = Q.statement sql eTextPair (D.singleRow (D.value D.uuid))True

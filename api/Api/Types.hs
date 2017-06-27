@@ -108,6 +108,7 @@ data Account = Account
     , username :: Text
     , password :: Text
     , role :: UserType
+    , level :: Int
     }
 
 data Login = Login
