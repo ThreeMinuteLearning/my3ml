@@ -2,7 +2,7 @@ module Page.FindStory exposing (Model, Msg, init, view, update)
 
 import Api
 import Bootstrap
-import Data.Session as Session exposing (Session)
+import Data.Session as Session exposing (Session, User, Role(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
@@ -26,9 +26,16 @@ type Msg
     | SetTableState Table.State
 
 
-initialModel : Model
-initialModel =
-    Model "" (Table.initialSort "Title")
+initialModel : Maybe User -> Model
+initialModel u =
+    let
+        sortColumn =
+            if (Maybe.map .role u) == Just Student then
+                ""
+            else
+                "Title"
+    in
+        Model "" (Table.initialSort sortColumn)
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -38,7 +45,7 @@ init session =
             pageLoadError Page.Other "There was a problem loading the stories."
     in
         Session.loadStories session
-            |> Task.map ((,) initialModel)
+            |> Task.map ((,) (initialModel session.user))
             |> Task.mapError handleLoadError
 
 

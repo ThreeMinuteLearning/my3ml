@@ -116,6 +116,7 @@ data Login = Login
     , username :: Text
     , name :: Text
     , role :: UserType
+    , level :: Int
     , token :: AccessToken
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 

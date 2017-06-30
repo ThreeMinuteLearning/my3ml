@@ -12,6 +12,7 @@ type alias User =
     { name : String
     , sub : String
     , role : Role
+    , level : Int
     , token : AccessToken
     }
 
@@ -67,7 +68,7 @@ clearCache c =
 
 
 newLogin : Api.Login -> Session -> Session
-newLogin { sub, name, token, role } s =
+newLogin { sub, name, level, token, role } s =
     let
         userRole =
             case .userType role of
@@ -78,7 +79,7 @@ newLogin { sub, name, token, role } s =
                     Student
     in
         AccessToken token
-            |> User name sub userRole
+            |> User name sub userRole level
             |> Just
             |> Session (clearCache s.cache)
 
@@ -93,6 +94,7 @@ loadStories session =
             [] ->
                 Api.getStories (authorization session)
                     |> Http.toTask
+                    |> Task.map (organizeStories session.user)
                     |> Task.map (\newStories -> { session | cache = { cache | stories = newStories } })
 
             _ ->
@@ -127,6 +129,24 @@ loadStudents session =
 
             _ ->
                 Task.succeed session
+
+
+organizeStories : Maybe User -> List Api.Story -> List Api.Story
+organizeStories user stories =
+    case user of
+        Nothing ->
+            stories
+
+        Just u ->
+            if u.role == Student then
+                sortForLevel u.level stories
+            else
+                stories
+
+
+sortForLevel : Int -> List Api.Story -> List Api.Story
+sortForLevel l stories =
+    List.sortBy (\s -> abs (s.level - l)) stories
 
 
 loadClasses : Session -> Task Http.Error Session
