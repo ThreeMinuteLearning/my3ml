@@ -16,3 +16,6 @@ port postProcessStory : List DictEntry -> Cmd msg
 
 
 port dictLookup : (( String, Int ) -> msg) -> Sub msg
+
+
+port storeSession : Maybe String -> Cmd msg

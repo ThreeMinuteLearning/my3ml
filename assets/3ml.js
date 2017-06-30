@@ -1,5 +1,5 @@
 var node = document.getElementById('app');
-var app = Elm.Main.embed(node);
+var app = Elm.Main.embed(node, sessionStorage.session || null);
 
 app.ports.getImgWidth.subscribe(function(selector) {
     getWidth(selector, 0, function (result) {
@@ -13,6 +13,10 @@ app.ports.printWindow.subscribe(function() {
 
 app.ports.postProcessStory.subscribe(function (words) {
     renderStoryContent ("storycontent", words);
+});
+
+app.ports.storeSession.subscribe(function(session) {
+    sessionStorage.session = session;
 });
 
 var getWidth = function (selector, count, callback) {

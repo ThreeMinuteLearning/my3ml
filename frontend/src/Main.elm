@@ -1,7 +1,8 @@
 module Main exposing (main)
 
-import Data.Session as Session exposing (Session, Role)
+import Data.Session as Session exposing (Session, Role, decodeSession, storeSession)
 import Html exposing (..)
+import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
 import Page.Classes as Classes
 import Page.Errored as Errored exposing (PageLoadError)
@@ -43,11 +44,11 @@ type alias Model =
     }
 
 
-init : Location -> ( Model, Cmd MsgNew )
-init location =
+init : Value -> Location -> ( Model, Cmd MsgNew )
+init value location =
     setRoute (Route.fromLocation location)
         { pageState = Loaded Blank
-        , session = Session.emptySession
+        , session = decodeSession value
         }
 
 
@@ -190,8 +191,12 @@ setRoute maybeRoute model =
                 { model | pageState = Loaded (Login Login.initialModel) } => Cmd.none
 
             Just (Route.Logout) ->
-                { model | session = { session | user = Nothing } }
-                    => Route.modifyUrl Route.Home
+                let
+                    s =
+                        { session | user = Nothing }
+                in
+                    { model | session = s }
+                        => Cmd.batch [ storeSession s, Route.modifyUrl Route.Home ]
 
             Just (Route.FindStory) ->
                 transition FindStoryLoaded (FindStory.init session)
@@ -294,19 +299,17 @@ updatePage page msg model =
 
             ( LoginMsg subMsg, Login subModel ) ->
                 let
-                    ( ( pageModel, cmd ), msgFromPage ) =
+                    ( ( pageModel, loginCmd ), maybeLoggedIn ) =
                         Login.update subMsg subModel
 
-                    newModel =
-                        case msgFromPage of
-                            Login.NoOp ->
-                                model
-
-                            Login.LoginSuccess login ->
-                                { model | session = Session.newLogin login model.session }
+                    ( newSession, cmd ) =
+                        maybeLoggedIn
+                            |> Maybe.map (Session.newLogin model.session)
+                            |> Maybe.map (\s -> ( s, storeSession s ))
+                            |> Maybe.withDefault ( model.session, Cmd.none )
                 in
-                    { newModel | pageState = Loaded (Login pageModel) }
-                        => Cmd.map LoginMsg cmd
+                    { model | session = newSession, pageState = Loaded (Login pageModel) }
+                        => Cmd.batch [ Cmd.map LoginMsg loginCmd, cmd ]
 
             ( _, _ ) ->
                 model => Cmd.none
@@ -327,9 +330,9 @@ pageSubscriptions page =
             Sub.none
 
 
-main : Program Never Model MsgNew
+main : Program Value Model MsgNew
 main =
-    Navigation.program (Route.fromLocation >> SetRoute)
+    Navigation.programWithFlags (Route.fromLocation >> SetRoute)
         { init = init
         , subscriptions = subscriptions
         , update = update

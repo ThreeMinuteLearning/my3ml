@@ -1,4 +1,4 @@
-module Page.Login exposing (view, update, Model, Msg, initialModel, ExternalMsg(..))
+module Page.Login exposing (view, update, Model, Msg, initialModel)
 
 {-| The login page.
 -}
@@ -89,12 +89,7 @@ type Msg
     | LoginCompleted (Result Http.Error Api.Login)
 
 
-type ExternalMsg
-    = NoOp
-    | LoginSuccess Api.Login
-
-
-update : Msg -> Model -> ( ( Model, Cmd Msg ), ExternalMsg )
+update : Msg -> Model -> ( ( Model, Cmd Msg ), Maybe Api.Login )
 update msg model =
     case msg of
         SubmitForm ->
@@ -102,22 +97,22 @@ update msg model =
                 [] ->
                     { model | errors = [] }
                         => Http.send LoginCompleted (Api.postAuthenticate (Api.LoginRequest (.username model) (.password model)))
-                        => NoOp
+                        => Nothing
 
                 errors ->
                     { model | errors = errors }
                         => Cmd.none
-                        => NoOp
+                        => Nothing
 
         SetUsername username ->
             { model | username = username }
                 => Cmd.none
-                => NoOp
+                => Nothing
 
         SetPassword password ->
             { model | password = password }
                 => Cmd.none
-                => NoOp
+                => Nothing
 
         LoginCompleted (Err error) ->
             let
@@ -139,12 +134,12 @@ update msg model =
             in
                 { model | errors = List.map (\errorMessage -> Form => errorMessage) errorMessages }
                     => Cmd.none
-                    => NoOp
+                    => Nothing
 
         LoginCompleted (Ok user) ->
             model
                 => Cmd.batch [ Route.modifyUrl Route.Home ]
-                => LoginSuccess user
+                => Just user
 
 
 
