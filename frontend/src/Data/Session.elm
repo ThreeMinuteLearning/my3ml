@@ -85,50 +85,8 @@ newLogin { sub, name, level, token, role } s =
 
 
 loadStories : Session -> Task Http.Error Session
-loadStories session =
-    let
-        cache =
-            session.cache
-    in
-        case cache.stories of
-            [] ->
-                Api.getStories (authorization session)
-                    |> Http.toTask
-                    |> Task.map (organizeStories session.user)
-                    |> Task.map (\newStories -> { session | cache = { cache | stories = newStories } })
-
-            _ ->
-                Task.succeed session
-
-
-loadDictionary : Session -> Task Http.Error Session
-loadDictionary session =
-    let
-        cache =
-            session.cache
-    in
-        if Dict.isEmpty cache.dict then
-            Api.getDictionary
-                |> Http.toTask
-                |> Task.map (\newDict -> { session | cache = { cache | dict = newDict } })
-        else
-            Task.succeed session
-
-
-loadStudents : Session -> Task Http.Error Session
-loadStudents session =
-    let
-        cache =
-            session.cache
-    in
-        case cache.students of
-            [] ->
-                Api.getSchoolStudents (authorization session)
-                    |> Http.toTask
-                    |> Task.map (\newStudents -> { session | cache = { cache | students = newStudents } })
-
-            _ ->
-                Task.succeed session
+loadStories =
+    loadToCache (.stories >> List.isEmpty) Api.getStories (\newStories cache -> { cache | stories = newStories })
 
 
 organizeStories : Maybe User -> List Api.Story -> List Api.Story
@@ -149,35 +107,35 @@ sortForLevel l stories =
     List.sortBy (\s -> abs (s.level - l)) stories
 
 
+loadDictionary : Session -> Task Http.Error Session
+loadDictionary =
+    loadToCache (.dict >> Dict.isEmpty) (\_ -> Api.getDictionary) (\newDict cache -> { cache | dict = newDict })
+
+
+loadStudents : Session -> Task Http.Error Session
+loadStudents =
+    loadToCache (.students >> List.isEmpty) Api.getSchoolStudents (\newStudents cache -> { cache | students = newStudents })
+
+
 loadClasses : Session -> Task Http.Error Session
-loadClasses session =
+loadClasses =
+    loadToCache (.classes >> List.isEmpty) Api.getSchoolClasses (\newClasses cache -> { cache | classes = newClasses })
+
+
+loadToCache : (Cache -> Bool) -> (String -> Http.Request a) -> (a -> Cache -> Cache) -> Session -> Task Http.Error Session
+loadToCache isDirty mkAuthorizedRequest updateCache session =
     let
         cache =
             session.cache
     in
-        case cache.classes of
-            [] ->
-                Api.getSchoolClasses (authorization session)
-                    |> Http.toTask
-                    |> Task.map (\newClasses -> { session | cache = { cache | classes = newClasses } })
-
-            _ ->
-                Task.succeed session
+        if isDirty cache then
+            mkAuthorizedRequest (authorization session)
+                |> Http.toTask
+                |> Task.map (\a -> { session | cache = updateCache a cache })
+        else
+            Task.succeed session
 
 
 findStoryById : Cache -> String -> Maybe Api.Story
 findStoryById cache storyId =
     firstMatch (\s -> s.id == storyId) (.stories cache)
-
-
-
-{-
-   attempt : String -> (AccessToken -> Cmd msg) -> Session -> ( List String, Cmd msg )
-   attempt attemptedAction toCmd session =
-       case Maybe.map .token session.user of
-           Nothing ->
-               [ "You have been signed out. Please sign back in to " ++ attemptedAction ++ "." ] ! []
-
-           Just token ->
-               ( [], toCmd token )
--}
