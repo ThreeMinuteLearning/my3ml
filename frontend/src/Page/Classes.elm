@@ -10,7 +10,7 @@ import Html.Attributes exposing (..)
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Table
 import Task exposing (Task)
-import Util exposing ((=>))
+import Util exposing ((=>), dialog)
 import Views.Page as Page
 import Views.TeacherToolbar as TeacherToolbar
 
@@ -122,15 +122,12 @@ subtools =
 
 addClassesDialog : AddClassForm.Model -> Dialog.Config Msg
 addClassesDialog form =
-    { closeMessage = Just DismissAddClass
-    , containerClass = Nothing
-    , header = Just (h3 [] [ text "Add Class" ])
-    , body =
-        Just <|
-            div []
-                [ p [] [ text "Enter the new class name and a description" ]
-                , AddClassForm.view form
-                    |> Html.map AddClassFormMsg
-                ]
-    , footer = Nothing
-    }
+    dialog
+        DismissAddClass
+        (Just (h3 [] [ text "Add Class" ]))
+        (div []
+            [ p [] [ text "Enter the new class name and a description" ]
+            , AddClassForm.view form
+                |> Html.map AddClassFormMsg
+            ]
+        )

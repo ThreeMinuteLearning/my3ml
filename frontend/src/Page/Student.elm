@@ -10,7 +10,7 @@ import Html.Events exposing (onClick)
 import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
-import Util exposing ((=>))
+import Util exposing ((=>), dialog)
 import Views.Answers as Answers
 import Views.ChangePasswordForm as ChangePassword
 import Views.ChangeUsernameForm as ChangeUsername
@@ -225,6 +225,7 @@ viewToolbar student =
 changePasswordDialog : ChangePassword.Model -> Dialog.Config Msg
 changePasswordDialog form =
     dialog
+        DismissDialog
         (Just (h3 [] [ text "Change password" ]))
         (div []
             [ ChangePassword.view form
@@ -236,6 +237,7 @@ changePasswordDialog form =
 changeUsernameDialog : ChangeUsername.Model -> Dialog.Config Msg
 changeUsernameDialog form =
     dialog
+        DismissDialog
         (Just (h3 [] [ text "Change username" ]))
         (div []
             [ ChangeUsername.view form
@@ -246,7 +248,8 @@ changeUsernameDialog form =
 
 confirmDeleteDialog : Dialog.Config Msg
 confirmDeleteDialog =
-    dialog Nothing
+    dialog DismissDialog
+        Nothing
         (div []
             [ p [] [ text "Are you sure you want to delete this student account? It will be marked for deletion and removed automatically at a later date (you can un-delete it if you change your mind)." ]
             , button [ class "btn btn-default", onClick ConfirmDelete ]
@@ -254,13 +257,3 @@ confirmDeleteDialog =
                 ]
             ]
         )
-
-
-dialog : Maybe (Html Msg) -> Html Msg -> Dialog.Config Msg
-dialog hdr body =
-    { closeMessage = Just DismissDialog
-    , containerClass = Nothing
-    , header = hdr
-    , body = Just body
-    , footer = Nothing
-    }

@@ -19,8 +19,7 @@ import Route
 import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
-import Tuple exposing (second)
-import Util exposing ((=>), viewIf)
+import Util exposing ((=>), viewIf, dialog)
 import Views.ClassSelect as ClassSelect
 import Views.NewAccounts as NewAccounts
 import Views.Page as Page
@@ -335,15 +334,12 @@ viewStudentsFilter cache model =
 
 addStudentsDialog : AddStudentsForm.Model -> Dialog.Config Msg
 addStudentsDialog form =
-    { closeMessage = Just DismissAddStudents
-    , containerClass = Nothing
-    , header = Just (h3 [] [ text "Add Students" ])
-    , body =
-        Just <|
-            div []
-                [ p [] [ text "Enter the names of up to ten students you want to add accounts for (one student per input field)." ]
-                , AddStudentsForm.view form
-                    |> Html.map AddStudentsFormMsg
-                ]
-    , footer = Nothing
-    }
+    dialog
+        DismissAddStudents
+        (Just (h3 [] [ text "Add Students" ]))
+        (div []
+            [ p [] [ text "Enter the names of up to ten students you want to add accounts for (one student per input field)." ]
+            , AddStudentsForm.view form
+                |> Html.map AddStudentsFormMsg
+            ]
+        )

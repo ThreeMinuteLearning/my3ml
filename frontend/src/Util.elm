@@ -1,5 +1,6 @@
-module Util exposing ((=>), pair, onClickStopPropagation, viewIf, appendErrors)
+module Util exposing ((=>), pair, onClickStopPropagation, viewIf, appendErrors, dialog)
 
+import Dialog
 import Html exposing (Attribute, Html)
 import Html.Events exposing (onWithOptions, defaultOptions)
 import Json.Decode as Decode
@@ -48,3 +49,13 @@ onClickStopPropagation msg =
 appendErrors : { model | errors : List error } -> List error -> { model | errors : List error }
 appendErrors model errors =
     { model | errors = model.errors ++ errors }
+
+
+dialog : msg -> Maybe (Html msg) -> Html msg -> Dialog.Config msg
+dialog closeMsg hdr body =
+    { closeMessage = Just closeMsg
+    , containerClass = Nothing
+    , header = hdr
+    , body = Just body
+    , footer = Nothing
+    }
