@@ -245,7 +245,7 @@ nameColumn =
     Table.veryCustomColumn
         { name = "Name"
         , viewData = viewStudentLink
-        , sorter = Table.unsortable
+        , sorter = Table.increasingOrDecreasingBy (second >> .name)
         }
 
 
