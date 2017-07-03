@@ -174,6 +174,7 @@ type ClassesApi =
         (    Get '[JSON] [Class]
         :<|> Capture "classId" ClassId :>
              (    Get '[JSON] Class
+             :<|> Delete '[JSON] NoContent
              :<|> "members" :> ReqBody '[JSON] [SubjectId] :> Post '[JSON] Class
              )
         :<|> ReqBody '[JSON] (Text, Text) :> Post '[JSON] Class

@@ -41,6 +41,8 @@ class DB db where
 
     createClass :: MonadIO m => Class -> db -> m ()
 
+    deleteClass :: MonadIO m => ClassId -> SchoolId -> db -> m ()
+
     getStudents :: MonadIO m => SchoolId -> db -> m [Student]
 
     getStudent :: MonadIO m => SchoolId -> SubjectId -> db -> m (Maybe Student)

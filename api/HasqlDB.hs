@@ -50,8 +50,8 @@ instance DB HasqlDB where
 
     createTrail = runQuery insertTrail
 
-    deleteTrail db trailId_ = do
-        nRows <- runQuery deleteTrailById db trailId_
+    deleteTrail trailId_ db = do
+        nRows <- runQuery deleteTrailById trailId_ db
         when (nRows == 0) $ liftIO $ throwString "Trail not found to delete"
 
     getClasses = runQuery selectClassesBySchool
@@ -66,6 +66,10 @@ instance DB HasqlDB where
     getClass = runQuery selectClassById
 
     createClass = runQuery insertClass
+
+    deleteClass classId_ schoolId_ db = do
+        nRows <- runQuery deleteClassById (classId_, schoolId_) db
+        when (nRows == 0) $ liftIO $ throwString "Class not found to delete"
 
     getStudents = runQuery selectStudentsBySchool
 
@@ -409,6 +413,12 @@ insertClass = Q.statement sql encode D.unit True
         <> contramap (description :: Class -> Maybe Text) (E.nullableValue E.text)
         <> contramap (schoolId :: Class -> SchoolId) evText
         <> contramap (createdBy :: Class -> SubjectId) evText
+
+deleteClassById :: Query (ClassId, SchoolId) Int64
+deleteClassById = Q.statement sql eTextPair D.rowsAffected True
+  where
+    sql = "DELETE FROM class WHERE id = $1 :: uuid AND school_id = $2 :: uuid"
+
 
 
 -- Trails

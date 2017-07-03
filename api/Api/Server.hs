@@ -143,11 +143,15 @@ specificSchoolServer scp sid = classesServer (scopeSubjectId scp) sid :<|> stude
 classesServer :: DB db => SubjectId -> SchoolId -> ApiServer ClassesApi db
 classesServer subId sid = runDB (DB.getClasses sid) :<|> specificClassServer :<|> createClass
   where
-    specificClassServer cid = getClass cid :<|> setClassMembers cid
+    specificClassServer cid = getClass cid :<|> deleteClass cid :<|> setClassMembers cid
 
     getClass cid = do
         c <- runDB (DB.getClass cid)
         maybe (throwError err404) return c
+
+    deleteClass cid = do
+         _ <- runDB (DB.deleteClass cid sid)
+         return NoContent
 
     setClassMembers cid studentIds =
         runDB (DB.addClassMembers sid cid studentIds)

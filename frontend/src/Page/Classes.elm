@@ -8,6 +8,7 @@ import Dialog
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Page.Errored exposing (PageLoadError, pageLoadError)
+import Route
 import Table
 import Task exposing (Task)
 import Util exposing ((=>), dialog)
@@ -107,12 +108,30 @@ classesTableConfig =
         { toId = .id
         , toMsg = SetTableState
         , columns =
-            [ Table.stringColumn "Class Name" .name
+            [ nameColumn
             , Table.stringColumn "Description" (Maybe.withDefault "" << .description)
             , Table.intColumn "Number of Students" (List.length << .students)
             ]
         , customizations = Bootstrap.tableCustomizations
         }
+
+
+nameColumn : Table.Column Api.Class Msg
+nameColumn =
+    Table.veryCustomColumn
+        { name = "Class name"
+        , viewData = viewClassLink
+        , sorter = Table.increasingOrDecreasingBy .name
+        }
+
+
+viewClassLink : Api.Class -> Table.HtmlDetails Msg
+viewClassLink class =
+    Table.HtmlDetails []
+        [ a [ Route.href (Route.Teacher (Route.Class class.id)) ]
+            [ text class.name
+            ]
+        ]
 
 
 subtools : List (Html Msg)

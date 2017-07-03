@@ -66,8 +66,8 @@ CREATE TABLE student_class
     , class_id uuid NOT NULL
     , school_id uuid NOT NULL
     , PRIMARY KEY (student_id, class_id)
-    , FOREIGN KEY (student_id, school_id) REFERENCES student (id, school_id)
-    , FOREIGN KEY (class_id, school_id) REFERENCES class (id, school_id)
+    , FOREIGN KEY (student_id, school_id) REFERENCES student (id, school_id) ON DELETE CASCADE
+    , FOREIGN KEY (class_id, school_id) REFERENCES class (id, school_id) ON DELETE CASCADE
     );
 
 CREATE TABLE trail

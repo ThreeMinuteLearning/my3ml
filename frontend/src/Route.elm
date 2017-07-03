@@ -26,6 +26,7 @@ type TeacherSubRoute
     = Students
     | Classes
     | Student String
+    | Class String
 
 
 route : Parser (Route -> a) a
@@ -49,6 +50,7 @@ teacherSubRoute =
     oneOf
         [ Url.map Student (s "students" </> string)
         , Url.map Students (s "students")
+        , Url.map Class (s "classes" </> string)
         , Url.map Classes (s "classes")
         ]
 
@@ -94,6 +96,9 @@ routeToString page =
 
                 Teacher (Student slug) ->
                     [ "teacher", "students", slug ]
+
+                Teacher (Class slug) ->
+                    [ "teacher", "classes", slug ]
 
                 Trails ->
                     [ "trails" ]

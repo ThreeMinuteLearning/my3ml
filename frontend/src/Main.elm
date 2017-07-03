@@ -4,6 +4,7 @@ import Data.Session as Session exposing (Session, Role, decodeSession, storeSess
 import Html exposing (..)
 import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
+import Page.Class as Class
 import Page.Classes as Classes
 import Page.Errored as Errored exposing (PageLoadError)
 import Page.FindStory as FindStory
@@ -31,6 +32,7 @@ type Page
     | Students Students.Model
     | Student Student.Model
     | Classes Classes.Model
+    | Class Class.Model
 
 
 type PageState
@@ -115,6 +117,11 @@ viewPage session isLoading page =
                     |> frame Page.Teacher
                     |> Html.map ClassesMsg
 
+            Class subModel ->
+                Class.view session subModel
+                    |> frame Page.Teacher
+                    |> Html.map ClassMsg
+
 
 type MsgNew
     = SetRoute (Maybe Route)
@@ -124,12 +131,14 @@ type MsgNew
     | StudentsLoaded (Result PageLoadError ( Students.Model, Session ))
     | StudentLoaded (Result PageLoadError ( Student.Model, Session ))
     | ClassesLoaded (Result PageLoadError ( Classes.Model, Session ))
+    | ClassLoaded (Result PageLoadError ( Class.Model, Session ))
     | StoryMsg Story.Msg
     | LoginMsg Login.Msg
     | FindStoryMsg FindStory.Msg
     | StudentsMsg Students.Msg
     | StudentMsg Student.Msg
     | ClassesMsg Classes.Msg
+    | ClassMsg Class.Msg
 
 
 getPage : PageState -> Page
@@ -176,6 +185,9 @@ setRoute maybeRoute model =
 
                 Route.Student slug ->
                     transition StudentLoaded (Student.init session slug)
+
+                Route.Class slug ->
+                    transition ClassLoaded (Class.init session slug)
     in
         case maybeRoute of
             Nothing ->
@@ -266,6 +278,12 @@ updatePage page msg model =
             ( ClassesLoaded (Err error), _ ) ->
                 { model | pageState = Loaded (Errored error) } => Cmd.none
 
+            ( ClassLoaded (Ok ( subModel, newSession )), _ ) ->
+                { model | session = newSession, pageState = Loaded (Class subModel) } => Cmd.none
+
+            ( ClassLoaded (Err error), _ ) ->
+                { model | pageState = Loaded (Errored error) } => Cmd.none
+
             ( StudentLoaded (Ok ( subModel, newSession )), _ ) ->
                 { model | session = newSession, pageState = Loaded (Student subModel) } => Cmd.none
 
@@ -296,6 +314,19 @@ updatePage page msg model =
                 in
                     { model | session = newSession, pageState = Loaded (Classes pageModel) }
                         => Cmd.map ClassesMsg cmd
+
+            ( ClassMsg subMsg, Class subModel ) ->
+                let
+                    ( ( pageModel, cmd ), externalMsg ) =
+                        Class.update model.session subMsg subModel
+                in
+                    case externalMsg of
+                        Class.NoOp ->
+                            { model | pageState = Loaded (Class pageModel) } => Cmd.map ClassMsg cmd
+
+                        Class.Deleted newSession ->
+                            setRoute (Just (Route.Teacher Route.Classes))
+                                { model | session = newSession }
 
             ( LoginMsg subMsg, Login subModel ) ->
                 let
