@@ -63,6 +63,14 @@ instance DB HasqlDB where
             Just c -> return c
             Nothing -> liftIO $ throwString "Couldn't find class after updating members. Shouldn't happen."
 
+    removeClassMembers schoolId_ classId_ studentIds db = runSession db $ do
+        S.query (schoolId_, classId_, studentIds) deleteClassMembers
+        mc <- S.query classId_ selectClassById
+        case mc of
+            Just c -> return c
+            Nothing -> liftIO $ throwString "Couldn't find class after updating members. Shouldn't happen."
+
+
     getClass = runQuery selectClassById
 
     createClass = runQuery insertClass
@@ -402,6 +410,18 @@ insertClassMembers = Q.statement sql encode D.unit True
     encode = contramap (\(sid, _, _) -> sid) evText
         <> contramap (\(_, cid, _) -> cid) evText
         <> contramap (\(_, _, sids) -> sids) (eArray E.text)
+
+deleteClassMembers :: Query (SchoolId, ClassId, [SubjectId]) ()
+deleteClassMembers = Q.statement sql encode D.unit True
+  where
+    sql = "DELETE FROM student_class \
+          \ WHERE class_id=$2 :: uuid \
+          \ AND school_id=$1 :: uuid \
+          \ AND student_id IN (SELECT studentId FROM unnest ($3 :: uuid[]) as studentId)"
+    encode = contramap (\(sid, _, _) -> sid) evText
+        <> contramap (\(_, cid, _) -> cid) evText
+        <> contramap (\(_, _, sids) -> sids) (eArray E.text)
+
 
 
 insertClass :: Query Class ()

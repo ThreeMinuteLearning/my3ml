@@ -153,8 +153,12 @@ classesServer subId sid = runDB (DB.getClasses sid) :<|> specificClassServer :<|
          _ <- runDB (DB.deleteClass cid sid)
          return NoContent
 
-    setClassMembers cid studentIds =
-        runDB (DB.addClassMembers sid cid studentIds)
+    setClassMembers cid studentIds delete =
+        if delete == Just True
+            then
+                runDB (DB.removeClassMembers sid cid studentIds)
+            else
+                runDB (DB.addClassMembers sid cid studentIds)
 
     createClass (nm, desc) = do
         uuid <- newUUID

@@ -328,6 +328,10 @@ updatePage page msg model =
                             setRoute (Just (Route.Teacher Route.Classes))
                                 { model | session = newSession }
 
+                        Class.Updated newSession ->
+                            { model | pageState = Loaded (Class pageModel), session = newSession }
+                                => Cmd.map ClassMsg cmd
+
             ( LoginMsg subMsg, Login subModel ) ->
                 let
                     ( ( pageModel, loginCmd ), maybeLoggedIn ) =

@@ -3,19 +3,24 @@ module Page.Class exposing (Model, Msg, ExternalMsg(..), init, update, view)
 import Api
 import Data.Session as Session exposing (Session, authorization)
 import Dialog
+import Dict exposing (Dict)
 import Exts.Html.Bootstrap exposing (row)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
+import Table
 import Task exposing (Task)
 import Util exposing ((=>), dialog, viewIf)
 import Views.Page as Page
+import Views.StudentTable as StudentTable
 
 
 type alias Model =
     { class : Api.Class
+    , membersTable : Table.State
+    , selectedStudents : Dict String Api.Student
     , showConfirmDelete : Bool
     }
 
@@ -26,11 +31,16 @@ type Msg
     | ConfirmDelete
     | DismissDialog
     | DeleteResponse (Result Http.Error Api.NoContent)
+    | SetTableState Table.State
+    | SelectStudent Api.Student Bool
+    | RemoveSelectedStudents
+    | ClassMembersResponse (Result Http.Error Api.Class)
 
 
 type ExternalMsg
     = NoOp
     | Deleted Session
+    | Updated Session
 
 
 init : Session -> String -> Task PageLoadError ( Model, Session )
@@ -44,7 +54,7 @@ init session_ slug =
                 |> Http.toTask
 
         mkModel newSession class =
-            ( Model class False, newSession )
+            ( Model class StudentTable.init Dict.empty False, newSession )
     in
         Task.map2 mkModel (Session.loadStudents session_) loadClass
             |> Task.mapError handleLoadError
@@ -77,6 +87,48 @@ update session msg model =
         Edit ->
             model => Cmd.none => NoOp
 
+        SetTableState state ->
+            { model | membersTable = state } => Cmd.none => NoOp
+
+        SelectStudent student checked ->
+            let
+                f =
+                    if checked then
+                        Dict.insert student.id student
+                    else
+                        Dict.remove student.id
+            in
+                { model | selectedStudents = f model.selectedStudents } => Cmd.none => NoOp
+
+        RemoveSelectedStudents ->
+            let
+                studentsToDelete =
+                    Dict.values model.selectedStudents
+                        |> List.map (.id)
+            in
+                { model | selectedStudents = Dict.empty }
+                    => (Api.postSchoolClassesByClassIdMembers (authorization session) (.id model.class) (Just True) studentsToDelete
+                            |> Http.send ClassMembersResponse
+                       )
+                    => NoOp
+
+        ClassMembersResponse (Ok updatedClass) ->
+            let
+                cache =
+                    session.cache
+
+                newClasses =
+                    updatedClass
+                        :: List.filter (\c -> c.id /= updatedClass.id) cache.classes
+
+                newSession =
+                    { session | cache = { cache | classes = newClasses } }
+            in
+                { model | class = updatedClass } => Cmd.none => Updated newSession
+
+        ClassMembersResponse (Err _) ->
+            model => Cmd.none => NoOp
+
 
 deleteFromCache : Api.Class -> Session -> Session
 deleteFromCache _ session =
@@ -93,7 +145,9 @@ view session model =
     div [ class "container page" ]
         [ h3 [] [ text (.name model.class) ]
         , h4 [] [ text (Maybe.withDefault "" (.description model.class)) ]
-        , viewToolbar model.class
+        , viewToolbar model
+        , h4 [] [ text "Class members" ]
+        , viewTable session.cache model
         , Dialog.view
             (if model.showConfirmDelete then
                 Just (confirmDeleteDialog (userIsOwner session.user model.class))
@@ -101,6 +155,26 @@ view session model =
                 Nothing
             )
         ]
+
+
+viewTable : Session.Cache -> Model -> Html Msg
+viewTable cache model =
+    let
+        tableConfig =
+            StudentTable.config SetTableState SelectStudent
+
+        isChecked s =
+            Dict.member s.id model.selectedStudents
+
+        classMembers =
+            .students model.class
+
+        students =
+            List.filter (\s -> List.member s.id classMembers) cache.students
+    in
+        div [ class "row hidden-print" ]
+            [ StudentTable.view tableConfig model.membersTable students isChecked
+            ]
 
 
 userIsOwner : Maybe Session.User -> Api.Class -> Bool
@@ -113,8 +187,8 @@ userIsOwner user class =
             u.sub == class.createdBy
 
 
-viewToolbar : Api.Class -> Html Msg
-viewToolbar student =
+viewToolbar : Model -> Html Msg
+viewToolbar model =
     let
         inputGroupBtn msg txt =
             button [ class "btn btn-default", onClick msg, type_ "button" ] [ text txt ]
@@ -123,11 +197,19 @@ viewToolbar student =
             [ div [ class "col-lg-6" ]
                 [ div [ class "input-group" ]
                     [ div [ class "input-group-btn" ]
-                        [ inputGroupBtn Edit "Edit"
-                        , inputGroupBtn Delete "Delete"
+                        [ -- inputGroupBtn Edit "Edit"
+                          inputGroupBtn Delete "Delete"
                         ]
                     ]
                 ]
+            , if Dict.isEmpty model.selectedStudents then
+                div [] []
+              else
+                div [ class "input-group" ]
+                    [ span [ class "input-group-btn" ]
+                        [ button [ class "btn btn-default", onClick RemoveSelectedStudents, type_ "button" ] [ text "Remove students from class" ]
+                        ]
+                    ]
             ]
 
 

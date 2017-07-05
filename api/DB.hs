@@ -39,6 +39,8 @@ class DB db where
 
     addClassMembers :: MonadIO m => SchoolId -> ClassId -> [SubjectId] -> db -> m Class
 
+    removeClassMembers :: MonadIO m => SchoolId -> ClassId -> [SubjectId] -> db -> m Class
+
     createClass :: MonadIO m => Class -> db -> m ()
 
     deleteClass :: MonadIO m => ClassId -> SchoolId -> db -> m ()

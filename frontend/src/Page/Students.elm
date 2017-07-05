@@ -15,7 +15,6 @@ import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
 import Regex
-import Route
 import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
@@ -142,7 +141,7 @@ update session msg model =
                                 |> List.map (.id)
                     in
                         { model | selectedStudents = Dict.empty }
-                            => (Api.postSchoolClassesByClassIdMembers (authorization session) cid studentsToAdd
+                            => (Api.postSchoolClassesByClassIdMembers (authorization session) cid Nothing studentsToAdd
                                     |> Http.send ClassMembersResponse
                                )
                             => session
