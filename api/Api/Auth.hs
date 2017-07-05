@@ -19,7 +19,7 @@ import           Jose.Jwe (jwkEncode, jwkDecode)
 import           Jose.Jwk (Jwk)
 import           Jose.Jwa
 import           Jose.Jwt (Jwt(..), JwtContent(..), Payload(Claims))
-import           Servant (Context(..), AuthProtect, err400, errBody)
+import           Servant (Context(..), AuthProtect, err401, errBody)
 import           Servant.Server.Experimental.Auth (AuthServerData, AuthHandler, mkAuthHandler)
 import           Network.Wai (Request, requestHeaders)
 
@@ -53,7 +53,7 @@ authHandler k =
                 Right (Jwe (_, token)) -> maybe badToken (return . Just) (decodeStrict token)
                 _ -> badToken
 
-    badToken = throwError (err400 { errBody = "Invalid token" })
+    badToken = throwError (err401 { errBody = "Invalid token" })
   in
     mkAuthHandler handler
 
