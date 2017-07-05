@@ -252,7 +252,7 @@ confirmDeleteDialog =
         Nothing
         (div []
             [ p [] [ text "Are you sure you want to delete this student account? It will be marked for deletion and removed automatically at a later date (you can un-delete it if you change your mind)." ]
-            , button [ class "btn btn-default", onClick ConfirmDelete ]
+            , button [ class "btn btn-danger", onClick ConfirmDelete ]
                 [ text "Delete student"
                 ]
             ]
