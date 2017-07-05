@@ -23,6 +23,7 @@ import Util exposing ((=>), viewIf, dialog)
 import Views.ClassSelect as ClassSelect
 import Views.NewAccounts as NewAccounts
 import Views.Page as Page
+import Views.StudentTable as StudentTable
 import Views.TeacherToolbar as TeacherToolbar
 
 
@@ -57,7 +58,7 @@ init session =
             pageLoadError Page.Other "Unable to load student data."
 
         createModel session =
-            Model (Table.initialSort "Name") Dict.empty [] Nothing ( "", Nothing )
+            Model StudentTable.init Dict.empty [] Nothing ( "", Nothing )
                 => session
     in
         Session.loadStudents session
@@ -168,6 +169,8 @@ view : Session -> Model -> Html Msg
 view session model =
     div [ class "container page" ]
         [ TeacherToolbar.view subtools
+        , row [ NewAccounts.view PrintWindow ClearNewAccounts model.studentAccountsCreated ]
+        , viewStudentsFilter session.cache model
         , viewTable session.cache model
         , Dialog.view (Maybe.map addStudentsDialog model.addStudentsForm)
         ]
@@ -183,79 +186,16 @@ viewTable cache model =
     let
         elements =
             filterStudents cache model
-                |> List.map (\s -> ( Dict.member s.id model.selectedStudents, s ))
+
+        tableConfig =
+            StudentTable.config SetTableState SelectStudent
+
+        isChecked s =
+            Dict.member s.id model.selectedStudents
     in
-        div []
-            [ row [ NewAccounts.view PrintWindow ClearNewAccounts model.studentAccountsCreated ]
-            , viewStudentsFilter cache model
-            , div [ class "row hidden-print" ]
-                [ Table.view tableConfig model.tableState elements
-                ]
+        div [ class "row hidden-print" ]
+            [ StudentTable.view tableConfig model.tableState elements isChecked
             ]
-
-
-tableConfig : Table.Config ( Bool, Api.Student ) Msg
-tableConfig =
-    Table.customConfig
-        { toId = .id << second
-        , toMsg = SetTableState
-        , columns =
-            [ checkboxColumn
-            , nameColumn
-            , Table.intColumn "Level" (.level << second)
-            , Table.stringColumn "Hidden"
-                (\( _, s ) ->
-                    if s.hidden then
-                        "x"
-                    else
-                        ""
-                )
-            , Table.stringColumn "Deleted"
-                (\( _, s ) ->
-                    case s.deleted of
-                        Nothing ->
-                            ""
-
-                        _ ->
-                            "x"
-                )
-            ]
-        , customizations = Bootstrap.tableCustomizations
-        }
-
-
-checkboxColumn : Table.Column ( Bool, Api.Student ) Msg
-checkboxColumn =
-    Table.veryCustomColumn
-        { name = ""
-        , viewData = viewCheckbox
-        , sorter = Table.unsortable
-        }
-
-
-viewCheckbox : ( Bool, Api.Student ) -> Table.HtmlDetails Msg
-viewCheckbox ( selected, s ) =
-    Table.HtmlDetails []
-        [ input [ type_ "checkbox", onCheck (SelectStudent s), checked selected ] []
-        ]
-
-
-nameColumn : Table.Column ( Bool, Api.Student ) Msg
-nameColumn =
-    Table.veryCustomColumn
-        { name = "Name"
-        , viewData = viewStudentLink
-        , sorter = Table.increasingOrDecreasingBy (second >> .name)
-        }
-
-
-viewStudentLink : ( Bool, Api.Student ) -> Table.HtmlDetails Msg
-viewStudentLink ( _, student ) =
-    Table.HtmlDetails []
-        [ a [ Route.href (Route.Teacher (Route.Student student.id)) ]
-            [ text student.name
-            ]
-        ]
 
 
 filterStudents : Session.Cache -> Model -> List Api.Student
