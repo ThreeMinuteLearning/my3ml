@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Data.Session as Session exposing (Session, Role, decodeSession, storeSession)
+import Data.Session as Session exposing (Session, Role(Teacher), User, decodeSession, storeSession)
 import Html exposing (..)
 import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
@@ -340,7 +340,7 @@ updatePage page msg model =
                     ( newSession, cmd ) =
                         maybeLoggedIn
                             |> Maybe.map (Session.newLogin model.session)
-                            |> Maybe.map (\s -> ( s, storeSession s ))
+                            |> Maybe.map (\s -> ( s, Cmd.batch [ storeSession s, chooseStartPage s.user ] ))
                             |> Maybe.withDefault ( model.session, Cmd.none )
                 in
                     { model | session = newSession, pageState = Loaded (Login pageModel) }
@@ -348,6 +348,17 @@ updatePage page msg model =
 
             ( _, _ ) ->
                 model => Cmd.none
+
+
+chooseStartPage : Maybe User -> Cmd msg
+chooseStartPage user =
+    Route.modifyUrl <|
+        case Maybe.map .role user of
+            Just Teacher ->
+                Route.Teacher Route.Students
+
+            _ ->
+                Route.Home
 
 
 subscriptions : Model -> Sub MsgNew

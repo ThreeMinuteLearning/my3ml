@@ -138,7 +138,7 @@ update msg model =
 
         LoginCompleted (Ok user) ->
             model
-                => Cmd.batch [ Route.modifyUrl Route.Home ]
+                => Cmd.none
                 => Just user
 
 
