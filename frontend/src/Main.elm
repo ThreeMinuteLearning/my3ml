@@ -46,7 +46,7 @@ type alias Model =
     }
 
 
-init : Value -> Location -> ( Model, Cmd MsgNew )
+init : Value -> Location -> ( Model, Cmd Msg )
 init value location =
     setRoute (Route.fromLocation location)
         { pageState = Loaded Blank
@@ -54,7 +54,7 @@ init value location =
         }
 
 
-view : Model -> Html MsgNew
+view : Model -> Html Msg
 view model =
     case model.pageState of
         Loaded page ->
@@ -64,11 +64,14 @@ view model =
             viewPage model.session True page
 
 
-viewPage : Session -> Bool -> Page -> Html MsgNew
+viewPage : Session -> Bool -> Page -> Html Msg
 viewPage session isLoading page =
     let
         frame =
             Page.frame isLoading session.user
+
+        mapMsg m =
+            Html.map (PageMsg << m)
     in
         case page of
             NotFound ->
@@ -90,49 +93,57 @@ viewPage session isLoading page =
             Story subModel ->
                 Story.view session subModel
                     |> frame Page.Home
-                    |> Html.map StoryMsg
+                    |> mapMsg StoryMsg
 
             FindStory subModel ->
                 FindStory.view session subModel
                     |> frame Page.FindStory
-                    |> Html.map FindStoryMsg
+                    |> mapMsg FindStoryMsg
 
             Login subModel ->
                 Login.view session subModel
                     |> frame Page.Other
-                    |> Html.map LoginMsg
+                    |> mapMsg LoginMsg
 
             Students subModel ->
                 Students.view session subModel
                     |> frame Page.Teacher
-                    |> Html.map StudentsMsg
+                    |> mapMsg StudentsMsg
 
             Student subModel ->
                 Student.view subModel
                     |> frame Page.Teacher
-                    |> Html.map StudentMsg
+                    |> mapMsg StudentMsg
 
             Classes subModel ->
                 Classes.view session subModel
                     |> frame Page.Teacher
-                    |> Html.map ClassesMsg
+                    |> mapMsg ClassesMsg
 
             Class subModel ->
                 Class.view session subModel
                     |> frame Page.Teacher
-                    |> Html.map ClassMsg
+                    |> mapMsg ClassMsg
 
 
-type MsgNew
+type Msg
     = SetRoute (Maybe Route)
-    | HomeLoaded (Result PageLoadError Session)
+    | PageLoaded PageLoaded
+    | PageMsg PageMsg
+
+
+type PageLoaded
+    = HomeLoaded (Result PageLoadError Session)
     | StoryLoaded (Result PageLoadError ( Story.Model, Session ))
     | FindStoryLoaded (Result PageLoadError ( FindStory.Model, Session ))
     | StudentsLoaded (Result PageLoadError ( Students.Model, Session ))
     | StudentLoaded (Result PageLoadError ( Student.Model, Session ))
     | ClassesLoaded (Result PageLoadError ( Classes.Model, Session ))
     | ClassLoaded (Result PageLoadError ( Class.Model, Session ))
-    | StoryMsg Story.Msg
+
+
+type PageMsg
+    = StoryMsg Story.Msg
     | LoginMsg Login.Msg
     | FindStoryMsg FindStory.Msg
     | StudentsMsg Students.Msg
@@ -151,12 +162,12 @@ getPage pageState =
             page
 
 
-setRoute : Maybe Route -> Model -> ( Model, Cmd MsgNew )
+setRoute : Maybe Route -> Model -> ( Model, Cmd Msg )
 setRoute maybeRoute model =
     let
         transition toMsg task =
             { model | pageState = TransitioningFrom (getPage model.pageState) }
-                => Task.attempt toMsg task
+                => Task.attempt (PageLoaded << toMsg) task
 
         errored =
             pageErrored model
@@ -229,12 +240,67 @@ pageErrored model activePage errorMessage =
         { model | pageState = Loaded (Errored error) } => Cmd.none
 
 
-update : MsgNew -> Model -> ( Model, Cmd MsgNew )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    updatePage (getPage model.pageState) msg model
+    case msg of
+        SetRoute route ->
+            setRoute route model
+
+        PageLoaded p ->
+            pageLoaded p model
+
+        PageMsg p ->
+            updatePage (getPage model.pageState) p model
 
 
-updatePage : Page -> MsgNew -> Model -> ( Model, Cmd MsgNew )
+pageLoaded : PageLoaded -> Model -> ( Model, Cmd Msg )
+pageLoaded msg model =
+    case msg of
+        StoryLoaded (Ok ( subModel, newSession )) ->
+            { model | session = newSession, pageState = Loaded (Story subModel) }
+                => Ports.postProcessStory (.words subModel.story)
+
+        StoryLoaded (Err error) ->
+            { model | pageState = Loaded (Errored error) } => Cmd.none
+
+        HomeLoaded (Ok newSession) ->
+            { model | session = newSession, pageState = Loaded Home } => Cmd.none
+
+        HomeLoaded (Err error) ->
+            { model | pageState = Loaded (Errored error) } => Cmd.none
+
+        FindStoryLoaded (Ok ( subModel, newSession )) ->
+            { model | session = newSession, pageState = Loaded (FindStory subModel) } => Cmd.none
+
+        FindStoryLoaded (Err error) ->
+            { model | pageState = Loaded (Errored error) } => Cmd.none
+
+        StudentsLoaded (Ok ( subModel, newSession )) ->
+            { model | session = newSession, pageState = Loaded (Students subModel) } => Cmd.none
+
+        StudentsLoaded (Err error) ->
+            { model | pageState = Loaded (Errored error) } => Cmd.none
+
+        ClassesLoaded (Ok ( subModel, newSession )) ->
+            { model | session = newSession, pageState = Loaded (Classes subModel) } => Cmd.none
+
+        ClassesLoaded (Err error) ->
+            { model | pageState = Loaded (Errored error) } => Cmd.none
+
+        ClassLoaded (Ok ( subModel, newSession )) ->
+            { model | session = newSession, pageState = Loaded (Class subModel) } => Cmd.none
+
+        ClassLoaded (Err error) ->
+            { model | pageState = Loaded (Errored error) } => Cmd.none
+
+        StudentLoaded (Ok ( subModel, newSession )) ->
+            { model | session = newSession, pageState = Loaded (Student subModel) } => Cmd.none
+
+        StudentLoaded (Err error) ->
+            { model | pageState = Loaded (Errored error) } => Cmd.none
+
+
+updatePage : Page -> PageMsg -> Model -> ( Model, Cmd Msg )
 updatePage page msg model =
     let
         toPage toModel toMsg subUpdate subMsg subModel =
@@ -242,54 +308,12 @@ updatePage page msg model =
                 ( newModel, newCmd ) =
                     subUpdate subMsg subModel
             in
-                ( { model | pageState = Loaded (toModel newModel) }, Cmd.map toMsg newCmd )
+                ( { model | pageState = Loaded (toModel newModel) }, mapMsg toMsg newCmd )
+
+        mapMsg m =
+            Cmd.map (PageMsg << m)
     in
         case ( msg, page ) of
-            ( SetRoute route, _ ) ->
-                setRoute route model
-
-            ( StoryLoaded (Ok ( subModel, newSession )), _ ) ->
-                { model | session = newSession, pageState = Loaded (Story subModel) } => Ports.postProcessStory (.words subModel.story)
-
-            ( StoryLoaded (Err error), _ ) ->
-                { model | pageState = Loaded (Errored error) } => Cmd.none
-
-            ( HomeLoaded (Ok newSession), _ ) ->
-                { model | session = newSession, pageState = Loaded Home } => Cmd.none
-
-            ( HomeLoaded (Err error), _ ) ->
-                { model | pageState = Loaded (Errored error) } => Cmd.none
-
-            ( FindStoryLoaded (Ok ( subModel, newSession )), _ ) ->
-                { model | session = newSession, pageState = Loaded (FindStory subModel) } => Cmd.none
-
-            ( FindStoryLoaded (Err error), _ ) ->
-                { model | pageState = Loaded (Errored error) } => Cmd.none
-
-            ( StudentsLoaded (Ok ( subModel, newSession )), _ ) ->
-                { model | session = newSession, pageState = Loaded (Students subModel) } => Cmd.none
-
-            ( StudentsLoaded (Err error), _ ) ->
-                { model | pageState = Loaded (Errored error) } => Cmd.none
-
-            ( ClassesLoaded (Ok ( subModel, newSession )), _ ) ->
-                { model | session = newSession, pageState = Loaded (Classes subModel) } => Cmd.none
-
-            ( ClassesLoaded (Err error), _ ) ->
-                { model | pageState = Loaded (Errored error) } => Cmd.none
-
-            ( ClassLoaded (Ok ( subModel, newSession )), _ ) ->
-                { model | session = newSession, pageState = Loaded (Class subModel) } => Cmd.none
-
-            ( ClassLoaded (Err error), _ ) ->
-                { model | pageState = Loaded (Errored error) } => Cmd.none
-
-            ( StudentLoaded (Ok ( subModel, newSession )), _ ) ->
-                { model | session = newSession, pageState = Loaded (Student subModel) } => Cmd.none
-
-            ( StudentLoaded (Err error), _ ) ->
-                { model | pageState = Loaded (Errored error) } => Cmd.none
-
             ( StoryMsg subMsg, Story subModel ) ->
                 toPage Story StoryMsg (Story.update model.session) subMsg subModel
 
@@ -302,7 +326,7 @@ updatePage page msg model =
                         Students.update model.session subMsg subModel
                 in
                     { model | session = newSession, pageState = Loaded (Students pageModel) }
-                        => Cmd.map StudentsMsg cmd
+                        => mapMsg StudentsMsg cmd
 
             ( StudentMsg subMsg, Student subModel ) ->
                 toPage Student StudentMsg (Student.update model.session) subMsg subModel
@@ -313,7 +337,7 @@ updatePage page msg model =
                         Classes.update model.session subMsg subModel
                 in
                     { model | session = newSession, pageState = Loaded (Classes pageModel) }
-                        => Cmd.map ClassesMsg cmd
+                        => mapMsg ClassesMsg cmd
 
             ( ClassMsg subMsg, Class subModel ) ->
                 let
@@ -322,7 +346,7 @@ updatePage page msg model =
                 in
                     case externalMsg of
                         Class.NoOp ->
-                            { model | pageState = Loaded (Class pageModel) } => Cmd.map ClassMsg cmd
+                            { model | pageState = Loaded (Class pageModel) } => mapMsg ClassMsg cmd
 
                         Class.Deleted newSession ->
                             setRoute (Just (Route.Teacher Route.Classes))
@@ -330,7 +354,7 @@ updatePage page msg model =
 
                         Class.Updated newSession ->
                             { model | pageState = Loaded (Class pageModel), session = newSession }
-                                => Cmd.map ClassMsg cmd
+                                => mapMsg ClassMsg cmd
 
             ( LoginMsg subMsg, Login subModel ) ->
                 let
@@ -344,7 +368,7 @@ updatePage page msg model =
                             |> Maybe.withDefault ( model.session, Cmd.none )
                 in
                     { model | session = newSession, pageState = Loaded (Login pageModel) }
-                        => Cmd.batch [ Cmd.map LoginMsg loginCmd, cmd ]
+                        => Cmd.batch [ mapMsg LoginMsg loginCmd, cmd ]
 
             ( _, _ ) ->
                 model => Cmd.none
@@ -361,12 +385,13 @@ chooseStartPage user =
                 Route.Home
 
 
-subscriptions : Model -> Sub MsgNew
+subscriptions : Model -> Sub Msg
 subscriptions m =
     pageSubscriptions (getPage m.pageState)
+        |> Sub.map PageMsg
 
 
-pageSubscriptions : Page -> Sub MsgNew
+pageSubscriptions : Page -> Sub PageMsg
 pageSubscriptions page =
     case page of
         Story _ ->
@@ -376,7 +401,7 @@ pageSubscriptions page =
             Sub.none
 
 
-main : Program Value Model MsgNew
+main : Program Value Model Msg
 main =
     Navigation.programWithFlags (Route.fromLocation >> SetRoute)
         { init = init
