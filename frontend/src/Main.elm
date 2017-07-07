@@ -227,8 +227,17 @@ setRoute maybeRoute model =
             Just (Route.Teacher subRoute) ->
                 requireRole Session.Teacher (teacherRoute subRoute)
 
-            _ ->
-                Debug.log ("No route set for " ++ toString maybeRoute) (model ! [])
+            Just (Route.Register) ->
+                model => Cmd.none
+
+            Just (Route.Account) ->
+                model => Cmd.none
+
+            Just (Route.Trails) ->
+                model => Cmd.none
+
+            Just (Route.LeaderBoard) ->
+                model => Cmd.none
 
 
 pageErrored : Model -> String -> ( Model, Cmd msg )
