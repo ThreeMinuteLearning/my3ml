@@ -255,49 +255,46 @@ update msg model =
 
 pageLoaded : PageLoaded -> Model -> ( Model, Cmd Msg )
 pageLoaded msg model =
-    case msg of
-        StoryLoaded (Ok ( subModel, newSession )) ->
-            { model | session = newSession, pageState = Loaded (Story subModel) }
-                => Ports.postProcessStory (.words subModel.story)
+    let
+        handlePageLoadError result f =
+            case result of
+                Err error ->
+                    { model | pageState = Loaded (Errored error) } => Cmd.none
 
-        StoryLoaded (Err error) ->
-            { model | pageState = Loaded (Errored error) } => Cmd.none
+                Ok a ->
+                    f a
 
-        HomeLoaded (Ok newSession) ->
-            { model | session = newSession, pageState = Loaded Home } => Cmd.none
+        pageLoadedWithNewSession r toPage =
+            handlePageLoadError r <|
+                \( subModel, newSession ) ->
+                    { model | session = newSession, pageState = Loaded (toPage subModel) } => Cmd.none
+    in
+        case msg of
+            StoryLoaded r ->
+                handlePageLoadError r <|
+                    \( subModel, newSession ) ->
+                        { model | session = newSession, pageState = Loaded (Story subModel) }
+                            => Ports.postProcessStory (.words subModel.story)
 
-        HomeLoaded (Err error) ->
-            { model | pageState = Loaded (Errored error) } => Cmd.none
+            HomeLoaded r ->
+                handlePageLoadError r <|
+                    \newSession ->
+                        { model | session = newSession, pageState = Loaded Home } => Cmd.none
 
-        FindStoryLoaded (Ok ( subModel, newSession )) ->
-            { model | session = newSession, pageState = Loaded (FindStory subModel) } => Cmd.none
+            FindStoryLoaded r ->
+                pageLoadedWithNewSession r FindStory
 
-        FindStoryLoaded (Err error) ->
-            { model | pageState = Loaded (Errored error) } => Cmd.none
+            StudentsLoaded r ->
+                pageLoadedWithNewSession r Students
 
-        StudentsLoaded (Ok ( subModel, newSession )) ->
-            { model | session = newSession, pageState = Loaded (Students subModel) } => Cmd.none
+            StudentLoaded r ->
+                pageLoadedWithNewSession r Student
 
-        StudentsLoaded (Err error) ->
-            { model | pageState = Loaded (Errored error) } => Cmd.none
+            ClassesLoaded r ->
+                pageLoadedWithNewSession r Classes
 
-        ClassesLoaded (Ok ( subModel, newSession )) ->
-            { model | session = newSession, pageState = Loaded (Classes subModel) } => Cmd.none
-
-        ClassesLoaded (Err error) ->
-            { model | pageState = Loaded (Errored error) } => Cmd.none
-
-        ClassLoaded (Ok ( subModel, newSession )) ->
-            { model | session = newSession, pageState = Loaded (Class subModel) } => Cmd.none
-
-        ClassLoaded (Err error) ->
-            { model | pageState = Loaded (Errored error) } => Cmd.none
-
-        StudentLoaded (Ok ( subModel, newSession )) ->
-            { model | session = newSession, pageState = Loaded (Student subModel) } => Cmd.none
-
-        StudentLoaded (Err error) ->
-            { model | pageState = Loaded (Errored error) } => Cmd.none
+            ClassLoaded r ->
+                pageLoadedWithNewSession r Class
 
 
 updatePage : Page -> PageMsg -> Model -> ( Model, Cmd Msg )
