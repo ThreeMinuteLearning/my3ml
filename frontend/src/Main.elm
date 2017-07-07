@@ -272,10 +272,10 @@ pageLoaded msg model =
                 Err error ->
                     { model | pageState = Loaded (Errored error) } => Cmd.none
 
-        pageLoadedWithNewSession r toPage =
+        pageLoadedWithNewSession r toModel =
             handlePageLoadError r <|
                 \( subModel, newSession ) ->
-                    { model | session = newSession, pageState = Loaded (toPage subModel) } => Cmd.none
+                    { model | session = newSession, pageState = Loaded (toModel subModel) } => Cmd.none
     in
         case msg of
             StoryLoaded r ->
@@ -315,6 +315,13 @@ updatePage page msg model =
             in
                 ( { model | pageState = Loaded (toModel newModel) }, mapMsg toMsg newCmd )
 
+        toPageNewSession toModel toMsg subUpdate subMsg subModel =
+            let
+                ( ( newModel, newCmd ), newSession ) =
+                    subUpdate model.session subMsg subModel
+            in
+                ( { model | session = newSession, pageState = Loaded (toModel newModel) }, mapMsg toMsg newCmd )
+
         mapMsg m =
             Cmd.map (PageMsg << m)
     in
@@ -326,23 +333,13 @@ updatePage page msg model =
                 toPage FindStory FindStoryMsg (FindStory.update model.session) subMsg subModel
 
             ( StudentsMsg subMsg, Students subModel ) ->
-                let
-                    ( ( pageModel, cmd ), newSession ) =
-                        Students.update model.session subMsg subModel
-                in
-                    { model | session = newSession, pageState = Loaded (Students pageModel) }
-                        => mapMsg StudentsMsg cmd
+                toPageNewSession Students StudentsMsg Students.update subMsg subModel
 
             ( StudentMsg subMsg, Student subModel ) ->
-                toPage Student StudentMsg (Student.update model.session) subMsg subModel
+                toPageNewSession Student StudentMsg Student.update subMsg subModel
 
             ( ClassesMsg subMsg, Classes subModel ) ->
-                let
-                    ( ( pageModel, cmd ), newSession ) =
-                        Classes.update model.session subMsg subModel
-                in
-                    { model | session = newSession, pageState = Loaded (Classes pageModel) }
-                        => mapMsg ClassesMsg cmd
+                toPageNewSession Classes ClassesMsg Classes.update subMsg subModel
 
             ( ClassMsg subMsg, Class subModel ) ->
                 let
