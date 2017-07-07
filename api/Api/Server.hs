@@ -23,7 +23,7 @@ import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Jose.Jwk
 import           Prelude hiding (id)
-import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, Handler, NoContent(..), err400, err401, err403, err404, errBody)
+import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, Handler, NoContent(..), err400, err401, err403, err409, err404, errBody)
 
 import           Api.Auth (AccessScope(..), mkAccessToken, scopeSubjectId)
 import           Api.Types hiding (AccessToken)
@@ -185,7 +185,12 @@ studentsServer schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStudent
     changeUsername studId username_ = do
         logInfoN $ "Setting username for student: " <> studId <> " to " <> username_
         when (T.length username_ < 3) (throwError err400)
-        runDB $ DB.setStudentUsername schoolId_ studId username_
+
+        user <- runDB $ DB.getAccountByUsername username_
+        case user of
+            Nothing -> runDB $ DB.setStudentUsername schoolId_ studId username_
+            Just u ->
+                unless (id (u :: Account) == studId) (throwError err409)
         return NoContent
 
     updateStudent _ student_ = runDB $ DB.updateStudent student_ schoolId_

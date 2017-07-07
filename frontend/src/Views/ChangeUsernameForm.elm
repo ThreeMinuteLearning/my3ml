@@ -64,10 +64,26 @@ update session msg model =
                 => Cmd.none
                 => Completed
 
-        UsernameUpdateResponse (Err _) ->
-            { model | errors = ( "", "Username update failed" ) :: model.errors }
+        UsernameUpdateResponse (Err e) ->
+            (case e of
+                Http.BadStatus { status } ->
+                    case status.code of
+                        409 ->
+                            addError model ( "username", "This user name is already taken" )
+
+                        _ ->
+                            addError model ( "", "There was an error updating the username" )
+
+                _ ->
+                    addError model ( "", "Username update failed" )
+            )
                 => Cmd.none
                 => NoOp
+
+
+addError : Model -> Error -> Model
+addError model e =
+    { model | errors = e :: model.errors }
 
 
 sendUsernameChangeRequest : Session -> Model -> Cmd Msg

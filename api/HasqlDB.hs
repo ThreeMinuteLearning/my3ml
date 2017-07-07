@@ -194,7 +194,7 @@ selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
           \ FROM login \
           \ LEFT JOIN student \
           \ ON login.id = student.id \
-          \ WHERE username = $1 AND locked = false"
+          \ WHERE username = lower($1) AND locked = false"
 
     decode = Account
         <$> dvUUID
