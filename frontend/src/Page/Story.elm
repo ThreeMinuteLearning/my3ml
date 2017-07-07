@@ -11,7 +11,6 @@ import Ports
 import Task exposing (Task)
 import Util exposing ((=>), viewIf)
 import Views.Answers as Answers
-import Views.Page as Page
 import Views.RobotPanel as RobotPanel
 import Views.Story as Story
 import Views.Words as Words
@@ -38,7 +37,7 @@ init : Session -> String -> Task PageLoadError ( Model, Session )
 init originalSession slug =
     let
         handleLoadError _ =
-            pageLoadError Page.Other "Story is currently unavailable."
+            pageLoadError "Story is currently unavailable."
 
         user =
             originalSession.user
@@ -62,7 +61,7 @@ init originalSession slug =
                             )
 
                 Nothing ->
-                    Task.fail (pageLoadError Page.Other "Sorry. That story couldn't be found.")
+                    Task.fail (pageLoadError "Sorry. That story couldn't be found.")
 
         lookupAnswers session story =
             case user of

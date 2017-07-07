@@ -7,7 +7,6 @@ for example a Page Not Found error.
 import Data.Session as Session exposing (Session)
 import Html exposing (Html, main_, h3, div, img, text, p)
 import Html.Attributes exposing (class, tabindex, id, alt)
-import Views.Page as Page exposing (ActivePage)
 
 
 type PageLoadError
@@ -15,14 +14,13 @@ type PageLoadError
 
 
 type alias Model =
-    { activePage : ActivePage
-    , errorMessage : String
+    { errorMessage : String
     }
 
 
-pageLoadError : ActivePage -> String -> PageLoadError
-pageLoadError activePage errorMessage =
-    PageLoadError { activePage = activePage, errorMessage = errorMessage }
+pageLoadError : String -> PageLoadError
+pageLoadError errorMessage =
+    PageLoadError { errorMessage = errorMessage }
 
 
 view : Session -> PageLoadError -> Html msg

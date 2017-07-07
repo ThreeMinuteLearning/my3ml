@@ -175,16 +175,16 @@ setRoute maybeRoute model =
         session =
             model.session
 
-        requireRole role page transition_ =
+        requireRole role transition_ =
             case session.user of
                 Nothing ->
-                    errored page "You are signed out. You need to sign-in to view this page."
+                    errored "You are signed out. You need to sign-in to view this page."
 
                 Just u ->
                     if u.role == role then
                         transition_
                     else
-                        errored page "You can't view this page as the current use. Perhaps you need to log in as a teacher?"
+                        errored "You can't view this page as the current use. Perhaps you need to log in as a teacher?"
 
         teacherRoute subRoute =
             case subRoute of
@@ -225,17 +225,17 @@ setRoute maybeRoute model =
                 transition FindStoryLoaded (FindStory.init session)
 
             Just (Route.Teacher subRoute) ->
-                requireRole Session.Teacher Page.Teacher (teacherRoute subRoute)
+                requireRole Session.Teacher (teacherRoute subRoute)
 
             _ ->
                 Debug.log ("No route set for " ++ toString maybeRoute) (model ! [])
 
 
-pageErrored : Model -> ActivePage -> String -> ( Model, Cmd msg )
-pageErrored model activePage errorMessage =
+pageErrored : Model -> String -> ( Model, Cmd msg )
+pageErrored model errorMessage =
     let
         error =
-            Errored.pageLoadError activePage errorMessage
+            Errored.pageLoadError errorMessage
     in
         { model | pageState = Loaded (Errored error) } => Cmd.none
 

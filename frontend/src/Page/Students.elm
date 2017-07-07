@@ -21,7 +21,6 @@ import Tuple exposing (first, second)
 import Util exposing ((=>), viewIf, dialog)
 import Views.ClassSelect as ClassSelect
 import Views.NewAccounts as NewAccounts
-import Views.Page as Page
 import Views.StudentTable as StudentTable
 import Views.TeacherToolbar as TeacherToolbar
 
@@ -54,7 +53,7 @@ init : Session -> Task PageLoadError ( Model, Session )
 init session =
     let
         handleLoadError _ =
-            pageLoadError Page.Other "Unable to load student data."
+            pageLoadError "Unable to load student data."
 
         createModel session =
             Model StudentTable.init Dict.empty [] Nothing ( "", Nothing )

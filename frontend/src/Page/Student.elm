@@ -14,7 +14,6 @@ import Util exposing ((=>), dialog)
 import Views.Answers as Answers
 import Views.ChangePasswordForm as ChangePassword
 import Views.ChangeUsernameForm as ChangeUsername
-import Views.Page as Page
 import Views.SelectLevel as SelectLevel
 
 
@@ -46,7 +45,7 @@ init : Session -> String -> Task PageLoadError ( Model, Session )
 init session_ slug =
     let
         handleLoadError _ =
-            pageLoadError Page.Other "Unable to load data for page."
+            pageLoadError "Unable to load data for page."
 
         loadStudent =
             Api.getSchoolStudentsByStudentId (authorization session_) slug

@@ -11,7 +11,6 @@ import Regex
 import Route
 import Table
 import Task exposing (Task)
-import Views.Page as Page
 import Views.RobotPanel as RobotPanel
 
 
@@ -42,7 +41,7 @@ init : Session -> Task PageLoadError ( Model, Session )
 init session =
     let
         handleLoadError _ =
-            pageLoadError Page.Other "There was a problem loading the stories."
+            pageLoadError "There was a problem loading the stories."
     in
         Session.loadStories session
             |> Task.map ((,) (initialModel session.user))

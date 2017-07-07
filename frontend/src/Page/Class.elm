@@ -13,7 +13,6 @@ import Page.Errored exposing (PageLoadError, pageLoadError)
 import Table
 import Task exposing (Task)
 import Util exposing ((=>), dialog, viewIf)
-import Views.Page as Page
 import Views.StudentTable as StudentTable
 
 
@@ -47,7 +46,7 @@ init : Session -> String -> Task PageLoadError ( Model, Session )
 init session_ slug =
     let
         handleLoadError _ =
-            pageLoadError Page.Other "Unable to load data for page."
+            pageLoadError "Unable to load data for page."
 
         loadClass =
             Api.getSchoolClassesByClassId (authorization session_) slug

@@ -14,7 +14,7 @@ init : Session -> Task PageLoadError Session
 init session =
     let
         handleLoadError _ =
-            pageLoadError Page.Home "Couldn't load stories for the home page."
+            pageLoadError "Couldn't load stories for the home page."
     in
         Session.loadStories session
             |> Task.mapError handleLoadError

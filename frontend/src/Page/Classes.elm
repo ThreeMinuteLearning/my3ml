@@ -12,7 +12,6 @@ import Route
 import Table
 import Task exposing (Task)
 import Util exposing ((=>), dialog)
-import Views.Page as Page
 import Views.TeacherToolbar as TeacherToolbar
 
 
@@ -33,7 +32,7 @@ init : Session -> Task PageLoadError ( Model, Session )
 init session =
     let
         handleLoadError _ =
-            pageLoadError Page.Other "Unable to load classes."
+            pageLoadError "Unable to load classes."
 
         createModel session =
             Model (Table.initialSort "Class Name") Nothing
