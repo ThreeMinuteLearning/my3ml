@@ -100,8 +100,8 @@ newLogin s { sub, name, level, token, role } =
 
 
 loadStories : Session -> Task Http.Error Session
-loadStories =
-    loadToCache (.stories >> List.isEmpty) Api.getStories (\newStories cache -> { cache | stories = newStories })
+loadStories session =
+    loadToCache (.stories >> List.isEmpty) Api.getStories (\newStories cache -> { cache | stories = organizeStories session.user newStories }) session
 
 
 organizeStories : Maybe User -> List Api.Story -> List Api.Story
