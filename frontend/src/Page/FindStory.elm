@@ -40,8 +40,8 @@ initialModel u =
 init : Session -> Task PageLoadError ( Model, Session )
 init session =
     let
-        handleLoadError _ =
-            pageLoadError "There was a problem loading the stories."
+        handleLoadError e =
+            pageLoadError e "There was a problem loading the stories."
     in
         Session.loadStories session
             |> Task.map ((,) (initialModel session.user))

@@ -6,7 +6,7 @@ import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Http
-import Page.Errored exposing (PageLoadError, pageLoadError)
+import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Ports
 import Task exposing (Task)
 import Util exposing ((=>), viewIf)
@@ -36,8 +36,8 @@ type Msg
 init : Session -> String -> Task PageLoadError ( Model, Session )
 init originalSession slug =
     let
-        handleLoadError _ =
-            pageLoadError "Story is currently unavailable."
+        handleLoadError e =
+            pageLoadError e "Story is currently unavailable."
 
         user =
             originalSession.user
@@ -61,7 +61,7 @@ init originalSession slug =
                             )
 
                 Nothing ->
-                    Task.fail (pageLoadError "Sorry. That story couldn't be found.")
+                    Task.fail (PageLoadError "Sorry. That story couldn't be found.")
 
         lookupAnswers session story =
             case user of

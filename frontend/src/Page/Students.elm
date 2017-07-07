@@ -52,8 +52,8 @@ type Msg
 init : Session -> Task PageLoadError ( Model, Session )
 init session =
     let
-        handleLoadError _ =
-            pageLoadError "Unable to load student data."
+        handleLoadError e =
+            pageLoadError e "Unable to load student data."
 
         createModel session =
             Model StudentTable.init Dict.empty [] Nothing ( "", Nothing )

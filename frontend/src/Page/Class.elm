@@ -45,8 +45,8 @@ type ExternalMsg
 init : Session -> String -> Task PageLoadError ( Model, Session )
 init session_ slug =
     let
-        handleLoadError _ =
-            pageLoadError "Unable to load data for page."
+        handleLoadError e =
+            pageLoadError e "Unable to load data for page."
 
         loadClass =
             Api.getSchoolClassesByClassId (authorization session_) slug

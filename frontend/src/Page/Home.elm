@@ -13,8 +13,8 @@ import Views.StoryTiles as StoryTiles
 init : Session -> Task PageLoadError Session
 init session =
     let
-        handleLoadError _ =
-            pageLoadError "Couldn't load stories for the home page."
+        handleLoadError e =
+            pageLoadError e "Couldn't load stories for the home page."
     in
         Session.loadStories session
             |> Task.mapError handleLoadError

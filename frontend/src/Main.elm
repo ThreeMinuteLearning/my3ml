@@ -6,7 +6,7 @@ import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
 import Page.Class as Class
 import Page.Classes as Classes
-import Page.Errored as Errored exposing (PageLoadError)
+import Page.Errored as Errored exposing (PageLoadError(..))
 import Page.FindStory as FindStory
 import Page.Home as Home
 import Page.Login as Login
@@ -184,7 +184,7 @@ setRoute maybeRoute model =
                     if u.role == role then
                         transition_
                     else
-                        errored "You can't view this page as the current use. Perhaps you need to log in as a teacher?"
+                        errored "You can't view this page as the current user. Perhaps you need to log in as a teacher?"
 
         teacherRoute subRoute =
             case subRoute of
@@ -242,11 +242,7 @@ setRoute maybeRoute model =
 
 pageErrored : Model -> String -> ( Model, Cmd msg )
 pageErrored model errorMessage =
-    let
-        error =
-            Errored.pageLoadError errorMessage
-    in
-        { model | pageState = Loaded (Errored error) } => Cmd.none
+    { model | pageState = Loaded (Errored (PageLoadError errorMessage)) } => Cmd.none
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -267,11 +263,14 @@ pageLoaded msg model =
     let
         handlePageLoadError result f =
             case result of
-                Err error ->
-                    { model | pageState = Loaded (Errored error) } => Cmd.none
-
                 Ok a ->
                     f a
+
+                Err AuthenticationRequired ->
+                    { model | session = Session.emptySession, pageState = Loaded (Errored AuthenticationRequired) } => Cmd.none
+
+                Err error ->
+                    { model | pageState = Loaded (Errored error) } => Cmd.none
 
         pageLoadedWithNewSession r toPage =
             handlePageLoadError r <|

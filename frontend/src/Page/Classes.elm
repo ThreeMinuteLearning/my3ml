@@ -31,8 +31,8 @@ type Msg
 init : Session -> Task PageLoadError ( Model, Session )
 init session =
     let
-        handleLoadError _ =
-            pageLoadError "Unable to load classes."
+        handleLoadError e =
+            pageLoadError e "Unable to load classes."
 
         createModel session =
             Model (Table.initialSort "Class Name") Nothing
