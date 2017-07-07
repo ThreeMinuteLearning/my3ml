@@ -26,4 +26,4 @@ view toMsg current =
                     Json.fail e
     in
         select [ class "form-control", (on "input" intMsg) ]
-            (List.map mkOption (List.range 1 10))
+            (List.map mkOption (List.range 0 9))

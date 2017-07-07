@@ -53,7 +53,7 @@ CREATE TABLE student
     ( id uuid PRIMARY KEY REFERENCES login(id)
     , name text NOT NULL CHECK (length(name) > 0)
     , description text
-    , level smallint NOT NULL CHECK (level >= 0 AND level < 10)
+    , level smallint NOT NULL CHECK (level >= 0 AND level <= 10)
     , school_id uuid NOT NULL REFERENCES school
     , hidden boolean NOT NULL default false
     , deleted timestamptz
