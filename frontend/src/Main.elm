@@ -175,13 +175,13 @@ setRoute maybeRoute model =
         session =
             model.session
 
-        requireRole role transition_ =
+        requireRole hasRole transition_ =
             case session.user of
                 Nothing ->
                     errored "You are signed out. You need to sign-in to view this page."
 
-                Just u ->
-                    if u.role == role then
+                _ ->
+                    if hasRole session then
                         transition_
                     else
                         errored "You can't view this page as the current user. Perhaps you need to log in as a teacher?"
@@ -225,7 +225,7 @@ setRoute maybeRoute model =
                 transition FindStoryLoaded (FindStory.init session)
 
             Just (Route.Teacher subRoute) ->
-                requireRole Session.Teacher (teacherRoute subRoute)
+                requireRole Session.isTeacher (teacherRoute subRoute)
 
             Just (Route.Register) ->
                 model => Cmd.none
@@ -380,7 +380,7 @@ chooseStartPage : Maybe User -> Cmd msg
 chooseStartPage user =
     Route.modifyUrl <|
         case Maybe.map .role user of
-            Just Teacher ->
+            Just (Teacher _) ->
                 Route.Teacher Route.Students
 
             _ ->

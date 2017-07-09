@@ -1,4 +1,4 @@
-module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, newLogin, loadStories, loadDictionary, loadStudents, loadClasses, findStoryById)
+module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadClasses, findStoryById)
 
 import Api
 import Data.Words exposing (WordDict)
@@ -42,7 +42,7 @@ type alias Cache =
 
 type Role
     = Student
-    | Teacher
+    | Teacher Bool
 
 
 emptySession : Session
@@ -55,14 +55,26 @@ emptyCache =
     Cache Dict.empty [] [] []
 
 
-isStudent : Session -> Bool
-isStudent session =
-    case Maybe.map .role session.user of
-        Just Student ->
-            True
+hasRole : Role -> Session -> Bool
+hasRole r session =
+    Maybe.map .role session.user
+        |> Maybe.map ((==) r)
+        |> Maybe.withDefault False
 
-        _ ->
-            False
+
+isStudent : Session -> Bool
+isStudent =
+    hasRole Student
+
+
+isTeacher : Session -> Bool
+isTeacher session =
+    hasRole (Teacher True) session || hasRole (Teacher False) session
+
+
+isSchoolAdmin : Session -> Bool
+isSchoolAdmin =
+    hasRole (Teacher True)
 
 
 authorization : Session -> String
@@ -81,7 +93,10 @@ stringToRole : String -> Role
 stringToRole s =
     case s of
         "Teacher" ->
-            Teacher
+            Teacher False
+
+        "SchoolAdmin" ->
+            Teacher True
 
         _ ->
             Student
@@ -206,8 +221,11 @@ encodeRole r =
             Student ->
                 "Student"
 
-            Teacher ->
+            Teacher False ->
                 "Teacher"
+
+            Teacher True ->
+                "SchoolAdmin"
 
 
 roleDecoder : Decoder Role

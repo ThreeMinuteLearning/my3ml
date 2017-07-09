@@ -128,9 +128,10 @@ type AccessToken = Text
 newtype UserType = UserType {userType :: Text }
     deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
-student, teacher, editor, admin :: UserType
+student, teacher, schoolAdmin, editor, admin :: UserType
 student = UserType "Student"
 teacher = UserType "Teacher"
+schoolAdmin = UserType "SchoolAdmin"
 editor = UserType "Editor"
 admin = UserType "Admin"
 
@@ -186,9 +187,9 @@ type StudentsApi =
         :<|> Capture "studentId" SubjectId :>
              (    Get '[JSON] Student
              :<|> ReqBody '[JSON] Student :> Post '[JSON] Student
-             :<|> Delete '[JSON] Student
              :<|> "password" :> ReqBody '[JSON] Text :> PostNoContent '[JSON] NoContent
              :<|> "username" :> ReqBody '[JSON] Text :> PostNoContent '[JSON] NoContent
+             :<|> Delete '[JSON] Student
              :<|> "undelete" :> PostNoContent '[JSON] NoContent
              )
         :<|> ReqBody '[JSON] [Text] :> Post '[JSON] [(Student, (Text, Text))]

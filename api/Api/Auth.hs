@@ -26,7 +26,7 @@ import           Network.Wai (Request, requestHeaders)
 import           Api.Types (SchoolId, SubjectId)
 
 data AccessScope
-    = TeacherScope SubjectId SchoolId
+    = TeacherScope SubjectId SchoolId Bool
     | StudentScope SubjectId SchoolId
     | AdminScope SubjectId
     | EditorScope SubjectId
@@ -36,7 +36,7 @@ type instance AuthServerData (AuthProtect "access-token") = Maybe AccessScope
 
 
 scopeSubjectId :: AccessScope -> SubjectId
-scopeSubjectId (TeacherScope s _) = s
+scopeSubjectId (TeacherScope s _ _) = s
 scopeSubjectId (StudentScope s _) = s
 scopeSubjectId (AdminScope s) = s
 scopeSubjectId (EditorScope s) = s

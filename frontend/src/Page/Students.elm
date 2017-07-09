@@ -166,7 +166,7 @@ update session msg model =
 view : Session -> Model -> Html Msg
 view session model =
     div [ class "container page" ]
-        [ TeacherToolbar.view subtools
+        [ TeacherToolbar.view (subtools session)
         , row [ NewAccounts.view PrintWindow ClearNewAccounts model.studentAccountsCreated ]
         , viewStudentsFilter session.cache model
         , viewTable session.cache model
@@ -174,9 +174,12 @@ view session model =
         ]
 
 
-subtools : List (Html Msg)
-subtools =
-    [ Bootstrap.btn ShowAddStudents [ text "Add Students" ] ]
+subtools : Session -> List (Html Msg)
+subtools session =
+    if Session.isSchoolAdmin session then
+        [ Bootstrap.btn ShowAddStudents [ text "Add Students" ] ]
+    else
+        []
 
 
 viewTable : Session.Cache -> Model -> Html Msg

@@ -24,6 +24,7 @@ type alias Model =
     , changeUsernameForm : Maybe ChangeUsername.Model
     , showConfirmDelete : Bool
     , showTimer : Bool
+    , userIsAdmin : Bool
     }
 
 
@@ -59,7 +60,7 @@ init session_ slug =
             Maybe.map ((,) a) (findStoryById session.cache a.storyId)
 
         mkModel newSession student answers =
-            ( Model student (List.filterMap (zipWithStory newSession) answers) Nothing Nothing False False, newSession )
+            ( Model student (List.filterMap (zipWithStory newSession) answers) Nothing Nothing False False (Session.isSchoolAdmin newSession), newSession )
     in
         Task.map3 mkModel (Session.loadStories session_) loadStudent loadAnswers
             |> Task.mapError handleLoadError
@@ -201,7 +202,7 @@ view : Model -> Html Msg
 view model =
     div [ class "container page" ]
         [ h3 [] [ text (.name model.student) ]
-        , viewToolbar model.student
+        , viewToolbar model.userIsAdmin model.student
         , Answers.viewWithStories model.answers
         , Dialog.view (Maybe.map changePasswordDialog model.changePasswordForm)
         , Dialog.view (Maybe.map changeUsernameDialog model.changeUsernameForm)
@@ -214,33 +215,42 @@ view model =
         ]
 
 
-viewToolbar : Api.Student -> Html Msg
-viewToolbar student =
+viewToolbar : Bool -> Api.Student -> Html Msg
+viewToolbar isAdmin student =
     let
         inputGroupBtn msg txt =
             button [ class "btn btn-default", onClick msg, type_ "button" ] [ text txt ]
+
+        teacherButtons =
+            [ inputGroupBtn ShowChangePassword "Change password"
+            , inputGroupBtn ShowChangeUsername "Change username"
+            ]
+
+        adminButtons =
+            if isAdmin then
+                [ inputGroupBtn ToggleDeletedStatus
+                    (case student.deleted of
+                        Nothing ->
+                            "Delete"
+
+                        _ ->
+                            "Un-delete"
+                    )
+                , inputGroupBtn ToggleHiddenStatus
+                    (if student.hidden then
+                        "Un-hide"
+                     else
+                        "Hide"
+                    )
+                ]
+            else
+                []
     in
         row
             [ div [ class "col-lg-8" ]
                 [ div [ class "input-group" ]
                     [ div [ class "input-group-btn" ]
-                        [ inputGroupBtn ShowChangePassword "Change password"
-                        , inputGroupBtn ShowChangeUsername "Change username"
-                        , inputGroupBtn ToggleDeletedStatus
-                            (case student.deleted of
-                                Nothing ->
-                                    "Delete"
-
-                                _ ->
-                                    "Un-delete"
-                            )
-                        , inputGroupBtn ToggleHiddenStatus
-                            (if student.hidden then
-                                "Un-hide"
-                             else
-                                "Hide"
-                            )
-                        ]
+                        (teacherButtons ++ adminButtons)
                     , SelectLevel.view SetLevel student.level
                     ]
                 ]

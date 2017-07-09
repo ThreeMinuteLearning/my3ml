@@ -8,7 +8,9 @@ import Html.Attributes exposing (..)
 view : List Api.Answer -> Html msg
 view answers =
     div []
-        (List.map viewAnswer answers)
+        ([ h3 [] [ text "Story Answers" ] ]
+            ++ (List.map viewAnswer answers)
+        )
 
 
 viewAnswer : Api.Answer -> Html msg
@@ -26,15 +28,17 @@ viewAnswer answer =
 viewWithStories : List ( Api.Answer, Api.Story ) -> Html msg
 viewWithStories answers =
     div []
-        (List.map viewStoryAnswer answers)
+        ([ h3 [] [ text "Story Answers" ] ]
+            ++ (List.map viewStoryAnswer answers)
+        )
 
 
 viewStoryAnswer : ( Api.Answer, Api.Story ) -> Html msg
 viewStoryAnswer ( answer, story ) =
     div [ class "row" ]
-        [ h4 [] [ text story.title ]
-        , div [ class "col-md-9" ]
-            [ p [] [ text answer.connect ]
+        [ div [ class "col-md-9" ]
+            [ h4 [] [ text story.title ]
+            , p [] [ text answer.connect ]
             , p [] [ text answer.question ]
             , p [] [ text answer.summarise ]
             , p [] [ text answer.clarify ]

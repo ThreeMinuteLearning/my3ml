@@ -181,6 +181,7 @@ userTypeValue = -- D.composite (uType <$> D.compositeValue D.text)
   where
     uType t = case T.unpack t of
         "Teacher" -> teacher
+        "SchoolAdmin" -> schoolAdmin
         "Admin" -> admin
         "Editor" -> editor
         _ -> student
