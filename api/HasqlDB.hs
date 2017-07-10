@@ -134,6 +134,12 @@ instance DB HasqlDB where
 
     createAnswer = runQuery insertAnswer
 
+    generateWords db =
+      let
+        query = Q.statement "SELECT word FROM dict WHERE sensitive = FALSE ORDER BY random() LIMIT 10" E.unit (D.rowsList (D.value D.text)) True
+      in
+        runSession db (S.query () query)
+
 dictWord :: [(Text, b)] -> (Text, [b])
 dictWord ((w, meaning):ws) = (w, meaning : map snd ws)
 dictWord [] = ("", []) -- shouldn't happen

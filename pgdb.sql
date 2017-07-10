@@ -82,6 +82,7 @@ CREATE TABLE dict
     , index smallint NOT NULL check (index >= 0 AND index < 20)
     , definition text NOT NULL
     , uses_words dict_entry[] NOT NULL
+    , sensitive boolean NOT NULL default false
     , PRIMARY KEY (word, index)
     );
 

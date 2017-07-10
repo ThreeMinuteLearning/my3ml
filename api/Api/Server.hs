@@ -16,7 +16,8 @@ import           Control.Monad.Except (MonadError, throwError)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Logger
 import           Control.Monad.Reader
-import           Data.Monoid ((<>))
+import           Data.Monoid ((<>), Sum(..))
+import           Data.List (scanl', last, uncons)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.UUID (toText)
@@ -210,14 +211,24 @@ studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStu
 
     generateUsername nm = return nm
 
-    generatePassword = return "password"
+    generatePassword minLength= do
+        let clean = T.filter (\c -> c /= ' ' && c /= '-')
+        ws <- map clean <$> runDB DB.generateWords
+        let wls = zip ws (map (Sum . T.length) ws)
+            scan = scanl' (<>) mempty wls
+            pass =
+                case uncons (dropWhile ((< minLength) . snd) scan) of
+                    Just ((p, _), _) -> p
+                    Nothing -> fst (last scan)
+
+        return (T.toLower pass)
 
     createStudent nm = do
-        logInfoN $ "Creating new student account: " <> nm
-        username <- generateUsername nm
-        password <- generatePassword
+        logInfoN $ "Creating new student account for: " <> nm
+        uname <- generateUsername nm
+        pass <- generatePassword 15
 
-        let creds = (username, password)
+        let creds = (uname, pass)
         stdnt <- runDB $ DB.createStudent (nm, 5, schoolId_) creds
         return (stdnt, creds)
 
