@@ -75,6 +75,8 @@ class DB db where
 
     generateWords :: MonadIO m => db -> m [Text]
 
+    generateUsername :: MonadIO m => Text -> db -> m Text
+
 data InMemoryDB = InMemoryDB
     { stories :: Map.Map StoryId Story
     , sampleStories :: [Story]

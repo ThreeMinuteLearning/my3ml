@@ -12,6 +12,7 @@ import           Data.Function (on)
 import           Data.Int (Int64)
 import           Data.List (foldl', groupBy)
 import qualified Data.Map.Strict as Map
+import           Data.Maybe (fromMaybe)
 import           Data.Monoid
 import           Data.Text (Text)
 import qualified Data.Text as T
@@ -23,6 +24,7 @@ import qualified Hasql.Encoders as E
 import qualified Hasql.Decoders as D
 import qualified Hasql.Session as S
 import           Prelude hiding (id, words)
+import           Text.Read (readMaybe)
 
 import Api.Types
 import DB
@@ -139,6 +141,14 @@ instance DB HasqlDB where
         query = Q.statement "SELECT word FROM dict WHERE sensitive = FALSE ORDER BY random() LIMIT 10" E.unit (D.rowsList (D.value D.text)) True
       in
         runSession db (S.query () query)
+
+    generateUsername prefix db = do
+        let query = Q.statement "SELECT replace(username, $1, '') FROM login WHERE username LIKE $1 || '%'" evText (D.rowsList (D.value D.text)) True
+        suffixes <- map (fromMaybe (0 :: Int) . readMaybe . T.unpack) <$> runSession db (S.query prefix query)
+        let newName = case suffixes of
+              [] -> prefix
+              _ -> T.pack $ T.unpack prefix ++ show (maximum suffixes + 1)
+        return newName
 
 dictWord :: [(Text, b)] -> (Text, [b])
 dictWord ((w, meaning):ws) = (w, meaning : map snd ws)

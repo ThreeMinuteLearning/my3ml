@@ -209,10 +209,9 @@ studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStu
         runDB $ DB.undeleteStudent studId schoolId_
         return NoContent
 
-    generateUsername nm = return nm
+    clean = T.filter (\c -> c /= ' ' && c /= '-' && c /= '\'')
 
     generatePassword minLength= do
-        let clean = T.filter (\c -> c /= ' ' && c /= '-')
         ws <- map clean <$> runDB DB.generateWords
         let wls = zip ws (map (Sum . T.length) ws)
             scan = scanl' (<>) mempty wls
@@ -225,11 +224,12 @@ studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStu
 
     createStudent nm = do
         logInfoN $ "Creating new student account for: " <> nm
-        uname <- generateUsername nm
+        uname <- runDB $ DB.generateUsername (T.toLower (clean nm))
+        logInfoN $ "Generated username is: " <> uname
         pass <- generatePassword 15
 
         let creds = (uname, pass)
-        stdnt <- runDB $ DB.createStudent (nm, 5, schoolId_) creds
+        stdnt <- runDB $ DB.createStudent (uname, 5, schoolId_) creds
         return (stdnt, creds)
 
 
