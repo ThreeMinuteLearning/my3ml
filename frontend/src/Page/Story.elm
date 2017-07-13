@@ -2,7 +2,7 @@ module Page.Story exposing (Model, Msg, init, subscriptions, update, view)
 
 import AnswersForm
 import Api
-import Data.Session as Session exposing (Session, authorization, findStoryById)
+import Data.Session as Session exposing (Session, Role(..), authorization, findStoryById)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Http
@@ -64,8 +64,11 @@ init originalSession slug =
                     Task.fail (PageLoadError "Sorry. That story couldn't be found.")
 
         lookupAnswers session story =
-            case user of
+            case Maybe.map .role user of
                 Nothing ->
+                    Task.succeed []
+
+                Just Editor ->
                     Task.succeed []
 
                 _ ->
@@ -92,7 +95,7 @@ view session m =
         , m.dictLookup
             |> Maybe.map List.singleton
             |> Maybe.withDefault []
-            |> Words.view (.dict session.cache)
+            |> Words.view session.cache.dict
         , viewIf (Session.isStudent session) (viewAnswersForm m)
         , viewIf (m.answersForm == Nothing) (Answers.view m.answers)
         ]

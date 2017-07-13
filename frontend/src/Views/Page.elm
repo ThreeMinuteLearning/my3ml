@@ -79,6 +79,9 @@ viewSignIn page user =
                 Session.Student ->
                     standardNavLinks page
 
+                Session.Editor ->
+                    standardNavLinks page
+
                 Session.Teacher _ ->
                     (navbarLink (page == Teacher) (Route.Teacher Route.Students) [ text "Teacher" ])
                         :: standardNavLinks page

@@ -80,6 +80,7 @@ loginServer authReq = do
             "Teacher" -> getTeacher subId False
 
             "SchoolAdmin" -> getTeacher subId True
+            "Editor" -> return (EditorScope subId, "Anonymous")
         jwk <- fmap tokenKey ask
         token_ <- mkAccessToken jwk scope
         return (token_, nm)
@@ -87,9 +88,11 @@ loginServer authReq = do
 
 storyServer :: DB db => ApiServer StoriesApi db
 storyServer token_ =
-    getStories :<|> getStory :<|> createStory
+    getStories :<|> specificStoryServer :<|> createStory
   where
     notFound = err404 { errBody = "Story with this ID was not found" }
+
+    specificStoryServer storyId_ = getStory storyId_ :<|> updateStory storyId_
 
     getStories =
         case token_ of
@@ -101,6 +104,11 @@ storyServer token_ =
         case story of
             Nothing -> throwError notFound
             Just s -> return s
+
+    updateStory storyId_ story =
+        case token_ of
+            Just (EditorScope _) -> runDB (DB.updateStory (story { id = storyId_} ))
+            _ -> throwError err403
 
     createStory story = do
         uuid <- liftIO (toText <$> nextRandom)

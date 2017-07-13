@@ -6,6 +6,7 @@ import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
 import Page.Class as Class
 import Page.Classes as Classes
+import Page.Editor as Editor
 import Page.Errored as Errored exposing (PageLoadError(..))
 import Page.FindStory as FindStory
 import Page.Home as Home
@@ -33,6 +34,7 @@ type Page
     | Student Student.Model
     | Classes Classes.Model
     | Class Class.Model
+    | Editor Editor.Model
 
 
 type PageState
@@ -125,6 +127,11 @@ viewPage session isLoading page =
                     |> frame Page.Teacher
                     |> mapMsg ClassMsg
 
+            Editor subModel ->
+                Editor.view subModel
+                    |> frame Page.Other
+                    |> mapMsg EditorMsg
+
 
 type Msg
     = SetRoute (Maybe Route)
@@ -140,6 +147,7 @@ type PageLoaded
     | StudentLoaded (Result PageLoadError ( Student.Model, Session ))
     | ClassesLoaded (Result PageLoadError ( Classes.Model, Session ))
     | ClassLoaded (Result PageLoadError ( Class.Model, Session ))
+    | EditorLoaded (Result PageLoadError ( Editor.Model, Session ))
 
 
 type PageMsg
@@ -150,6 +158,7 @@ type PageMsg
     | StudentMsg Student.Msg
     | ClassesMsg Classes.Msg
     | ClassMsg Class.Msg
+    | EditorMsg Editor.Msg
 
 
 getPage : PageState -> Page
@@ -209,6 +218,9 @@ setRoute maybeRoute model =
 
             Just (Route.Story slug) ->
                 transition StoryLoaded (Story.init session slug)
+
+            Just (Route.Editor slug) ->
+                transition EditorLoaded (Editor.init session slug)
 
             Just (Route.Login) ->
                 { model | pageState = Loaded (Login Login.initialModel) } => Cmd.none
@@ -288,6 +300,9 @@ pageLoaded msg model =
                 handlePageLoadError r <|
                     \newSession ->
                         { model | session = newSession, pageState = Loaded Home } => Cmd.none
+
+            EditorLoaded r ->
+                pageLoadedWithNewSession r Editor
 
             FindStoryLoaded r ->
                 pageLoadedWithNewSession r FindStory
@@ -371,6 +386,9 @@ updatePage page msg model =
                 in
                     { model | session = newSession, pageState = Loaded (Login pageModel) }
                         => Cmd.batch [ mapMsg LoginMsg loginCmd, cmd ]
+
+            ( EditorMsg subMsg, Editor subModel ) ->
+                toPage Editor EditorMsg (Editor.update model.session) subMsg subModel
 
             ( _, _ ) ->
                 model => Cmd.none

@@ -42,6 +42,7 @@ type alias Cache =
 
 type Role
     = Student
+    | Editor
     | Teacher Bool
 
 
@@ -97,6 +98,9 @@ stringToRole s =
 
         "SchoolAdmin" ->
             Teacher True
+
+        "Editor" ->
+            Editor
 
         _ ->
             Student
@@ -226,6 +230,9 @@ encodeRole r =
 
             Teacher True ->
                 "SchoolAdmin"
+
+            Editor ->
+                "Editor"
 
 
 roleDecoder : Decoder Role

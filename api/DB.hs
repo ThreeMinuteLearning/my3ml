@@ -23,6 +23,8 @@ class DB db where
 
     createStory :: MonadIO m => Story -> db -> m ()
 
+    updateStory :: MonadIO m => Story -> db -> m Story
+
     getSchools :: MonadIO m => db -> m [School]
 
     getSchool :: MonadIO m => SchoolId -> db -> m (Maybe School)

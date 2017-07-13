@@ -28,7 +28,6 @@ data Story = Story
     , content :: Text
     , words :: [DictEntry]
     , clarifyWord :: Text
-    , date :: UTCTime
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 data DictEntry = DictEntry
@@ -143,7 +142,10 @@ type LoginApi =
 type StoriesApi =
     "stories" :> AccessTokenAuth :>
         (    Get '[JSON] [Story]
-        :<|> Capture "storyId" Text :> Get '[JSON] Story
+        :<|> Capture "storyId" Text :>
+             (    Get '[JSON] Story
+             :<|> ReqBody '[JSON] Story :> Post '[JSON] Story
+             )
         :<|> ReqBody '[JSON] Story :> Post '[JSON] Story
         )
 

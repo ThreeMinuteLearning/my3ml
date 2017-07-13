@@ -1,12 +1,29 @@
-html {
+html, body {
+    height: 100%;
 }
 
 .container {
     max-width: 990px;
+    height: 100%;
 }
 .row {
     margin-bottom: 20px;
 }
+
+#editor.container {
+    max-width: 1500px;
+}
+
+#editor contentinput {
+    padding-right: 5em;
+    height: 100%;
+}
+
+#editor textarea.form-control {
+    height: 100%;
+    width: 100%;
+}
+
 /* Story tiles view */
 
 .storytile {
@@ -64,7 +81,6 @@ html {
 .clarifybutton {
     background: #607DCB url(img/clarify.png); background-size: cover; border: 5px solid #607DCB;
 }
-
 
 /* The side drawer */
 #drawer {

@@ -44,6 +44,11 @@ instance DB HasqlDB where
 
     createStory = runQuery insertStory
 
+    updateStory story db = runSession db $ do
+        S.query story updateStory_
+        ms <- S.query ((id :: Story -> StoryId) story) selectStoryById
+        updatedFromMaybe ms
+
     getSchools = runQuery selectAllSchools ()
 
     getSchool = runQuery selectSchoolById
@@ -61,17 +66,12 @@ instance DB HasqlDB where
     addClassMembers schoolId_ classId_ studentIds db = runSession db $ do
         S.query (schoolId_, classId_, studentIds) insertClassMembers
         mc <- S.query classId_ selectClassById
-        case mc of
-            Just c -> return c
-            Nothing -> liftIO $ throwString "Couldn't find class after updating members. Shouldn't happen."
+        updatedFromMaybe mc
 
     removeClassMembers schoolId_ classId_ studentIds db = runSession db $ do
         S.query (schoolId_, classId_, studentIds) deleteClassMembers
         mc <- S.query classId_ selectClassById
-        case mc of
-            Just c -> return c
-            Nothing -> liftIO $ throwString "Couldn't find class after updating members. Shouldn't happen."
-
+        updatedFromMaybe mc
 
     getClass = runQuery selectClassById
 
@@ -149,6 +149,13 @@ instance DB HasqlDB where
               [] -> prefix
               _ -> T.pack $ T.unpack prefix ++ show (maximum suffixes + 1)
         return newName
+
+
+updatedFromMaybe :: MonadIO m => Maybe a -> m a
+updatedFromMaybe (Just a) = return a
+updatedFromMaybe Nothing = liftIO $ throwString "Couldn't find entity after updating. Shouldn't happen."
+
+
 
 dictWord :: [(Text, b)] -> (Text, [b])
 dictWord ((w, meaning):ws) = (w, meaning : map snd ws)
@@ -246,7 +253,7 @@ updateStudentUsername = Q.statement sql encode D.unit True
 -- Stories
 
 selectStorySql :: ByteString
-selectStorySql = "SELECT id, title, img_url, level, curriculum, tags, content, words, clarify_word, created_at FROM story"
+selectStorySql = "SELECT id, title, img_url, level, curriculum, tags, content, words, clarify_word FROM story"
 
 selectAllStories :: Query () [Story]
 selectAllStories =
@@ -267,7 +274,7 @@ storyRow = Story
     <*> dvText
     <*> dArray dictEntryValue
     <*> dvText
-    <*> D.value D.timestamptz
+--    <*> D.value D.timestamptz
 
 insertStory :: Query Story ()
 insertStory = Q.statement sql storyEncoder D.unit True
@@ -275,10 +282,10 @@ insertStory = Q.statement sql storyEncoder D.unit True
     sql = "INSERT INTO story (id, title, img_url, level, curriculum, tags, content, words, clarify_word) \
                  \VALUES ($1, $2, $3, $4, $5, $6, $7, (array(select word::dict_entry from unnest ($8, $9) as word)), $10)"
 
-updateStory :: Query Story ()
-updateStory = Q.statement sql storyEncoder D.unit True
+updateStory_ :: Query Story ()
+updateStory_ = Q.statement sql storyEncoder D.unit True
   where
-    sql = "UPDATE story SET title=$2, img_url=$3, level=$4, curriculum=$5, tags=$6, content=$7, words=(array(select word::dict_entry from unnest ($8, $9) as word), clarify_word=$10) WHERE id=$1"
+    sql = "UPDATE story SET title=$2, img_url=$3, level=$4, curriculum=$5, tags=$6, content=$7, words=(array(select word::dict_entry from unnest ($8, $9) as word)), clarify_word=$10 WHERE id=$1"
 
 storyEncoder :: E.Params Story
 storyEncoder = contramap (id :: Story -> Text) evText
@@ -291,7 +298,7 @@ storyEncoder = contramap (id :: Story -> Text) evText
     <> contramap (map word . words) (eArray E.text)
     <> contramap (map (fromIntegral . index) . words) (eArray E.int2)
     <> contramap clarifyWord evText
-    <> contramap date (E.value E.timestamptz)
+    -- <> contramap date (E.value E.timestamptz)
   where
     storyLevel = level :: Story -> Int
 

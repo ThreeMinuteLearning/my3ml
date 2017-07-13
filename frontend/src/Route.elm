@@ -20,6 +20,7 @@ type Route
     | LeaderBoard
     | Trails
     | Teacher TeacherSubRoute
+    | Editor String
 
 
 type TeacherSubRoute
@@ -42,6 +43,7 @@ route =
         , Url.map Trails (s "trails")
         , Url.map Teacher (s "teacher" </> teacherSubRoute)
         , Url.map LeaderBoard (s "leaderboard")
+        , Url.map Editor (s "editor" </> string)
         ]
 
 
@@ -102,6 +104,9 @@ routeToString page =
 
                 Trails ->
                     [ "trails" ]
+
+                Editor slug ->
+                    [ "editor", slug ]
     in
         "#/" ++ (String.join "/" pieces)
 

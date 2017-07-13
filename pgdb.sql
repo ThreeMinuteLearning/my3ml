@@ -1,4 +1,4 @@
-CREATE TYPE user_type AS ENUM ('Student', 'Teacher', 'SchoolAdmin', 'Admin');
+CREATE TYPE user_type AS ENUM ('Student', 'Teacher', 'SchoolAdmin', 'Editor', 'Admin');
 
 CREATE TYPE dict_entry AS (word text, index smallint);
 
