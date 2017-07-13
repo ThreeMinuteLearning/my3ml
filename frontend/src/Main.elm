@@ -220,7 +220,8 @@ setRoute maybeRoute model =
                 transition StoryLoaded (Story.init session slug)
 
             Just (Route.Editor slug) ->
-                transition EditorLoaded (Editor.init session slug)
+                requireRole Session.isEditor <|
+                    transition EditorLoaded (Editor.init session slug)
 
             Just (Route.Login) ->
                 { model | pageState = Loaded (Login Login.initialModel) } => Cmd.none

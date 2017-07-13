@@ -1,4 +1,4 @@
-module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadClasses, findStoryById)
+module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isEditor, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadClasses, findStoryById)
 
 import Api
 import Data.Words exposing (WordDict)
@@ -66,6 +66,11 @@ hasRole r session =
 isStudent : Session -> Bool
 isStudent =
     hasRole Student
+
+
+isEditor : Session -> Bool
+isEditor =
+    hasRole Editor
 
 
 isTeacher : Session -> Bool
