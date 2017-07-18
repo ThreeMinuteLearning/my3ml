@@ -248,8 +248,7 @@ answersServer scope = case scope of
     _ -> throwAll err403
   where
     createAnswer schId subId a = do
-        uuid <- newUUID
-        let a_ = a { id = uuid, studentId = subId } :: Answer
+        let a_ = a { studentId = subId } :: Answer
         _ <- runDB $ DB.createAnswer (a_, schId)
         return a_
 

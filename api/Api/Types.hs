@@ -61,8 +61,7 @@ data Class = Class
 type ClassId = Text
 
 data Answer = Answer
-    { id :: Text
-    , storyId :: Text
+    { storyId :: Text
     , studentId :: Text
     , connect :: Text
     , question :: Text

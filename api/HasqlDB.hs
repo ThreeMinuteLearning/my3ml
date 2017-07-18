@@ -533,7 +533,7 @@ insertWordDefinition = Q.statement sql encoder D.unit True
 -- Answers
 
 selectAnswersSql :: ByteString
-selectAnswersSql = "SELECT id, story_id, student_id, connect, question, summarise, clarify FROM story_answer"
+selectAnswersSql = "SELECT story_id, student_id, connect, question, summarise, clarify FROM story_answer"
 
 selectAnswersBySchool :: Query SchoolId [Answer]
 selectAnswersBySchool = Q.statement sql evText (D.rowsList answerRow) True
@@ -552,8 +552,7 @@ selectAnswersByStory = Q.statement sql eTextPair (D.rowsList answerRow) True
 
 answerRow :: D.Row Answer
 answerRow = Answer
-    <$> dvUUID
-    <*> dvText
+    <$> dvText
     <*> dvUUID
     <*> dvText
     <*> dvText
@@ -563,10 +562,9 @@ answerRow = Answer
 insertAnswer :: Query (Answer, SchoolId) ()
 insertAnswer = Q.statement sql encode D.unit True
   where
-    sql = "INSERT INTO story_answer (id, story_id, student_id, school_id, connect, question, summarise, clarify) \
-          \ VALUES ($1 :: uuid, $2, $3 :: uuid, $4 :: uuid, $5, $6, $7, $8)"
-    encode = contramap ((id :: Answer -> Text) . fst) evText
-        <> contramap ((storyId :: Answer -> Text) . fst) evText
+    sql = "INSERT INTO story_answer (story_id, student_id, school_id, connect, question, summarise, clarify) \
+          \ VALUES ($1, $2 :: uuid, $3 :: uuid, $4, $5, $6, $7)"
+    encode = contramap ((storyId :: Answer -> Text) . fst) evText
         <> contramap ((studentId :: Answer -> Text) . fst) evText
         <> contramap snd evText
         <> contramap (connect . fst) evText

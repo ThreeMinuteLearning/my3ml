@@ -87,14 +87,14 @@ CREATE TABLE dict
     );
 
 CREATE TABLE story_answer
-    ( id uuid PRIMARY KEY
-    , story_id text NOT NULL REFERENCES story
+    ( story_id text NOT NULL REFERENCES story
     , student_id uuid NOT NULL REFERENCES student
     , school_id uuid NOT NULL REFERENCES school
     , connect text NOT NULL
     , question text NOT NULL
     , summarise text NOT NULL
     , clarify text NOT NULL
-    , hidden boolean NOT NULL
+    , hidden boolean NOT NULL default false
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
+    , PRIMARY KEY (student_id, story_id)
+    );
