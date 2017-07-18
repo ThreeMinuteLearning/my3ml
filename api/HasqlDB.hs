@@ -150,6 +150,7 @@ instance DB HasqlDB where
               _ -> T.pack $ T.unpack prefix ++ show (maximum suffixes + 1)
         return newName
 
+    getLeaderBoard = runQuery selectLeaderboardBySchoolId
 
 updatedFromMaybe :: MonadIO m => Maybe a -> m a
 updatedFromMaybe (Just a) = return a
@@ -571,3 +572,15 @@ insertAnswer = Q.statement sql encode D.unit True
         <> contramap (question . fst) evText
         <> contramap (summarise . fst) evText
         <> contramap (clarify . fst) evText
+
+-- Leaderboard
+
+selectLeaderboardBySchoolId :: Query SchoolId [LeaderBoardEntry]
+selectLeaderboardBySchoolId = Q.statement sql evText (D.rowsList decode) True
+  where
+    sql = "SELECT position, name, student_id, score FROM leaderboard WHERE school_id=$1 :: uuid"
+    decode = LeaderBoardEntry
+        <$> (fromIntegral <$> D.value D.int4)
+        <*> dvText
+        <*> dvUUID
+        <*> (fromIntegral <$> D.value D.int4)

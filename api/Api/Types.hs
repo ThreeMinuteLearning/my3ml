@@ -118,6 +118,13 @@ data Login = Login
     , token :: AccessToken
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
+data LeaderBoardEntry = LeaderBoardEntry
+    { position :: Int
+    , name :: Text
+    , studentId :: SubjectId
+    , score :: Int
+    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
 type SubjectId = Text
 
 type AccessToken = Text
@@ -161,6 +168,7 @@ type SchoolsApi =
              (    ClassesApi
              :<|> StudentsApi
              :<|> AnswersApi
+             :<|> LeaderBoardApi
              )
         )
 
@@ -169,6 +177,7 @@ type SchoolApi =
         (    ClassesApi
         :<|> StudentsApi
         :<|> AnswersApi
+        :<|> LeaderBoardApi
         )
 
 type ClassesApi =
@@ -201,6 +210,10 @@ type AnswersApi =
         (    QueryParam "story" Text :> QueryParam "student" SubjectId :> Get '[JSON] [Answer]
         :<|> ReqBody '[JSON] Answer :> Post '[JSON] Answer
         )
+
+type LeaderBoardApi =
+    "leaderboard" :> Get '[JSON] [LeaderBoardEntry]
+
 
 type TrailsApi =
     "trails" :> AccessTokenAuth :>

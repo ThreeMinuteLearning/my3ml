@@ -79,6 +79,8 @@ class DB db where
 
     generateUsername :: MonadIO m => Text -> db -> m Text
 
+    getLeaderBoard :: MonadIO m => SchoolId -> db -> m [LeaderBoardEntry]
+
 data InMemoryDB = InMemoryDB
     { stories :: Map.Map StoryId Story
     , sampleStories :: [Story]

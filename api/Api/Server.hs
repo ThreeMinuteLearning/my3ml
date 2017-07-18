@@ -143,14 +143,19 @@ schoolsServer _ = throwAll err403
 
 
 schoolServer :: DB db => ApiServer SchoolApi db
-schoolServer Nothing = throwAll err401
-schoolServer (Just scp@(TeacherScope _ sid _)) = specificSchoolServer scp sid
-schoolServer (Just scp@(StudentScope _ _)) = throwAll err403 :<|> throwAll err403 :<|> answersServer scp
-schoolServer _ = throwAll err403
+schoolServer scope = case scope of
+    Nothing -> throwAll err401
+    Just scp@(TeacherScope _ sid _) -> specificSchoolServer scp sid
+    Just scp@(StudentScope _ sid) ->
+        throwAll err403
+        :<|> throwAll err403
+        :<|> answersServer scp
+        :<|> leaderBoardServer sid
+    _ -> throwAll err403
 
 
-specificSchoolServer :: DB db => AccessScope -> SchoolId -> ApiServer (ClassesApi :<|> StudentsApi :<|> AnswersApi) db
-specificSchoolServer scp sid = classesServer (scopeSubjectId scp) sid :<|> studentsServer scp sid :<|> answersServer scp
+specificSchoolServer :: DB db => AccessScope -> SchoolId -> ApiServer (ClassesApi :<|> StudentsApi :<|> AnswersApi :<|> LeaderBoardApi) db
+specificSchoolServer scp sid = classesServer (scopeSubjectId scp) sid :<|> studentsServer scp sid :<|> answersServer scp :<|> leaderBoardServer sid
 
 
 classesServer :: DB db => SubjectId -> SchoolId -> ApiServer ClassesApi db
@@ -263,6 +268,10 @@ answersServer scope = case scope of
 
     getAnswers schId stId subId =
         runDB (DB.getAnswers schId subId stId)
+
+leaderBoardServer :: DB db => SchoolId -> ApiServer LeaderBoardApi db
+leaderBoardServer sid =
+    runDB (DB.getLeaderBoard sid)
 
 dictServer :: DB db => ApiServer DictApi db
 dictServer =

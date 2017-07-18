@@ -10,6 +10,7 @@ import Page.Editor as Editor
 import Page.Errored as Errored exposing (PageLoadError(..))
 import Page.FindStory as FindStory
 import Page.Home as Home
+import Page.LeaderBoard as LeaderBoard
 import Page.Login as Login
 import Page.NotFound as NotFound
 import Page.Story as Story
@@ -35,6 +36,7 @@ type Page
     | Classes Classes.Model
     | Class Class.Model
     | Editor Editor.Model
+    | LeaderBoard LeaderBoard.Model
 
 
 type PageState
@@ -132,6 +134,10 @@ viewPage session isLoading page =
                     |> frame Page.Other
                     |> mapMsg EditorMsg
 
+            LeaderBoard subModel ->
+                LeaderBoard.view subModel
+                    |> frame Page.LeaderBoard
+
 
 type Msg
     = SetRoute (Maybe Route)
@@ -148,6 +154,7 @@ type PageLoaded
     | ClassesLoaded (Result PageLoadError ( Classes.Model, Session ))
     | ClassLoaded (Result PageLoadError ( Class.Model, Session ))
     | EditorLoaded (Result PageLoadError ( Editor.Model, Session ))
+    | LeaderBoardLoaded (Result PageLoadError LeaderBoard.Model)
 
 
 type PageMsg
@@ -240,6 +247,9 @@ setRoute maybeRoute model =
             Just (Route.Teacher subRoute) ->
                 requireRole Session.isTeacher (teacherRoute subRoute)
 
+            Just (Route.LeaderBoard) ->
+                transition LeaderBoardLoaded (LeaderBoard.init session)
+
             Just (Route.Register) ->
                 model => Cmd.none
 
@@ -247,9 +257,6 @@ setRoute maybeRoute model =
                 model => Cmd.none
 
             Just (Route.Trails) ->
-                model => Cmd.none
-
-            Just (Route.LeaderBoard) ->
                 model => Cmd.none
 
 
@@ -319,6 +326,10 @@ pageLoaded msg model =
 
             ClassLoaded r ->
                 pageLoadedWithNewSession r Class
+
+            LeaderBoardLoaded r ->
+                handlePageLoadError r <|
+                    \subModel -> { model | pageState = Loaded (LeaderBoard subModel) } => Cmd.none
 
 
 updatePage : Page -> PageMsg -> Model -> ( Model, Cmd Msg )

@@ -98,3 +98,32 @@ CREATE TABLE story_answer
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
     , PRIMARY KEY (student_id, story_id)
     );
+
+CREATE MATERIALIZED VIEW leaderboard
+AS
+    SELECT row_number() OVER (ORDER BY a.score) AS position
+         , s.name
+         , s.id as student_id
+         , s.school_id
+         , a.score
+      FROM student s
+      JOIN ( SELECT student_id, 200 + 100 * count(*) as score
+               FROM story_answer
+               GROUP BY student_id
+           ) a
+      ON a.student_id = s.id
+      WHERE not s.hidden
+      ORDER BY a.score
+WITH NO DATA;
+
+CREATE UNIQUE INDEX ON leaderboard (student_id, school_id);
+
+CREATE OR REPLACE FUNCTION refresh_leaderboard() RETURNS void
+SECURITY DEFINER
+AS $$
+BEGIN
+    REFRESH MATERIALIZED VIEW leaderboard with data;
+
+    RETURN;
+END;
+$$ LANGUAGE plpgsql;

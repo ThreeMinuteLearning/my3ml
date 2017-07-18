@@ -55,6 +55,7 @@ specs =
         <> sourceFor (Proxy :: Proxy Student)
         <> sourceFor (Proxy :: Proxy StoryTrail)
         <> sourceFor (Proxy :: Proxy LoginRequest)
+        <> sourceFor (Proxy :: Proxy LeaderBoardEntry)
 
     sourceFor t = [ (toElmTypeSource t, [toElmDecoderSource t, toElmEncoderSource t]) ]
 
