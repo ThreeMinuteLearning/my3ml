@@ -34,7 +34,7 @@ view model =
                     [ th [] [ text "Position" ]
                     , th [] [ text "Name" ]
                     , th [] [ text "Score" ]
-                    , th [] [ text "Overall 3ML Position" ]
+                    , th [] [ text "Overall 3ml Position" ]
                     ]
                 ]
             , tbody []

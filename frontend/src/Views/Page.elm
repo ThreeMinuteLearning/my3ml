@@ -25,14 +25,13 @@ type ActivePage
     | Teacher
 
 
-{-| Take a page's Html and frame it with a header and footer.
+{-| Take a page's Html and frame it with a header.
 -}
 frame : Bool -> Maybe User -> ActivePage -> Html msg -> Html msg
 frame isLoading user page content =
     div [ class "page-frame" ]
         [ viewHeader page user isLoading
         , content
-        , viewFooter
         ]
 
 
@@ -43,7 +42,7 @@ viewHeader page user isLoading =
             [ div [ class "container" ]
                 [ div [ class "navbar-header" ]
                     [ mobileToggleButton
-                    , a [ class "navbar-brand", tabindex -1, Route.href Route.Home ] [ text "3ML" ]
+                    , a [ class "navbar-brand", tabindex -1, Route.href Route.Home ] [ text "3ml" ]
                     ]
                 , div [ id "navbar", class "navbar-collapse collapse" ]
                     [ ul [ class "nav navbar-nav navbar-right" ] <|
@@ -90,22 +89,10 @@ viewSignIn page user =
 standardNavLinks : ActivePage -> List (Html msg)
 standardNavLinks page =
     [ navbarLink (page == FindStory) Route.FindStory [ text "Find a story" ]
-    , navbarLink (page == Account) Route.Account [ text "My3ML" ]
+    , navbarLink (page == Account) Route.Account [ text "My3ml" ]
     , navbarLink (page == LeaderBoard) Route.LeaderBoard [ text "Leader Board" ]
     , navbarLink False Route.Logout [ text "Sign out" ]
     ]
-
-
-viewFooter : Html msg
-viewFooter =
-    footer []
-        [ div [ class "container" ]
-            [ a [ class "logo-font", tabindex -1, href "/" ] [ text "3ML " ]
-            , span [ class "attribution" ]
-                [ text "An interactive learning project from Three Minute Learning Ltd."
-                ]
-            ]
-        ]
 
 
 navbarLink : Bool -> Route -> List (Html msg) -> Html msg
