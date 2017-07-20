@@ -1,8 +1,9 @@
-module Util exposing ((=>), pair, onClickStopPropagation, viewIf, appendErrors, dialog)
+module Util exposing ((=>), pair, onClickStopPropagation, viewIf, appendErrors, dialog, printButton)
 
 import Dialog
-import Html exposing (Attribute, Html)
-import Html.Events exposing (onWithOptions, defaultOptions)
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onWithOptions, onClick, defaultOptions)
 import Json.Decode as Decode
 
 
@@ -59,3 +60,8 @@ dialog closeMsg hdr body =
     , body = Just body
     , footer = Nothing
     }
+
+
+printButton : msg -> String -> Html msg
+printButton print caption =
+    a [ class "hidden-print", onClick print, href "#" ] [ text caption ]

@@ -4,7 +4,7 @@ import Api exposing (Student)
 import Bootstrap exposing (closeBtn)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Util exposing (printButton)
 
 
 view : msg -> msg -> List ( Student, ( String, String ) ) -> Html msg
@@ -12,9 +12,6 @@ view print dismiss accounts =
     let
         heading =
             h4 [ class "panel-title" ] [ text "New Accounts Created in this Session" ]
-
-        printButton =
-            a [ class "hidden-print", onClick print, href "#" ] [ text "Print this list" ]
 
         accountsTable =
             table [ class "table" ]
@@ -47,7 +44,7 @@ view print dismiss accounts =
                         , heading
                         ]
                     , div [ class "panel-body" ]
-                        [ printButton
+                        [ printButton print "Print list of new accounts"
                         , accountsTable
                         ]
                     ]

@@ -9,7 +9,7 @@ import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Ports
 import Task exposing (Task)
-import Util exposing ((=>), viewIf)
+import Util exposing ((=>), viewIf, printButton)
 import Views.Answers as Answers
 import Views.RobotPanel as RobotPanel
 import Views.Story as Story
@@ -28,6 +28,7 @@ type alias Model =
 type Msg
     = GetImgWidth String
     | ImageWidth Float
+    | PrintWindow
     | DictLookup ( String, Int )
     | ClearAnswers
     | AnswersFormMsg AnswersForm.Msg
@@ -91,6 +92,7 @@ view : Session -> Model -> Html Msg
 view session m =
     div [ class "container page" ]
         [ RobotPanel.view
+        , viewIf (Session.isTeacher session) (printButton PrintWindow "Print this story")
         , Story.view m.story m.picWidth GetImgWidth
         , m.dictLookup
             |> Maybe.map List.singleton
@@ -126,6 +128,9 @@ update session msg model =
 
         DictLookup ( w, i ) ->
             { model | dictLookup = Just (Api.DictEntry w i) } => Cmd.none
+
+        PrintWindow ->
+            model => Ports.printWindow ()
 
         ClearAnswers ->
             resetAnswersForm model => Cmd.none
