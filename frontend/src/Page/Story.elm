@@ -99,7 +99,7 @@ view session m =
             |> Maybe.withDefault []
             |> Words.view session.cache.dict
         , viewIf (Session.isStudent session) (viewAnswersForm m)
-        , viewIf (m.answersForm == Nothing) (Answers.view m.answers)
+        , viewIf (m.answersForm == Nothing && not (List.isEmpty m.answers)) (Answers.view m.answers)
         ]
 
 
