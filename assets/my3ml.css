@@ -1,5 +1,6 @@
 html, body {
     height: 100%;
+    font-size: 16px;
 }
 
 .container {
@@ -54,13 +55,20 @@ html, body {
 /* Story content styling */
 
 #storyfooter {
-    font-size: 12px;
-    padding: 20px;
+    font-size: 14px;
+    padding-top: 20px;
 }
 
 #storypic img {
     max-width: 100%;
 }
+
+.rightimage {
+    float: right;
+    padding: 0 0 20px 20px;
+}
+
+/* The drawer */
 
 #drawerbuttons button:hover {
     border-radius: 50%;

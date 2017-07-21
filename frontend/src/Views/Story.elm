@@ -4,8 +4,8 @@ module Views.Story exposing (view)
 -}
 
 import Api exposing (Story)
-import Html exposing (Html, br, div, h2, img, p, text)
-import Html.Attributes exposing (id, class, for, src, style, type_, value)
+import Html exposing (..)
+import Html.Attributes exposing (..)
 import Html.Events
 import Json.Decode as JD
 import Markdown
@@ -15,8 +15,8 @@ import Regex
 view : Story -> Int -> (String -> msg) -> Html msg
 view story picWidth onPicLoad =
     div []
-        [ h2 [] [ text story.title ]
-        , div [ id "storypic", picStyle picWidth ]
+        [ h3 [] [ text story.title ]
+        , div ((id "storypic") :: picStyle picWidth)
             [ img [ onLoadGetWidth onPicLoad, src ("pix/" ++ story.img) ] []
             ]
         , Markdown.toHtml [ id "storycontent" ] (storyContent story)
@@ -26,12 +26,12 @@ view story picWidth onPicLoad =
         ]
 
 
-picStyle : Int -> Html.Attribute msg
+picStyle : Int -> List (Html.Attribute msg)
 picStyle width =
     if width > 0 && width < 300 then
-        style [ ( "float", "right" ) ]
+        [ class "rightimage" ]
     else
-        style []
+        []
 
 
 onLoadGetWidth : (String -> msg) -> Html.Attribute msg
