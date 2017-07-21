@@ -218,17 +218,18 @@ view model =
 viewToolbar : Bool -> Api.Student -> Html Msg
 viewToolbar isAdmin student =
     let
-        inputGroupBtn msg txt =
-            button [ class "btn btn-default", onClick msg, type_ "button" ] [ text txt ]
+        inputGroupBtn msg disable txt =
+            button [ class "btn btn-default", onClick msg, disabled disable, type_ "button" ] [ text txt ]
 
         teacherButtons =
-            [ inputGroupBtn ShowChangePassword "Change password"
-            , inputGroupBtn ShowChangeUsername "Change username"
+            [ inputGroupBtn ShowChangePassword False "Change password"
+            , inputGroupBtn ShowChangeUsername False "Change username"
             ]
 
         adminButtons =
             if isAdmin then
                 [ inputGroupBtn ToggleDeletedStatus
+                    False
                     (case student.deleted of
                         Nothing ->
                             "Delete"
@@ -237,6 +238,7 @@ viewToolbar isAdmin student =
                             "Un-delete"
                     )
                 , inputGroupBtn ToggleHiddenStatus
+                    (student.deleted /= Nothing)
                     (if student.hidden then
                         "Un-hide"
                      else
