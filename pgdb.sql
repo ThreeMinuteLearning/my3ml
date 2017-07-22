@@ -101,7 +101,7 @@ CREATE TABLE story_answer
 
 CREATE MATERIALIZED VIEW leaderboard
 AS
-    SELECT row_number() OVER (ORDER BY a.score) AS position
+    SELECT row_number() OVER (ORDER BY a.score DESC) AS position
          , s.name
          , s.id as student_id
          , s.school_id
@@ -113,7 +113,7 @@ AS
            ) a
       ON a.student_id = s.id
       WHERE not s.hidden
-      ORDER BY a.score
+      ORDER BY a.score DESC
 WITH NO DATA;
 
 CREATE UNIQUE INDEX ON leaderboard (student_id, school_id);
