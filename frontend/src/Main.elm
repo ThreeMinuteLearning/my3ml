@@ -4,6 +4,7 @@ import Data.Session as Session exposing (Session, Role(Teacher), User, decodeSes
 import Html exposing (..)
 import Json.Decode as Decode exposing (Value)
 import Navigation exposing (Location)
+import Page.Account as Account
 import Page.Class as Class
 import Page.Classes as Classes
 import Page.Editor as Editor
@@ -37,6 +38,7 @@ type Page
     | Class Class.Model
     | Editor Editor.Model
     | LeaderBoard LeaderBoard.Model
+    | Account Account.Model
 
 
 type PageState
@@ -138,6 +140,11 @@ viewPage session isLoading page =
                 LeaderBoard.view subModel
                     |> frame Page.LeaderBoard
 
+            Account subModel ->
+                Account.view subModel
+                    |> frame Page.Account
+                    |> mapMsg AccountMsg
+
 
 type Msg
     = SetRoute (Maybe Route)
@@ -154,6 +161,7 @@ type PageLoaded
     | ClassesLoaded (Result PageLoadError ( Classes.Model, Session ))
     | ClassLoaded (Result PageLoadError ( Class.Model, Session ))
     | EditorLoaded (Result PageLoadError ( Editor.Model, Session ))
+    | AccountLoaded (Result PageLoadError Account.Model)
     | LeaderBoardLoaded (Result PageLoadError LeaderBoard.Model)
 
 
@@ -166,6 +174,7 @@ type PageMsg
     | ClassesMsg Classes.Msg
     | ClassMsg Class.Msg
     | EditorMsg Editor.Msg
+    | AccountMsg Account.Msg
 
 
 getPage : PageState -> Page
@@ -250,10 +259,10 @@ setRoute maybeRoute model =
             Just (Route.LeaderBoard) ->
                 transition LeaderBoardLoaded (LeaderBoard.init session)
 
-            Just (Route.Register) ->
-                model => Cmd.none
-
             Just (Route.Account) ->
+                transition AccountLoaded (Account.init session)
+
+            Just (Route.Register) ->
                 model => Cmd.none
 
             Just (Route.Trails) ->
@@ -331,6 +340,10 @@ pageLoaded msg model =
                 handlePageLoadError r <|
                     \subModel -> { model | pageState = Loaded (LeaderBoard subModel) } => Cmd.none
 
+            AccountLoaded r ->
+                handlePageLoadError r <|
+                    \subModel -> { model | pageState = Loaded (Account subModel) } => Cmd.none
+
 
 updatePage : Page -> PageMsg -> Model -> ( Model, Cmd Msg )
 updatePage page msg model =
@@ -401,6 +414,9 @@ updatePage page msg model =
 
             ( EditorMsg subMsg, Editor subModel ) ->
                 toPage Editor EditorMsg (Editor.update model.session) subMsg subModel
+
+            ( AccountMsg subMsg, Account subModel ) ->
+                toPage Account AccountMsg Account.update subMsg subModel
 
             ( _, _ ) ->
                 model => Cmd.none

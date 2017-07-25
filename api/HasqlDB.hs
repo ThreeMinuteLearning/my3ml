@@ -215,7 +215,7 @@ userTypeValue = -- D.composite (uType <$> D.compositeValue D.text)
 selectAccountByUsername :: Query Text (Maybe Account)
 selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
   where
-    sql = "SELECT login.id, username, password, user_type :: text, level \
+    sql = "SELECT login.id, username, password, user_type :: text, level, settings \
           \ FROM login \
           \ LEFT JOIN student \
           \ ON login.id = student.id \
@@ -227,6 +227,7 @@ selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
         <*> dvText
         <*> userTypeValue
         <*> (maybe 10 fromIntegral <$> D.nullableValue D.int2)
+        <*> D.nullableValue D.jsonb
 
 insertStudentAccount :: Query (Text, Text) UUID.UUID
 insertStudentAccount = Q.statement sql eTextPair (D.singleRow (D.value D.uuid))True

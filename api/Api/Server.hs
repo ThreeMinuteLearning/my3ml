@@ -61,7 +61,7 @@ loginServer authReq = do
                 (throwError err401)
             (accessToken, nm) <- createToken a
 
-            return $ Login (id (a :: Account)) uName nm (role (a :: Account)) (level (a :: Account)) accessToken
+            return $ Login (id (a :: Account)) uName nm (role (a :: Account)) (level (a :: Account)) (settings (a :: Account)) accessToken
   where
     uName = T.toLower $ username (authReq :: LoginRequest)
 

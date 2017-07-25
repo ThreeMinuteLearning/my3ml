@@ -10,6 +10,7 @@ CREATE TABLE login
     , password text NOT NULL CHECK (length(password) > 0)
     , user_type user_type DEFAULT 'Student' NOT NULL
     , locked boolean NOT NULL DEFAULT false
+    , settings jsonb
     , otp_key text
     );
 

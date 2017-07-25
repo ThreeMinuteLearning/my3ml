@@ -1,6 +1,7 @@
 module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isEditor, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadClasses, findStoryById)
 
 import Api
+import Data.Settings as Settings exposing (Settings)
 import Data.Words exposing (WordDict)
 import Dict
 import Exts.List exposing (firstMatch)
@@ -19,6 +20,7 @@ type alias User =
     , role : Role
     , level : Int
     , token : AccessToken
+    , settings : Settings
     }
 
 
@@ -112,15 +114,20 @@ stringToRole s =
 
 
 newLogin : Session -> Api.Login -> Session
-newLogin s { sub, name, level, token, role } =
+newLogin s { sub, name, level, token, role, settings } =
     let
         userRole =
             stringToRole role.userType
+
+        userSettings =
+            settings
+                |> Maybe.andThen (Result.toMaybe << Decode.decodeValue Settings.decoder)
+                |> Maybe.withDefault Settings.defaultSettings
+
+        user =
+            User name sub userRole level (AccessToken token) userSettings
     in
-        AccessToken token
-            |> User name sub userRole level
-            |> Just
-            |> Session (clearCache s.cache)
+        Session (clearCache s.cache) (Just user)
 
 
 loadStories : Session -> Task Http.Error Session
@@ -210,6 +217,7 @@ encodeUser user =
         , "role" => encodeRole user.role
         , "level" => Encode.int user.level
         , "token" => encodeAccessToken user.token
+        , "settings" => Settings.encode user.settings
         ]
 
 
@@ -221,6 +229,7 @@ userDecoder =
         |> required "role" roleDecoder
         |> required "level" Decode.int
         |> required "token" accessTokenDecoder
+        |> required "settings" Settings.decoder
 
 
 encodeRole : Role -> Encode.Value

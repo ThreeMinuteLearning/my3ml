@@ -9,7 +9,7 @@
 
 module Api.Types where
 
-import           Data.Aeson (FromJSON, ToJSON)
+import           Data.Aeson (Value, FromJSON, ToJSON)
 import           Data.Time.Clock (UTCTime)
 import qualified Data.Map.Strict as Map
 import           Data.Text (Text)
@@ -107,6 +107,7 @@ data Account = Account
     , password :: Text
     , role :: UserType
     , level :: Int
+    , settings :: Maybe Value
     }
 
 data Login = Login
@@ -115,6 +116,7 @@ data Login = Login
     , name :: Text
     , role :: UserType
     , level :: Int
+    , settings :: Maybe Value
     , token :: AccessToken
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
