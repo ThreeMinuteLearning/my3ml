@@ -4,6 +4,7 @@ module DB where
 
 import           Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import           Control.Monad.IO.Class (liftIO, MonadIO)
+import           Data.Aeson (Value)
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Data.Maybe (fromMaybe)
@@ -80,6 +81,8 @@ class DB db where
     generateUsername :: MonadIO m => Text -> db -> m Text
 
     getLeaderBoard :: MonadIO m => SchoolId -> db -> m [LeaderBoardEntry]
+
+    updateAccountSettings :: MonadIO m => (SubjectId, Value) -> db -> m ()
 
 data InMemoryDB = InMemoryDB
     { stories :: Map.Map StoryId Story

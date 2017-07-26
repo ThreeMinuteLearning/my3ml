@@ -416,7 +416,7 @@ updatePage page msg model =
                 toPage Editor EditorMsg (Editor.update model.session) subMsg subModel
 
             ( AccountMsg subMsg, Account subModel ) ->
-                toPage Account AccountMsg Account.update subMsg subModel
+                toPageNewSession Account AccountMsg Account.update subMsg subModel
 
             ( _, _ ) ->
                 model => Cmd.none

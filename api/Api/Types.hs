@@ -147,6 +147,9 @@ type AccessTokenAuth = AuthProtect "access-token"
 type LoginApi =
     "authenticate" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] Login
 
+type AccountApi =
+    "account" :> "settings" :> AccessTokenAuth :> ReqBody '[JSON] Value :> Post '[JSON] NoContent
+
 type StoriesApi =
     "stories" :> AccessTokenAuth :>
         (    Get '[JSON] [Story]
@@ -223,4 +226,4 @@ type TrailsApi =
         :<|> ReqBody '[JSON] StoryTrail :> Post '[JSON] StoryTrail
         )
 
-type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> TrailsApi :<|> LoginApi
+type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> TrailsApi :<|> LoginApi :<|> AccountApi

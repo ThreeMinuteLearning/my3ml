@@ -5,6 +5,7 @@ module HasqlDB where
 import           Control.Exception.Safe
 import           Control.Monad (when, replicateM)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
+import qualified Data.Aeson as JSON
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BC
 import           Data.Functor.Contravariant
@@ -151,6 +152,8 @@ instance DB HasqlDB where
         return newName
 
     getLeaderBoard = runQuery selectLeaderboardBySchoolId
+
+    updateAccountSettings = runQuery updateAccountSettings_
 
 updatedFromMaybe :: MonadIO m => Maybe a -> m a
 updatedFromMaybe (Just a) = return a
@@ -585,3 +588,11 @@ selectLeaderboardBySchoolId = Q.statement sql evText (D.rowsList decode) True
         <*> dvText
         <*> dvUUID
         <*> (fromIntegral <$> D.value D.int4)
+
+-- Account settings
+updateAccountSettings_ :: Query (SubjectId, JSON.Value) ()
+updateAccountSettings_ = Q.statement sql encode D.unit True
+  where
+    sql = "UPDATE login SET settings=$2 where id = $1 :: uuid"
+    encode = contramap fst evText
+        <> contramap snd (E.value E.jsonb)

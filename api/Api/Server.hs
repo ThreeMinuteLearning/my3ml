@@ -45,7 +45,7 @@ runDB :: MonadReader (Config b) m => (b -> m b1) -> m b1
 runDB f = ask >>= f . database
 
 server :: DB db => ApiServer Api db
-server = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> trailsServer :<|> loginServer
+server = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> trailsServer :<|> loginServer :<|> accountServer
 
 newUUID :: HandlerT db Text
 newUUID = liftIO (toText <$> nextRandom)
@@ -85,6 +85,11 @@ loginServer authReq = do
         token_ <- mkAccessToken jwk scope
         return (token_, nm)
 
+accountServer :: DB db => ApiServer AccountApi db
+accountServer Nothing _ = throwError err401
+accountServer (Just token_) newSettings = do
+    runDB $ DB.updateAccountSettings (scopeSubjectId token_, newSettings)
+    return NoContent
 
 storyServer :: DB db => ApiServer StoriesApi db
 storyServer token_ =

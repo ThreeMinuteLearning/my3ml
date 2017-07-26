@@ -1,8 +1,8 @@
 module Page.Account exposing (Model, Msg, init, update, view)
 
-import Data.Session as Session exposing (Session)
-import Data.Settings exposing (Settings, defaultSettings, toStyle, fontOptions)
-import Exts.Html.Bootstrap as Bootstrap exposing (row)
+import Api
+import Data.Session as Session exposing (Session, authorization)
+import Data.Settings exposing (Settings, defaultSettings, encode, toStyle, fontOptions)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
@@ -24,7 +24,7 @@ type Msg
     | SetFont String
     | SetFontSize String
     | SaveSettings
-    | SaveSettingsResponse (Result Http.Error Decode.Value)
+    | SaveSettingsResponse (Result Http.Error Api.NoContent)
 
 
 init : Session -> Task PageLoadError Model
@@ -38,23 +38,54 @@ init session =
         Task.succeed (Model settings)
 
 
-update : Msg -> Model -> ( Model, Cmd msg )
-update msg ({ settings } as model) =
+update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
+update session msg ({ settings } as model) =
     case msg of
         SetBackground bg ->
-            { model | settings = { settings | background = bg } } => Cmd.none
+            { model | settings = { settings | background = bg } }
+                => Cmd.none
+                => session
 
         SetColour c ->
-            { model | settings = { settings | colour = c } } => Cmd.none
+            { model | settings = { settings | colour = c } }
+                => Cmd.none
+                => session
 
         SetFont f ->
-            { model | settings = { settings | font = f } } => Cmd.none
+            { model | settings = { settings | font = f } }
+                => Cmd.none
+                => session
 
         SetFontSize sz ->
-            { model | settings = { settings | size = sz } } => Cmd.none
+            { model | settings = { settings | size = sz } }
+                => Cmd.none
+                => session
 
-        _ ->
-            model => Cmd.none
+        SaveSettings ->
+            model
+                => (Api.postAccountSettings (authorization session) (encode model.settings)
+                        |> Http.send SaveSettingsResponse
+                   )
+                => session
+
+        SaveSettingsResponse (Ok _) ->
+            model => Cmd.none => updateSessionSettings session model.settings
+
+        SaveSettingsResponse (Err _) ->
+            model => Cmd.none => session
+
+
+updateSessionSettings : Session -> Settings -> Session
+updateSessionSettings session newSettings =
+    session.user
+        |> Maybe.map (\u -> { u | settings = newSettings })
+        |> Maybe.map (\u -> { session | user = Just u })
+        |> Maybe.withDefault session
+
+
+
+--|> Maybe.map (\u -> { session | user = u })
+--|> Maybe.withDefault session
 
 
 view : Model -> Html Msg
