@@ -11,6 +11,14 @@ html, body {
     margin-bottom: 20px;
 }
 
+.form-inline .form-group {
+    margin-right:4px;
+}
+
+.form-inline label {
+    margin-right:4px;
+}
+
 #editor.container {
     max-width: 1500px;
 }
