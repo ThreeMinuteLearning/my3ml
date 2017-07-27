@@ -60,10 +60,13 @@ update session msg model =
 
 view : Session -> Model -> Html Msg
 view { cache } m =
-    div [ class "container page" ]
-        [ RobotPanel.view
-        , div []
-            [ div [ class "form-group" ]
+    let
+        stories =
+            filterStories m.storyFilter cache.stories
+    in
+        div [ class "container page" ]
+            [ RobotPanel.view
+            , div [ class "form-group" ]
                 [ input
                     [ type_ "text"
                     , value m.storyFilter
@@ -72,11 +75,13 @@ view { cache } m =
                     , id "storyfilter"
                     ]
                     []
+                , label [ style [ ( "margin-left", "5px" ) ], for "storyfilter" ]
+                    [ text (" " ++ toString (List.length stories) ++ " matching stories")
+                    ]
                 ]
+            , div [ class "table-responsive" ]
+                [ Table.view tableConfig m.tableState stories ]
             ]
-        , div [ class "table-responsive" ]
-            [ Table.view tableConfig m.tableState (filterStories m.storyFilter cache.stories) ]
-        ]
 
 
 filterStories : String -> List Api.Story -> List Api.Story
