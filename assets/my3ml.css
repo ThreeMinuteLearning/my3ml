@@ -33,6 +33,16 @@ html, body {
     width: 100%;
 }
 
+/* Tables */
+
+/* Make sortable table icons more obvious */
+th span {
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+
 /* Story tiles view */
 
 .storytile {
