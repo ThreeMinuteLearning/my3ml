@@ -134,9 +134,8 @@ fontSizeSelect current =
         select [ id "sz", class "form-control", onInput SetFontSize ]
             (List.map mkOption
                 [ ( "14px", "Small" )
-                , ( "16px", "Standard" )
-                , ( "18px", "Large" )
-                , ( "20px", "Larger" )
-                , ( "22px", "Huge" )
+                , ( "16px", "Medium" )
+                , ( "20px", "Large" )
+                , ( "23px", "Huge" )
                 ]
             )
