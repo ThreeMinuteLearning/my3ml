@@ -2,6 +2,7 @@ module Page.Editor exposing (Model, Msg, init, update, view)
 
 import Api
 import Data.Session as Session exposing (Session, authorization, findStoryById)
+import Data.Settings exposing (defaultSettings)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
@@ -93,7 +94,7 @@ view model =
                     []
                 ]
             , div [ class "col-md-5" ]
-                [ Story.view model.story model.picWidth GetImgWidth ]
+                [ Story.view defaultSettings model.story model.picWidth GetImgWidth ]
             ]
         , div [ class "row" ]
             [ div [ class "col-xs-1" ] []

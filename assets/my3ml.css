@@ -61,6 +61,12 @@ html, body {
 
 
 /* Story content styling */
+.storytitle {
+    background-color: #599323;
+    color: #fff;
+    text-align: center;
+    padding: 5px;
+}
 
 #storyfooter {
     font-size: 14px;

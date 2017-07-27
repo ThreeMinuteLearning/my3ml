@@ -83,11 +83,6 @@ updateSessionSettings session newSettings =
         |> Maybe.withDefault session
 
 
-
---|> Maybe.map (\u -> { session | user = u })
---|> Maybe.withDefault session
-
-
 view : Model -> Html Msg
 view { settings } =
     div [ class "page container" ]

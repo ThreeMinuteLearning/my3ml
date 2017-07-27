@@ -4,6 +4,7 @@ module Views.Story exposing (view)
 -}
 
 import Api exposing (Story)
+import Data.Settings exposing (Settings, toStyle)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events
@@ -12,14 +13,14 @@ import Markdown
 import Regex
 
 
-view : Story -> Int -> (String -> msg) -> Html msg
-view story picWidth onPicLoad =
+view : Settings -> Story -> Int -> (String -> msg) -> Html msg
+view settings story picWidth onPicLoad =
     div []
-        [ h3 [] [ text story.title ]
+        [ h3 [ class "storytitle" ] [ text story.title ]
         , div ((id "storypic") :: picStyle picWidth)
             [ img [ onLoadGetWidth onPicLoad, src ("pix/" ++ story.img) ] []
             ]
-        , Markdown.toHtml [ id "storycontent" ] (storyContent story)
+        , Markdown.toHtml [ id "storycontent", toStyle settings ] (storyContent story)
         , div [ id "storyfooter" ]
             [ p [] [ text (String.join ", " story.tags), br [] [], text ("Level: " ++ toString story.level) ]
             ]

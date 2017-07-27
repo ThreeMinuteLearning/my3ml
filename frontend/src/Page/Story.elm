@@ -3,6 +3,7 @@ module Page.Story exposing (Model, Msg, init, subscriptions, update, view)
 import AnswersForm
 import Api
 import Data.Session as Session exposing (Session, Role(..), authorization, findStoryById)
+import Data.Settings exposing (Settings, defaultSettings)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Http
@@ -93,7 +94,7 @@ view session m =
     div [ class "container page" ]
         [ RobotPanel.view
         , viewIf (Session.isTeacher session) (printButton PrintWindow "Print this story")
-        , Story.view m.story m.picWidth GetImgWidth
+        , Story.view (settingsFromSession session) m.story m.picWidth GetImgWidth
         , m.dictLookup
             |> Maybe.map List.singleton
             |> Maybe.withDefault []
@@ -146,6 +147,13 @@ update session msg model =
                 Just ( ( _, cmd ), Just submittedAnswer ) ->
                     { model | answersForm = Nothing, answers = submittedAnswer :: model.answers }
                         => Cmd.map AnswersFormMsg cmd
+
+
+settingsFromSession : Session -> Settings
+settingsFromSession session =
+    session.user
+        |> Maybe.map .settings
+        |> Maybe.withDefault defaultSettings
 
 
 resetAnswersForm : Model -> Model

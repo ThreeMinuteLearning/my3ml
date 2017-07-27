@@ -17,7 +17,7 @@ type alias Settings =
 
 defaultSettings : Settings
 defaultSettings =
-    Settings "#ffffff" "#000000" "" "16px"
+    Settings "#ffffff" "#000000" "\"Helvetica Neue\",Helvetica,Arial,sans-serif" "20px"
 
 
 toStyle : Settings -> Attribute msg
