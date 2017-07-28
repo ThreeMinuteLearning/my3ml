@@ -18,7 +18,11 @@ view settings story picWidth onPicLoad =
     div []
         [ h3 [ class "storytitle" ] [ text story.title ]
         , div ((id "storypic") :: picStyle picWidth)
-            [ img [ onLoadGetWidth onPicLoad, src ("pix/" ++ story.img) ] []
+            [ img
+                (imgStyle picWidth
+                    ++ [ onLoadGetWidth onPicLoad, src ("pix/" ++ story.img) ]
+                )
+                []
             ]
         , Markdown.toHtml [ id "storycontent", toStyle settings ] (storyContent story)
         , div [ id "storyfooter" ]
@@ -29,8 +33,16 @@ view settings story picWidth onPicLoad =
 
 picStyle : Int -> List (Html.Attribute msg)
 picStyle width =
-    if width > 0 && width < 300 then
+    if width > 0 && width < 600 then
         [ class "rightimage" ]
+    else
+        []
+
+
+imgStyle : Int -> List (Html.Attribute msg)
+imgStyle width =
+    if width > 600 then
+        [ style [ ( "width", "100%" ) ] ]
     else
         []
 
