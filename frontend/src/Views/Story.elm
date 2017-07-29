@@ -15,7 +15,7 @@ import Regex
 
 view : Settings -> Story -> Int -> (String -> msg) -> Html msg
 view settings story picWidth onPicLoad =
-    div []
+    div [ class "u-fade-in" ]
         [ h3 [ class "storytitle" ] [ text story.title ]
         , div ((id "storypic") :: picStyle picWidth)
             [ img
