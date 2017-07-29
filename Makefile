@@ -21,7 +21,7 @@ deep-clean: clean
 debug:
 	mkdir -p $(@D) && elm-make frontend/src/Main.elm --debug --output assets/app.js
 
-assets/app.js: frontend/src/**
+assets/app.js: frontend/src/** frontend/src/Api.elm
 	mkdir -p $(@D) && elm-make frontend/src/Main.elm --output $@
 
 frontend/src/Api.elm: code-generator/*.hs api/*.hs api/**/*.hs
