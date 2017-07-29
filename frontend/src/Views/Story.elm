@@ -25,7 +25,7 @@ view settings story picWidth onPicLoad =
                 []
             ]
         , Markdown.toHtml [ id "storycontent", toStyle settings ] (storyContent story)
-        , div [ id "storyfooter" ]
+        , div [ id "storyfooter", class "hidden-print" ]
             [ p [] [ text (String.join ", " story.tags), br [] [], text ("Level: " ++ toString story.level) ]
             ]
         ]

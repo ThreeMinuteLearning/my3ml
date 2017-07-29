@@ -166,6 +166,14 @@ th span {
     padding: 0 0 20px 20px;
 }
 
+#printactivities {
+    margin-top: 25px;
+}
+
+#printactivities h4 {
+    margin-bottom: 6em;
+    font-weight: bold;
+}
 /* The drawer */
 
 #drawerbuttons button:hover {

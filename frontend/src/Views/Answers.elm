@@ -7,7 +7,7 @@ import Html.Attributes exposing (..)
 
 view : List Api.Answer -> Html msg
 view answers =
-    div []
+    div [ class "hidden-print" ]
         ([ h3 [] [ text "Story Answers" ] ]
             ++ (List.map viewAnswer answers)
         )
