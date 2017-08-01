@@ -34,14 +34,19 @@ initModel session =
     (flip (,) session) <|
         case Maybe.map (\u -> ( u.role, u.level )) session.user of
             Just ( Student, level ) ->
-                Model (pickStories level session.cache.answers session.cache.stories)
+                Model (pickStories (isBeginner session) level session.cache.answers session.cache.stories)
 
             _ ->
                 Model session.cache.stories
 
 
-pickStories : Int -> Dict String Api.Answer -> List Api.Story -> List Api.Story
-pickStories level answers stories =
+isBeginner : Session -> Bool
+isBeginner =
+    ((>) 20) << Dict.size << .answers << .cache
+
+
+pickStories : Bool -> Int -> Dict String Api.Answer -> List Api.Story -> List Api.Story
+pickStories beginner level answers stories =
     let
         storiesForLevel =
             List.filter (\s -> s.level < level + 2) stories
@@ -94,7 +99,7 @@ pickStories level answers stories =
                     _ ->
                         [ 0, 0, 0, 2, 2, 5, 5, 5, 10, 5 ]
     in
-        if Dict.size answers < 20 then
+        if beginner then
             List.concatMap (\( l, n ) -> takeLevel l n [] unansweredStories) storiesPerLevel
         else
             sortForLevel level unansweredStories
@@ -111,13 +116,26 @@ update session model =
 
 
 view : Session -> Model -> Html msg
-view _ model =
+view session model =
     div [ class "home-page" ]
         [ div [ class "container page" ]
             [ RobotPanel.view
             , div []
-                [ h2 [] [ text "Starter Stories" ]
+                [ h2 []
+                    [ text (storiesTitle session)
+                    ]
                 , StoryTiles.view (List.take 24 model.stories)
                 ]
             ]
         ]
+
+
+storiesTitle : Session -> String
+storiesTitle session =
+    if Session.isStudent session then
+        if isBeginner session then
+            "Starter Stories"
+        else
+            "My Stories"
+    else
+        "Sample Stories"
