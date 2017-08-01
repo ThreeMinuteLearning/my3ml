@@ -1,9 +1,9 @@
-module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isEditor, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadClasses, findStoryById)
+module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isEditor, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadUserAnswers, loadClasses, findStoryById)
 
 import Api
 import Data.Settings as Settings exposing (Settings)
 import Data.Words exposing (WordDict)
-import Dict
+import Dict exposing (Dict)
 import Exts.List exposing (firstMatch)
 import Http
 import Json.Decode as Decode exposing (Decoder)
@@ -37,6 +37,7 @@ type alias Session =
 type alias Cache =
     { dict : WordDict
     , stories : List Api.Story
+    , answers : Dict String Api.Answer
     , students : List Api.Student
     , classes : List Api.Class
     }
@@ -55,7 +56,7 @@ emptySession =
 
 emptyCache : Cache
 emptyCache =
-    Cache Dict.empty [] [] []
+    Cache Dict.empty [] Dict.empty [] []
 
 
 hasRole : Role -> Session -> Bool
@@ -94,7 +95,7 @@ authorization session =
 
 clearCache : Cache -> Cache
 clearCache c =
-    Cache c.dict [] [] []
+    Cache c.dict [] Dict.empty [] []
 
 
 stringToRole : String -> Role
@@ -132,25 +133,22 @@ newLogin s { sub, name, level, token, role, settings } =
 
 loadStories : Session -> Task Http.Error Session
 loadStories session =
-    loadToCache (.stories >> List.isEmpty) Api.getStories (\newStories cache -> { cache | stories = organizeStories session.user newStories }) session
+    loadToCache (.stories >> List.isEmpty) Api.getStories (\newStories cache -> { cache | stories = newStories }) session
 
 
-organizeStories : Maybe User -> List Api.Story -> List Api.Story
-organizeStories user stories =
-    case user of
-        Nothing ->
-            stories
+loadUserAnswers : Session -> Task Http.Error Session
+loadUserAnswers session =
+    case Maybe.map .role session.user of
+        Just Student ->
+            loadToCache (.answers >> Dict.isEmpty) (\token -> Api.getSchoolAnswers token Nothing Nothing) (\newAnswers cache -> { cache | answers = answersToDict newAnswers }) session
 
-        Just u ->
-            if u.role == Student then
-                sortForLevel u.level stories
-            else
-                stories
+        _ ->
+            Task.succeed session
 
 
-sortForLevel : Int -> List Api.Story -> List Api.Story
-sortForLevel l stories =
-    List.sortBy (\s -> abs (s.level - l)) stories
+answersToDict : List Api.Answer -> Dict String Api.Answer
+answersToDict =
+    Dict.fromList << List.map (\a -> ( a.storyId, a ))
 
 
 loadDictionary : Session -> Task Http.Error Session

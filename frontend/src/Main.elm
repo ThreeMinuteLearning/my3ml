@@ -27,7 +27,7 @@ import Views.Page as Page exposing (ActivePage)
 type Page
     = Blank
     | NotFound
-    | Home
+    | Home Home.Model
     | Errored PageLoadError
     | Login Login.Model
     | Story Story.Model
@@ -88,8 +88,8 @@ viewPage session isLoading page =
                 Html.text ""
                     |> frame Page.Other
 
-            Home ->
-                Home.view session
+            Home subModel ->
+                Home.view session subModel
                     |> frame Page.Home
 
             Errored subModel ->
@@ -153,7 +153,7 @@ type Msg
 
 
 type PageLoaded
-    = HomeLoaded (Result PageLoadError Session)
+    = HomeLoaded (Result PageLoadError ( Home.Model, Session ))
     | StoryLoaded (Result PageLoadError ( Story.Model, Session ))
     | FindStoryLoaded (Result PageLoadError ( FindStory.Model, Session ))
     | StudentsLoaded (Result PageLoadError ( Students.Model, Session ))
@@ -314,9 +314,7 @@ pageLoaded msg model =
                             => Ports.postProcessStory (.words subModel.story)
 
             HomeLoaded r ->
-                handlePageLoadError r <|
-                    \newSession ->
-                        { model | session = newSession, pageState = Loaded Home } => Cmd.none
+                pageLoadedWithNewSession r Home
 
             EditorLoaded r ->
                 pageLoadedWithNewSession r Editor
