@@ -7,7 +7,7 @@ import Dict exposing (Dict)
 import Drawer exposing (DrawerType)
 import Exts.List exposing (firstMatch)
 import Html exposing (..)
-import Html.Attributes exposing (id, class, for, selected, value, type_)
+import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
 import Util exposing ((=>))
@@ -178,10 +178,10 @@ view m =
 viewForm : Model -> Html Msg
 viewForm model =
     let
-        answerField field msg lbl =
+        answerField field msg lbl tx =
             div [ class (errorClass (fieldError field model.errors)) ]
                 [ label [ for (toString field ++ "Input") ] lbl
-                , Form.textarea [ class "form-control", id (toString field ++ "Input"), onInput msg ] []
+                , Form.textarea [ class "form-control", id (toString field ++ "Input"), onInput msg, tabindex tx ] []
                 ]
 
         mkOption ( v, txt ) =
@@ -200,20 +200,20 @@ viewForm model =
                 ]
 
         submitButton =
-            Html.button [ class "btn btn-primary pull-xs-right" ] [ text "Submit your answers" ]
+            Html.button [ class "btn btn-primary pull-xs-right", tabindex 6 ] [ text "Submit your answers" ]
 
         drwrBtn s evt =
-            button [ class "btn btn-sm btn-default", onClick (ToggleDrawer evt), type_ "button" ] [ text s ]
+            button [ class "btn btn-sm btn-default", tabindex -1, onClick (ToggleDrawer evt), type_ "button" ] [ text s ]
     in
         Html.form [ onSubmit SubmitForm ]
             [ div [ class "form-group" ]
-                [ answerField Connection SetConnection [ drwrBtn "?" Drawer.Connect, text " Connect this story with yourself or something you know about." ]
-                , answerField Question SetQuestion [ drwrBtn "?" Drawer.Question, text " Think of a question the story makes you want to ask and type it here." ]
-                , answerField Summary SetSummary [ drwrBtn "?" Drawer.Summarise, text " Write one sentence that captures the main idea." ]
-                , answerField Clarification SetClarification [ drwrBtn "?" Drawer.Clarify, text " Work through the clarify methods then type what you think this word means: ", em [ class "clarify-word" ] [ text (.clarifyWord model.story) ] ]
+                [ answerField Connection SetConnection [ drwrBtn "?" Drawer.Connect, text " Connect this story with yourself or something you know about." ] 1
+                , answerField Question SetQuestion [ drwrBtn "?" Drawer.Question, text " Think of a question the story makes you want to ask and type it here." ] 2
+                , answerField Summary SetSummary [ drwrBtn "?" Drawer.Summarise, text " Write one sentence that captures the main idea." ] 3
+                , answerField Clarification SetClarification [ drwrBtn "?" Drawer.Clarify, text " Work through the clarify methods then type what you think this word means: ", em [ class "clarify-word" ] [ text (.clarifyWord model.story) ] ] 4
                 , div [ class (errorClass (fieldError ClarificationMethod model.errors)) ]
                     [ label [ for "clarifyMethod" ] [ text "Which clarify method worked best for you?" ]
-                    , Html.select [ id "clarifyMethod", class "form-control", onInput SetClarifyMethod ] clarifyMethodOptions
+                    , Html.select [ id "clarifyMethod", class "form-control", onInput SetClarifyMethod, tabindex 5 ] clarifyMethodOptions
                     ]
                 , submitButton
                 ]
