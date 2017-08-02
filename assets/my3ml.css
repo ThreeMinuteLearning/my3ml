@@ -33,6 +33,12 @@ html, body {
     width: 100%;
 }
 
+/* Form error styling */
+.error-messages {
+    color: #b85c5c !important;
+    font-weight: bold;
+}
+
 /* Navbar customization */
 
 .navbar-default {
@@ -314,7 +320,7 @@ th span {
     }
 }
 
-/* Story animation fade-in */
+/* Story fade-in animation */
 
 .u-selectable:hover {
     cursor: pointer;
