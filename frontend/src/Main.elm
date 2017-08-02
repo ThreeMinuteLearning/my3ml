@@ -353,7 +353,7 @@ updatePage page msg model =
             in
                 ( { model | pageState = Loaded (toModel newModel) }, mapMsg toMsg newCmd )
 
-        toPageNewSession toModel toMsg subUpdate subMsg subModel =
+        toPageUpdateSession toModel toMsg subUpdate subMsg subModel =
             let
                 ( ( newModel, newCmd ), newSession ) =
                     subUpdate model.session subMsg subModel
@@ -365,19 +365,19 @@ updatePage page msg model =
     in
         case ( msg, page ) of
             ( StoryMsg subMsg, Story subModel ) ->
-                toPageNewSession Story StoryMsg Story.update subMsg subModel
+                toPageUpdateSession Story StoryMsg Story.update subMsg subModel
 
             ( FindStoryMsg subMsg, FindStory subModel ) ->
                 toPage FindStory FindStoryMsg (FindStory.update model.session) subMsg subModel
 
             ( StudentsMsg subMsg, Students subModel ) ->
-                toPageNewSession Students StudentsMsg Students.update subMsg subModel
+                toPageUpdateSession Students StudentsMsg Students.update subMsg subModel
 
             ( StudentMsg subMsg, Student subModel ) ->
-                toPageNewSession Student StudentMsg Student.update subMsg subModel
+                toPageUpdateSession Student StudentMsg Student.update subMsg subModel
 
             ( ClassesMsg subMsg, Classes subModel ) ->
-                toPageNewSession Classes ClassesMsg Classes.update subMsg subModel
+                toPageUpdateSession Classes ClassesMsg Classes.update subMsg subModel
 
             ( ClassMsg subMsg, Class subModel ) ->
                 let
@@ -414,7 +414,7 @@ updatePage page msg model =
                 toPage Editor EditorMsg (Editor.update model.session) subMsg subModel
 
             ( AccountMsg subMsg, Account subModel ) ->
-                toPageNewSession Account AccountMsg Account.update subMsg subModel
+                toPageUpdateSession Account AccountMsg Account.update subMsg subModel
 
             ( _, _ ) ->
                 model => Cmd.none
