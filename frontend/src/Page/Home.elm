@@ -4,7 +4,7 @@ import Api
 import Data.Session as Session exposing (Session, User, Role(..))
 import Dict exposing (Dict)
 import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html.Attributes exposing (class)
 import List.Extra as List
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
@@ -132,7 +132,7 @@ bumpLevels answers nPerLevel =
             Maybe.withDefault 0 (Dict.get l answers)
 
         bumpLevel ( l, n ) =
-            ( l, n - (nAnswers l) + (nAnswers (l - 1)) )
+            ( l, max 0 (n - (nAnswers l) + (nAnswers (l - 1))) )
     in
         List.map bumpLevel nPerLevel
 
