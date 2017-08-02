@@ -365,7 +365,7 @@ updatePage page msg model =
     in
         case ( msg, page ) of
             ( StoryMsg subMsg, Story subModel ) ->
-                toPage Story StoryMsg (Story.update model.session) subMsg subModel
+                toPageNewSession Story StoryMsg Story.update subMsg subModel
 
             ( FindStoryMsg subMsg, FindStory subModel ) ->
                 toPage FindStory FindStoryMsg (FindStory.update model.session) subMsg subModel

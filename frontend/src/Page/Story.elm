@@ -2,8 +2,9 @@ module Page.Story exposing (Model, Msg, init, subscriptions, update, view)
 
 import AnswersForm
 import Api
-import Data.Session as Session exposing (Session, Role(..), authorization, findStoryById)
+import Data.Session as Session exposing (Session, Cache, Role(..), authorization, findStoryById)
 import Data.Settings exposing (Settings, defaultSettings)
+import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Http
@@ -129,35 +130,41 @@ viewPrintAnswerSections story =
         ]
 
 
-update : Session -> Msg -> Model -> ( Model, Cmd Msg )
+update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
 update session msg model =
     case msg of
         GetImgWidth s ->
-            model => Ports.getImgWidth s
+            model => Ports.getImgWidth s => session
 
         ImageWidth w ->
-            { model | picWidth = round w } => Cmd.none
+            { model | picWidth = round w } => Cmd.none => session
 
         DictLookup ( w, i ) ->
-            { model | dictLookup = Just (Api.DictEntry w i) } => Cmd.none
+            { model | dictLookup = Just (Api.DictEntry w i) } => Cmd.none => session
 
         PrintWindow ->
-            model => Ports.printWindow ()
+            model => Ports.printWindow () => session
 
         ClearAnswers ->
-            resetAnswersForm model => Cmd.none
+            resetAnswersForm model => Cmd.none => session
 
         AnswersFormMsg subMsg ->
             case Maybe.map (AnswersForm.update session subMsg) model.answersForm of
                 Nothing ->
-                    model => Cmd.none
+                    model => Cmd.none => session
 
                 Just ( ( subModel, cmd ), Nothing ) ->
-                    { model | answersForm = Just subModel } => Cmd.map AnswersFormMsg cmd
+                    { model | answersForm = Just subModel } => Cmd.map AnswersFormMsg cmd => session
 
                 Just ( ( _, cmd ), Just submittedAnswer ) ->
                     { model | answersForm = Nothing, answers = submittedAnswer :: model.answers }
                         => Cmd.map AnswersFormMsg cmd
+                        => { session | cache = updateCacheAnswers submittedAnswer session.cache }
+
+
+updateCacheAnswers : Api.Answer -> Cache -> Cache
+updateCacheAnswers a c =
+    { c | answers = Dict.insert a.storyId a c.answers }
 
 
 settingsFromSession : Session -> Settings

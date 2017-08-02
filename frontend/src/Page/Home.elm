@@ -5,6 +5,7 @@ import Data.Session as Session exposing (Session, User, Role(..))
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import List.Extra as List
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
 import Util exposing ((=>))
@@ -34,7 +35,7 @@ initModel session =
     (flip (,) session) <|
         case Maybe.map (\u -> ( u.role, u.level )) session.user of
             Just ( Student, level ) ->
-                Model (pickStories (isBeginner session) level session.cache.answers session.cache.stories)
+                Model (pickStories session level)
 
             _ ->
                 Model session.cache.stories
@@ -45,14 +46,17 @@ isBeginner =
     ((>) 20) << Dict.size << .answers << .cache
 
 
-pickStories : Bool -> Int -> Dict String Api.Answer -> List Api.Story -> List Api.Story
-pickStories beginner level answers stories =
+pickStories : Session -> Int -> List Api.Story
+pickStories session level =
     let
-        storiesForLevel =
-            List.filter (\s -> s.level < level + 2) stories
+        answers =
+            session.cache.answers
+
+        stories =
+            List.filter (\s -> s.level < level + 2) session.cache.stories
 
         unansweredStories =
-            List.filter (\s -> not (Dict.member s.id answers)) storiesForLevel
+            List.filter (\s -> not (Dict.member s.id answers)) stories
 
         -- Take n items of level l from list ss
         takeLevel l n acc ss =
@@ -73,36 +77,64 @@ pickStories beginner level answers stories =
             List.indexedMap (,) <|
                 case level of
                     0 ->
-                        [ 25, 5 ]
+                        [ 25, 5, 0, 0, 0, 0 ]
 
                     1 ->
-                        [ 10, 15, 5 ]
+                        [ 10, 15, 5, 0, 0, 0 ]
 
                     2 ->
-                        [ 5, 10, 10, 5 ]
+                        [ 5, 10, 10, 5, 0, 0 ]
 
                     3 ->
-                        [ 3, 3, 5, 10, 5 ]
+                        [ 3, 3, 5, 10, 5, 0, 0 ]
 
                     4 ->
-                        [ 2, 3, 3, 3, 10, 5 ]
+                        [ 2, 3, 3, 3, 10, 5, 0, 0 ]
 
                     5 ->
-                        [ 2, 2, 2, 2, 5, 10, 5 ]
+                        [ 2, 2, 2, 2, 5, 10, 5, 0 ]
 
                     6 ->
-                        [ 2, 2, 2, 2, 5, 5, 10, 5 ]
+                        [ 2, 2, 2, 2, 5, 5, 10, 5, 0 ]
 
                     7 ->
-                        [ 0, 2, 2, 2, 5, 5, 5, 10, 5 ]
+                        [ 0, 2, 2, 2, 5, 5, 5, 10, 5, 0 ]
 
                     _ ->
-                        [ 0, 0, 0, 2, 2, 5, 5, 5, 10, 5 ]
+                        [ 0, 0, 0, 2, 2, 5, 5, 5, 10, 5, 0 ]
     in
-        if beginner then
-            List.concatMap (\( l, n ) -> takeLevel l n [] unansweredStories) storiesPerLevel
+        if isBeginner session then
+            List.concatMap (\( l, n ) -> takeLevel l n [] unansweredStories) (bumpLevels (answerLevels session answers) storiesPerLevel)
         else
             sortForLevel level unansweredStories
+
+
+answerLevels : Session -> Dict String Api.Answer -> Dict Int Int
+answerLevels session answers =
+    let
+        answerLevel a =
+            Session.findStoryById session.cache a.storyId
+                |> Maybe.map .level
+                |> Maybe.withDefault 0
+    in
+        List.map answerLevel (Dict.values answers)
+            |> List.sort
+            |> List.group
+            |> \l ->
+                List.map2 (,) (List.filterMap List.head l) (List.map List.length l)
+                    |> Dict.fromList
+
+
+bumpLevels : Dict Int Int -> List ( Int, Int ) -> List ( Int, Int )
+bumpLevels answers nPerLevel =
+    let
+        nAnswers l =
+            Maybe.withDefault 0 (Dict.get l answers)
+
+        bumpLevel ( l, n ) =
+            ( l, n - (nAnswers l) + (nAnswers (l - 1)) )
+    in
+        List.map bumpLevel nPerLevel
 
 
 sortForLevel : Int -> List Api.Story -> List Api.Story
