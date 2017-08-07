@@ -89,10 +89,13 @@ instance DB HasqlDB where
     getStudentBySubjectId = runQuery selectStudentBySubjectId
 
     createStudent (nm, lvl, schoolId_) creds db = runSession db $ do
+        begin
         subId <- S.query creds insertStudentAccount
-        let s = Student (UUID.toText subId) nm Nothing lvl schoolId_ False Nothing
+        let subIdText = UUID.toText subId
+            s = Student subIdText nm Nothing lvl schoolId_ False Nothing
         S.query (s, subId) insertStudent
-        return s
+        commit
+        S.query subIdText selectStudentBySubjectId
 
     updateStudent student_ schoolId_ db = runSession db $ do
         S.query (student_, schoolId_) updateStudent_
@@ -100,21 +103,25 @@ instance DB HasqlDB where
 
 
     deleteStudent subjectId_ schoolId_ db = runSession db $ do
+        begin
         S.query (subjectId_, schoolId_) $
             Q.statement "UPDATE student SET deleted=now() WHERE id=$1 :: uuid AND school_id = $2 :: uuid AND deleted is null"
               (contramap fst evText <>  contramap snd evText) D.unit True
         S.query subjectId_ $
             Q.statement "UPDATE login SET locked=true WHERE id=$1 :: uuid"
               evText D.unit True
+        commit
         S.query subjectId_ selectStudentBySubjectId
 
     undeleteStudent subjectId_ schoolId_ db = runSession db $ do
+        begin
         S.query (subjectId_, schoolId_) $
             Q.statement "UPDATE student SET deleted=null WHERE id=$1 :: uuid AND school_id = $2 :: uuid"
               (contramap fst evText <>  contramap snd evText) D.unit True
         S.query subjectId_ $
             Q.statement "UPDATE login SET locked=false WHERE id=$1 :: uuid"
               evText D.unit True
+        commit
 
     setStudentPassword schoolId_ studentId_ password_ =
         runQuery updateStudentPassword (schoolId_, studentId_, password_)
@@ -175,6 +182,12 @@ runSession (H pool) s = liftIO $ do
     case result of
         Left e -> liftIO $ throwString (show e)
         Right r -> return r
+
+begin :: S.Session ()
+begin = S.sql "begin"
+
+commit :: S.Session ()
+commit = S.sql "commit"
 
 dvText :: D.Row Text
 dvText = D.value D.text
