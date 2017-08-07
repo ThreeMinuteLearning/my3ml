@@ -36,14 +36,14 @@ siteApi = Proxy
 
 
 server :: forall db. DB db => Config db -> FilePath -> ServerT SiteApi Handler
-server config assets = enter transform Api.server :<|> serveDirectory assets
+server config assets = enter transform Api.server :<|> serveDirectoryFileServer assets
   where
     transform' :: HandlerT db a -> Handler a
     transform' handler =
         runReaderT (runStderrLoggingT handler) config
 
     transform :: HandlerT db :~> Handler
-    transform = Nat transform'
+    transform = NT transform'
 
 defaultKeyFile :: FilePath
 defaultKeyFile = "token_key.json"
