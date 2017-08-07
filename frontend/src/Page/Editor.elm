@@ -28,7 +28,7 @@ type Msg
     | SaveResponse (Result Http.Error Api.Story)
 
 
-init : Session -> String -> Task PageLoadError ( Model, Session )
+init : Session -> Int -> Task PageLoadError ( Model, Session )
 init originalSession slug =
     let
         handleLoadError e =

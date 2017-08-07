@@ -37,7 +37,7 @@ type alias Session =
 type alias Cache =
     { dict : WordDict
     , stories : List Api.Story
-    , answers : Dict String Api.Answer
+    , answers : Dict Int Api.Answer
     , students : List Api.Student
     , classes : List Api.Class
     }
@@ -133,7 +133,7 @@ newLogin s { sub, name, level, token, role, settings } =
 
 loadStories : Session -> Task Http.Error Session
 loadStories session =
-    loadToCache (.stories >> List.isEmpty) Api.getStories (\newStories cache -> { cache | stories = newStories }) session
+    loadToCache (.stories >> List.isEmpty) Api.getStories (\newStories cache -> { cache | stories = List.reverse (List.sortBy .id newStories) }) session
 
 
 loadUserAnswers : Session -> Task Http.Error Session
@@ -146,7 +146,7 @@ loadUserAnswers session =
             Task.succeed session
 
 
-answersToDict : List Api.Answer -> Dict String Api.Answer
+answersToDict : List Api.Answer -> Dict Int Api.Answer
 answersToDict =
     Dict.fromList << List.map (\a -> ( a.storyId, a ))
 
@@ -180,7 +180,7 @@ loadToCache isDirty mkAuthorizedRequest updateCache session =
             Task.succeed session
 
 
-findStoryById : Cache -> String -> Maybe Api.Story
+findStoryById : Cache -> Int -> Maybe Api.Story
 findStoryById cache storyId =
     firstMatch (\s -> s.id == storyId) cache.stories
 

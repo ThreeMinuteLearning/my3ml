@@ -130,7 +130,7 @@ tableConfig =
                 ]
     in
         Table.customConfig
-            { toId = .id
+            { toId = toString << .id
             , toMsg = SetTableState
             , columns =
                 [ storyTitleColumn

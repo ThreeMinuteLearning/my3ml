@@ -43,7 +43,8 @@ instance DB HasqlDB where
 
     getStory = runQuery selectStoryById
 
-    createStory = runQuery insertStory
+    createStory story db = runSession db $
+        S.query story insertStory
 
     updateStory story db = runSession db $ do
         S.query story updateStory_
@@ -279,11 +280,14 @@ selectAllStories =
 
 selectStoryById :: Query StoryId (Maybe Story)
 selectStoryById =
-    Q.statement (selectStorySql <> " WHERE id = $1") evText (D.maybeRow storyRow) True
+    Q.statement (selectStorySql <> " WHERE id = $1") evStoryId (D.maybeRow storyRow) True
+  where
+    evStoryId =
+      contramap fromIntegral (E.value E.int4)
 
 storyRow :: D.Row Story
 storyRow = Story
-    <$> dvText
+    <$> (fromIntegral <$> D.value D.int4)
     <*> dvText
     <*> dvText
     <*> (fromIntegral <$> D.value D.int2)
@@ -294,11 +298,12 @@ storyRow = Story
     <*> dvText
 --    <*> D.value D.timestamptz
 
-insertStory :: Query Story ()
-insertStory = Q.statement sql storyEncoder D.unit True
+insertStory :: Query Story StoryId
+insertStory = Q.statement sql storyEncoder (D.singleRow $ fromIntegral <$> D.value D.int4) True
   where
     sql = "INSERT INTO story (id, title, img_url, level, curriculum, tags, content, words, clarify_word) \
-                 \VALUES ($1, $2, $3, $4, $5, $6, $7, (array(select word::dict_entry from unnest ($8, $9) as word)), $10)"
+                 \VALUES ($1, $2, $3, $4, $5, $6, $7, (array(select word::dict_entry from unnest ($8, $9) as word)), $10) \
+                 \RETURNING id"
 
 updateStory_ :: Query Story ()
 updateStory_ = Q.statement sql storyEncoder D.unit True
@@ -306,7 +311,7 @@ updateStory_ = Q.statement sql storyEncoder D.unit True
     sql = "UPDATE story SET title=$2, img_url=$3, level=$4, curriculum=$5, tags=$6, content=$7, words=(array(select word::dict_entry from unnest ($8, $9) as word)), clarify_word=$10 WHERE id=$1"
 
 storyEncoder :: E.Params Story
-storyEncoder = contramap (id :: Story -> Text) evText
+storyEncoder = contramap (fromIntegral . (id :: Story -> StoryId)) (E.value E.int4)
     <> contramap title evText
     <> contramap img evText
     <> contramap (fromIntegral . storyLevel) (E.value E.int4)
@@ -495,7 +500,7 @@ trailRow = StoryTrail
     <$> dvUUID
     <*> dvText
     <*> dvUUID
-    <*> dArray D.text
+    <*> (map fromIntegral <$> dArray D.int4)
 
 insertTrail :: Query StoryTrail ()
 insertTrail = Q.statement sql encode D.unit True
@@ -505,7 +510,7 @@ insertTrail = Q.statement sql encode D.unit True
     encode = contramap (id :: StoryTrail -> TrailId) evText
         <> contramap (name :: StoryTrail -> Text) evText
         <> contramap (schoolId :: StoryTrail -> Text) evText
-        <> contramap (stories :: StoryTrail -> [StoryId]) (eArray E.text)
+        <> contramap (map fromIntegral <$> (stories :: StoryTrail -> [StoryId])) (eArray E.int4)
 
 deleteTrailById :: Query TrailId Int64
 deleteTrailById = Q.statement sql evText D.rowsAffected True
@@ -564,13 +569,15 @@ selectAnswersByStudent = Q.statement sql eTextPair (D.rowsList answerRow) True
     sql = selectAnswersSql <> " WHERE student_id = $1 :: uuid AND school_id = $2 :: uuid ORDER BY created_at DESC"
 
 selectAnswersByStory :: Query (SchoolId, StoryId) [Answer]
-selectAnswersByStory = Q.statement sql eTextPair (D.rowsList answerRow) True
+selectAnswersByStory = Q.statement sql encode (D.rowsList answerRow) True
   where
+    encode = contramap fst evText
+        <> contramap (fromIntegral . snd) (E.value E.int4)
     sql = selectAnswersSql <> " WHERE school_id = $1 :: uuid AND story_id = $2 ORDER BY created_at DESC"
 
 answerRow :: D.Row Answer
 answerRow = Answer
-    <$> dvText
+    <$> (fromIntegral <$> D.value D.int4)
     <*> dvUUID
     <*> dvText
     <*> dvText
@@ -582,7 +589,7 @@ insertAnswer = Q.statement sql encode D.unit True
   where
     sql = "INSERT INTO story_answer (story_id, student_id, school_id, connect, question, summarise, clarify) \
           \ VALUES ($1, $2 :: uuid, $3 :: uuid, $4, $5, $6, $7)"
-    encode = contramap ((storyId :: Answer -> Text) . fst) evText
+    encode = contramap (fromIntegral . (storyId :: Answer -> Int) . fst) (E.value E.int4)
         <> contramap ((studentId :: Answer -> Text) . fst) evText
         <> contramap snd evText
         <> contramap (connect . fst) evText

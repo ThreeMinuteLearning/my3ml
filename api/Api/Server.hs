@@ -116,10 +116,8 @@ storyServer token_ =
             _ -> throwError err403
 
     createStory story = do
-        uuid <- liftIO (toText <$> nextRandom)
-        let storyWithId = story { id = uuid } :: Story
-        _ <- runDB (DB.createStory storyWithId)
-        return storyWithId
+        newId <- runDB (DB.createStory story)
+        return (story { id = newId } :: Story)
 
 
 trailsServer :: DB db => ApiServer TrailsApi db

@@ -109,7 +109,7 @@ pickStories session level =
             sortForLevel level unansweredStories
 
 
-answerLevels : Session -> Dict String Api.Answer -> Dict Int Int
+answerLevels : Session -> Dict Int Api.Answer -> Dict Int Int
 answerLevels session answers =
     let
         answerLevel a =

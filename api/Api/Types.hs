@@ -35,7 +35,7 @@ data DictEntry = DictEntry
     , index :: Int
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
-type StoryId = Text
+type StoryId = Int
 
 type WordDefinition = (Text, [(Text, Int)])
 
@@ -61,8 +61,8 @@ data Class = Class
 type ClassId = Text
 
 data Answer = Answer
-    { storyId :: Text
-    , studentId :: Text
+    { storyId :: StoryId
+    , studentId :: SubjectId
     , connect :: Text
     , question :: Text
     , summarise :: Text
@@ -153,7 +153,7 @@ type AccountApi =
 type StoriesApi =
     "stories" :> AccessTokenAuth :>
         (    Get '[JSON] [Story]
-        :<|> Capture "storyId" Text :>
+        :<|> Capture "storyId" StoryId :>
              (    Get '[JSON] Story
              :<|> ReqBody '[JSON] Story :> Post '[JSON] Story
              )
@@ -212,7 +212,7 @@ type StudentsApi =
 
 type AnswersApi =
     "answers" :>
-        (    QueryParam "story" Text :> QueryParam "student" SubjectId :> Get '[JSON] [Answer]
+        (    QueryParam "story" StoryId :> QueryParam "student" SubjectId :> Get '[JSON] [Answer]
         :<|> ReqBody '[JSON] Answer :> Post '[JSON] Answer
         )
 

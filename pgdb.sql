@@ -15,7 +15,7 @@ CREATE TABLE login
     );
 
 CREATE TABLE story
-    ( id text PRIMARY KEY
+    ( id serial PRIMARY KEY
     , title text NOT NULL
     , img_url text NOT NULL
     , level smallint NOT NULL CHECK (level >= 0 AND level < 10)
@@ -88,7 +88,7 @@ CREATE TABLE dict
     );
 
 CREATE TABLE story_answer
-    ( story_id text NOT NULL REFERENCES story
+    ( story_id integer NOT NULL REFERENCES story
     , student_id uuid NOT NULL REFERENCES student
     , school_id uuid NOT NULL REFERENCES school
     , connect text NOT NULL

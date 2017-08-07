@@ -36,7 +36,7 @@ type Msg
     | AnswersFormMsg AnswersForm.Msg
 
 
-init : Session -> String -> Task PageLoadError ( Model, Session )
+init : Session -> Int -> Task PageLoadError ( Model, Session )
 init originalSession slug =
     let
         handleLoadError e =

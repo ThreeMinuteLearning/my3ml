@@ -22,7 +22,7 @@ class DB db where
 
     getStory :: MonadIO m => StoryId -> db -> m (Maybe Story)
 
-    createStory :: MonadIO m => Story -> db -> m ()
+    createStory :: MonadIO m => Story -> db -> m StoryId
 
     updateStory :: MonadIO m => Story -> db -> m Story
 
@@ -119,10 +119,11 @@ instance DB AtomicDB where
 
     getStory sid db = Map.lookup sid <$> withDB db stories
 
-    createStory story db =
+    createStory story db = do
         updateDB db $ \d ->
-            let newStories = Map.insert (id (story :: Story)) story (stories (d :: InMemoryDB))
+            let newStories = Map.insert 999 story (stories (d :: InMemoryDB))
             in  d { stories = newStories }
+        return 1
 
     getTrails sid db = filter (\t -> schoolId (t :: StoryTrail) == sid) <$> withDB db trails
 

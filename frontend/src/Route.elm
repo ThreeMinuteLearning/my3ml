@@ -3,7 +3,7 @@ module Route exposing (Route(..), TeacherSubRoute(..), href, modifyUrl, fromLoca
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Navigation exposing (Location)
-import UrlParser as Url exposing (parseHash, s, (</>), string, oneOf, Parser)
+import UrlParser as Url exposing (parseHash, s, (</>), string, int, oneOf, Parser)
 
 
 -- ROUTING --
@@ -16,11 +16,11 @@ type Route
     | Logout
     | Account
     | FindStory
-    | Story String
+    | Story Int
     | LeaderBoard
     | Trails
     | Teacher TeacherSubRoute
-    | Editor String
+    | Editor Int
 
 
 type TeacherSubRoute
@@ -38,12 +38,12 @@ route =
         , Url.map Register (s "register")
         , Url.map Logout (s "logout")
         , Url.map Account (s "account")
-        , Url.map Story (s "stories" </> string)
+        , Url.map Story (s "stories" </> int)
         , Url.map FindStory (s "stories")
         , Url.map Trails (s "trails")
         , Url.map Teacher (s "teacher" </> teacherSubRoute)
         , Url.map LeaderBoard (s "leaderboard")
-        , Url.map Editor (s "editor" </> string)
+        , Url.map Editor (s "editor" </> int)
         ]
 
 
@@ -82,7 +82,7 @@ routeToString page =
                     [ "account" ]
 
                 Story slug ->
-                    [ "stories", slug ]
+                    [ "stories", toString slug ]
 
                 FindStory ->
                     [ "stories" ]
@@ -106,7 +106,7 @@ routeToString page =
                     [ "trails" ]
 
                 Editor slug ->
-                    [ "editor", slug ]
+                    [ "editor", toString slug ]
     in
         "#/" ++ (String.join "/" pieces)
 
