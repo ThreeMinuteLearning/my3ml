@@ -13,6 +13,7 @@ import qualified Data.Aeson as A
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import           Data.Maybe (fromMaybe)
+import           Data.List (sortOn)
 import           Jose.Jwa
 import           Jose.Jwk
 import           Network.Wai.Handler.Warp (run)
@@ -24,9 +25,10 @@ import           System.Directory (doesFileExist)
 import           Api.Server (HandlerT, Config(..))
 import qualified Api.Server as Api
 import           Api.Auth (authServerContext)
-import           Api.Types (Api)
+import           Api.Types (Api, Story(..), StoryId)
 import           DB (DB, getStories)
 import           HasqlDB (mkDB)
+import           Prelude hiding (id)
 
 type SiteApi = "api" :> Api
     :<|> Raw
@@ -73,7 +75,7 @@ main = do
     putStrLn $ "Serving on port " ++ show port ++ "..."
     db <- mkDB pgdb
     stories <- getStories db
-    let cfg = Config db jwk (take 24 stories)
+    let cfg = Config db jwk (take 24 (reverse (sortOn (id :: Story -> StoryId) stories)))
         my3mlServer = server cfg assets
 
     run port $ logStdoutDev $ serveWithContext siteApi (authServerContext jwk) my3mlServer
