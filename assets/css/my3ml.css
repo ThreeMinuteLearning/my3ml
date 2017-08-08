@@ -39,80 +39,6 @@ html, body {
     font-weight: bold;
 }
 
-/* Navbar customization */
-
-.navbar-default {
-  background-color: #d8ebb3;
-  border-color: #90be5d;
-}
-.navbar-default .navbar-brand {
-  color: #38772b;
-  font-size: 25px;
-  font-weight: bold;
-}
-.navbar-default .navbar-brand:hover,
-.navbar-default .navbar-brand:focus {
-  color: #2c2b2b;
-}
-.navbar-default .navbar-text {
-  color: #595b5b;
-}
-.navbar-default .navbar-nav > li > a {
-  color: #595b5b;
-}
-.navbar-default .navbar-nav > li > a:hover,
-.navbar-default .navbar-nav > li > a:focus {
-  color: #2c2b2b;
-}
-.navbar-default .navbar-nav > .active > a,
-.navbar-default .navbar-nav > .active > a:hover,
-.navbar-default .navbar-nav > .active > a:focus {
-  color: #2c2b2b;
-  background-color: #c4dea7;
-}
-.navbar-default .navbar-nav > .open > a,
-.navbar-default .navbar-nav > .open > a:hover,
-.navbar-default .navbar-nav > .open > a:focus {
-  color: #2c2b2b;
-  background-color: #c4dea7;
-}
-.navbar-default .navbar-toggle {
-  border-color: #c4dea7;
-}
-.navbar-default .navbar-toggle:hover,
-.navbar-default .navbar-toggle:focus {
-  background-color: #c4dea7;
-}
-.navbar-default .navbar-toggle .icon-bar {
-  background-color: #595b5b;
-}
-.navbar-default .navbar-collapse,
-.navbar-default .navbar-form {
-  border-color: #595b5b;
-}
-.navbar-default .navbar-link {
-  color: #595b5b;
-}
-.navbar-default .navbar-link:hover {
-  color: #2c2b2b;
-}
-
-@media (max-width: 767px) {
-  .navbar-default .navbar-nav .open .dropdown-menu > li > a {
-    color: #595b5b;
-  }
-  .navbar-default .navbar-nav .open .dropdown-menu > li > a:hover,
-  .navbar-default .navbar-nav .open .dropdown-menu > li > a:focus {
-    color: #2c2b2b;
-  }
-  .navbar-default .navbar-nav .open .dropdown-menu > .active > a,
-  .navbar-default .navbar-nav .open .dropdown-menu > .active > a:hover,
-  .navbar-default .navbar-nav .open .dropdown-menu > .active > a:focus {
-    color: #2c2b2b;
-    background-color: #c4dea7;
-  }
-}
-
 /* Tables */
 
 /* Make sortable table icons more obvious */
@@ -121,7 +47,6 @@ th span {
     font-weight: bold;
     cursor: pointer;
 }
-
 
 /* Story tiles view */
 
@@ -285,38 +210,6 @@ th span {
     to {
         margin-left: 0%;
         width: 100%;
-    }
-}
-
-/* Spinner, courtesy of http://tobiasahlin.com/spinkit/ */
-.spinner {
-    width: 30px;
-    height: 30px;
-    margin-top: 10px;
-    margin-right: 10px;
-    background-color: #333;
-
-    border-radius: 100%;
-    -webkit-animation: sk-scaleout 1.0s infinite ease-in-out;
-    animation: sk-scaleout 1.0s infinite ease-in-out;
-}
-
-@-webkit-keyframes sk-scaleout {
-    0% { -webkit-transform: scale(0) }
-    100% {
-        -webkit-transform: scale(1.0);
-        opacity: 0;
-    }
-}
-
-@keyframes sk-scaleout {
-    0% {
-        -webkit-transform: scale(0);
-        transform: scale(0);
-    } 100% {
-        -webkit-transform: scale(1.0);
-        transform: scale(1.0);
-        opacity: 0;
     }
 }
 
