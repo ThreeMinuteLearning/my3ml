@@ -272,7 +272,7 @@ updateStudentUsername = Q.statement sql encode D.unit True
 -- Stories
 
 selectStorySql :: ByteString
-selectStorySql = "SELECT id, title, img_url, level, curriculum, tags, content, words, clarify_word FROM story"
+selectStorySql = "SELECT id, title, img_url, level, qualification, tags, content, words, clarify_word FROM story"
 
 selectAllStories :: Query () [Story]
 selectAllStories =
@@ -301,21 +301,21 @@ storyRow = Story
 insertStory :: Query Story StoryId
 insertStory = Q.statement sql storyEncoder (D.singleRow $ fromIntegral <$> D.value D.int4) True
   where
-    sql = "INSERT INTO story (id, title, img_url, level, curriculum, tags, content, words, clarify_word) \
+    sql = "INSERT INTO story (id, title, img_url, level, qualification, tags, content, words, clarify_word) \
                  \VALUES ($1, $2, $3, $4, $5, $6, $7, (array(select word::dict_entry from unnest ($8, $9) as word)), $10) \
                  \RETURNING id"
 
 updateStory_ :: Query Story ()
 updateStory_ = Q.statement sql storyEncoder D.unit True
   where
-    sql = "UPDATE story SET title=$2, img_url=$3, level=$4, curriculum=$5, tags=$6, content=$7, words=(array(select word::dict_entry from unnest ($8, $9) as word)), clarify_word=$10 WHERE id=$1"
+    sql = "UPDATE story SET title=$2, img_url=$3, level=$4, qualification=$5, tags=$6, content=$7, words=(array(select word::dict_entry from unnest ($8, $9) as word)), clarify_word=$10 WHERE id=$1"
 
 storyEncoder :: E.Params Story
 storyEncoder = contramap (fromIntegral . (id :: Story -> StoryId)) (E.value E.int4)
     <> contramap title evText
     <> contramap img evText
     <> contramap (fromIntegral . storyLevel) (E.value E.int4)
-    <> contramap curriculum evText
+    <> contramap qualification evText
     <> contramap tags (eArray E.text)
     <> contramap content evText
     <> contramap (map word . words) (eArray E.text)

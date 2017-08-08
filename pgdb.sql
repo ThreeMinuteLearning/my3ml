@@ -19,7 +19,8 @@ CREATE TABLE story
     , title text NOT NULL
     , img_url text NOT NULL
     , level smallint NOT NULL CHECK (level >= 0 AND level < 10)
-    , curriculum text NOT NULL CHECK (length(curriculum) > 0)
+    , qualification text NOT NULL CHECK (length(qualification) > 0)
+    , curriculum text CHECK (length(curriculum) > 0)
     , tags text[] NOT NULL
     , content text NOT NULL CHECK (length(content) > 0)
     , words dict_entry[] NOT NULL

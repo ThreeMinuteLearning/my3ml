@@ -23,7 +23,7 @@ data Story = Story
     , title :: Text
     , img :: Text
     , level :: Int
-    , curriculum :: Text
+    , qualification :: Text
     , tags :: [Text]
     , content :: Text
     , words :: [DictEntry]

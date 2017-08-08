@@ -101,7 +101,7 @@ filterStories storyFilter stories =
                 (firstMatch (Regex.contains r) tags) /= Nothing
 
             match story =
-                Regex.contains r story.title || Regex.contains r story.curriculum || tagMatch story.tags || Regex.contains r story.content
+                Regex.contains r story.title || Regex.contains r story.qualification || tagMatch story.tags || Regex.contains r story.content
         in
             List.filter match stories
 
@@ -143,7 +143,7 @@ tableConfig =
                 [ storyTitleColumn
                 , Table.stringColumn "General" (tag 1)
                 , Table.stringColumn "BGE" (tag 2)
-                , Table.stringColumn "SQA" .curriculum
+                , Table.stringColumn "SQA" .qualification
                 , levelColumn
                 ]
             , customizations = Bootstrap.tableCustomizations

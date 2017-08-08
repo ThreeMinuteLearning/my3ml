@@ -62,7 +62,7 @@ init originalSession slug =
 
 makeSqaTags : List Api.Story -> List String
 makeSqaTags =
-    List.map .curriculum >> Set.fromList >> Set.toList
+    List.map .qualification >> Set.fromList >> Set.toList
 
 
 initMultiselect : List Api.Story -> List String -> Multiselect.Model
