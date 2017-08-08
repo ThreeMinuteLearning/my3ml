@@ -141,9 +141,9 @@ tableConfig =
             , toMsg = SetTableState
             , columns =
                 [ storyTitleColumn
-                , Table.stringColumn "Curriculum" .curriculum
-                , Table.stringColumn "Tag2" (tag 1)
-                , Table.stringColumn "Tag3" (tag 2)
+                , Table.stringColumn "General" (tag 1)
+                , Table.stringColumn "BGE" (tag 2)
+                , Table.stringColumn "SQA" .curriculum
                 , levelColumn
                 ]
             , customizations = Bootstrap.tableCustomizations
