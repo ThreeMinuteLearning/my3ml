@@ -142,7 +142,7 @@ tableConfig =
             , columns =
                 [ storyTitleColumn
                 , Table.stringColumn "General" (tag 1)
-                , Table.stringColumn "BGE" (tag 2)
+                , Table.stringColumn "BGE" (Maybe.withDefault "" << .curriculum)
                 , Table.stringColumn "SQA" .qualification
                 , levelColumn
                 ]

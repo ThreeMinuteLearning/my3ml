@@ -24,6 +24,7 @@ data Story = Story
     , img :: Text
     , level :: Int
     , qualification :: Text
+    , curriculum :: Maybe Text
     , tags :: [Text]
     , content :: Text
     , words :: [DictEntry]

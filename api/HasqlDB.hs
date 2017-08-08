@@ -272,7 +272,7 @@ updateStudentUsername = Q.statement sql encode D.unit True
 -- Stories
 
 selectStorySql :: ByteString
-selectStorySql = "SELECT id, title, img_url, level, qualification, tags, content, words, clarify_word FROM story"
+selectStorySql = "SELECT id, title, img_url, level, qualification, curriculum, tags, content, words, clarify_word FROM story"
 
 selectAllStories :: Query () [Story]
 selectAllStories =
@@ -292,6 +292,7 @@ storyRow = Story
     <*> dvText
     <*> (fromIntegral <$> D.value D.int2)
     <*> dvText
+    <*> D.nullableValue D.text
     <*> dArray D.text
     <*> dvText
     <*> dArray dictEntryValue
@@ -301,14 +302,14 @@ storyRow = Story
 insertStory :: Query Story StoryId
 insertStory = Q.statement sql storyEncoder (D.singleRow $ fromIntegral <$> D.value D.int4) True
   where
-    sql = "INSERT INTO story (id, title, img_url, level, qualification, tags, content, words, clarify_word) \
-                 \VALUES ($1, $2, $3, $4, $5, $6, $7, (array(select word::dict_entry from unnest ($8, $9) as word)), $10) \
+    sql = "INSERT INTO story (title, img_url, level, qualification, curriculum, tags, content, words, clarify_word) \
+                 \VALUES ($2, $3, $4, $5, $6, $7, $8, (array(select word::dict_entry from unnest ($9, $10) as word)), $11) \
                  \RETURNING id"
 
 updateStory_ :: Query Story ()
 updateStory_ = Q.statement sql storyEncoder D.unit True
   where
-    sql = "UPDATE story SET title=$2, img_url=$3, level=$4, qualification=$5, tags=$6, content=$7, words=(array(select word::dict_entry from unnest ($8, $9) as word)), clarify_word=$10 WHERE id=$1"
+    sql = "UPDATE story SET title=$2, img_url=$3, level=$4, qualification=$5, curriculum=$6, tags=$7, content=$8, words=(array(select word::dict_entry from unnest ($9, $10) as word)), clarify_word=$11 WHERE id=$1"
 
 storyEncoder :: E.Params Story
 storyEncoder = contramap (fromIntegral . (id :: Story -> StoryId)) (E.value E.int4)
@@ -316,6 +317,7 @@ storyEncoder = contramap (fromIntegral . (id :: Story -> StoryId)) (E.value E.in
     <> contramap img evText
     <> contramap (fromIntegral . storyLevel) (E.value E.int4)
     <> contramap qualification evText
+    <> contramap curriculum (E.nullableValue E.text)
     <> contramap tags (eArray E.text)
     <> contramap content evText
     <> contramap (map word . words) (eArray E.text)
