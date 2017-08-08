@@ -1,4 +1,4 @@
-module Page.Editor exposing (Model, Msg, init, update, view)
+module Page.Editor exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
 import Data.Session as Session exposing (Session, authorization, findStoryById)
@@ -7,9 +7,12 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 import Http
+import Multiselect
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Ports
+import Set
 import Task exposing (Task)
+import Tuple exposing (second)
 import Util exposing ((=>))
 import Views.Story as Story
 
@@ -17,6 +20,8 @@ import Views.Story as Story
 type alias Model =
     { story : Api.Story
     , picWidth : Int
+    , sqaTags : List String
+    , tagsMultiselect : Multiselect.Model
     }
 
 
@@ -26,6 +31,7 @@ type Msg
     | ImageWidth Float
     | Save
     | SaveResponse (Result Http.Error Api.Story)
+    | MSMsg Multiselect.Msg
 
 
 init : Session -> Int -> Task PageLoadError ( Model, Session )
@@ -37,7 +43,13 @@ init originalSession slug =
         lookupStoryAndCreateModel session =
             case findStoryById session.cache slug of
                 Just story ->
-                    Task.succeed ( Model story 0, session )
+                    Task.succeed
+                        ( Model story
+                            0
+                            (makeSqaTags session.cache.stories)
+                            (initMultiselect session.cache.stories story.tags)
+                        , session
+                        )
 
                 Nothing ->
                     Task.fail (PageLoadError "Sorry. That story couldn't be found.")
@@ -46,6 +58,27 @@ init originalSession slug =
             |> Task.andThen (\newSession -> Session.loadStories newSession)
             |> Task.mapError handleLoadError
             |> Task.andThen lookupStoryAndCreateModel
+
+
+makeSqaTags : List Api.Story -> List String
+makeSqaTags =
+    List.map .curriculum >> Set.fromList >> Set.toList
+
+
+initMultiselect : List Api.Story -> List String -> Multiselect.Model
+initMultiselect stories selection =
+    let
+        tags =
+            stories
+                |> List.concatMap .tags
+                |> Set.fromList
+                |> Set.toList
+                |> \ts -> List.map2 (,) ts ts
+
+        ms =
+            Multiselect.initModel tags "Tags"
+    in
+        { ms | selected = List.map2 (,) selection selection }
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
@@ -73,10 +106,26 @@ update session msg ({ story } as model) =
         SaveResponse (Err _) ->
             ( model, Cmd.none )
 
+        MSMsg sub ->
+            let
+                ( subModel, subCmd ) =
+                    Multiselect.update sub model.tagsMultiselect
 
-subscriptions : Sub Msg
-subscriptions =
-    Sub.batch [ Ports.imgWidth ImageWidth ]
+                selected =
+                    List.map second (Multiselect.getSelectedValues subModel)
+
+                newStory =
+                    { story | tags = selected }
+            in
+                { model | tagsMultiselect = subModel, story = newStory } ! [ Cmd.map MSMsg subCmd ]
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ Ports.imgWidth ImageWidth
+        , Sub.map MSMsg <| Multiselect.subscriptions model.tagsMultiselect
+        ]
 
 
 view : Model -> Html Msg
@@ -95,6 +144,12 @@ view model =
                 ]
             , div [ class "col-md-5" ]
                 [ Story.view defaultSettings model.story model.picWidth GetImgWidth ]
+            ]
+        , div [ class "row" ]
+            [ div [ class "col-xs-1" ] []
+            , div [ class "col-md-10" ]
+                [ Html.map MSMsg <| Multiselect.view model.tagsMultiselect
+                ]
             ]
         , div [ class "row" ]
             [ div [ class "col-xs-1" ] []

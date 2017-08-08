@@ -443,6 +443,9 @@ pageSubscriptions page =
         Story _ ->
             Sub.map StoryMsg Story.subscriptions
 
+        Editor subModel ->
+            Sub.map EditorMsg (Editor.subscriptions subModel)
+
         _ ->
             Sub.none
 
