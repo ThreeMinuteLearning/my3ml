@@ -3,6 +3,7 @@ module Page.FindStory exposing (Model, Msg, init, view, update)
 import Api
 import Bootstrap
 import Data.Session as Session exposing (Session)
+import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
@@ -33,6 +34,9 @@ initialModel session =
                 ""
             else
                 "Title"
+
+        stories =
+            session.cache.stories
     in
         Model "" (Table.initialSort sortColumn)
 
@@ -44,7 +48,7 @@ init session =
             pageLoadError e "There was a problem loading the stories."
     in
         Session.loadStories session
-            |> Task.map ((,) (initialModel session))
+            |> Task.map (\newSession -> ( initialModel newSession, newSession ))
             |> Task.mapError handleLoadError
 
 
@@ -93,8 +97,11 @@ filterStories storyFilter stories =
             r =
                 Regex.caseInsensitive (Regex.regex storyFilter)
 
+            tagMatch tags =
+                (firstMatch (Regex.contains r) tags) /= Nothing
+
             match story =
-                Regex.contains r story.title || Regex.contains r story.content
+                Regex.contains r story.title || Regex.contains r story.curriculum || tagMatch story.tags || Regex.contains r story.content
         in
             List.filter match stories
 

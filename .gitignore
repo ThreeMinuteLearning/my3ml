@@ -4,4 +4,12 @@ data
 .atomist.yml
 elm-stuff
 assets/pix
+assets/app.js
+assets/app.css
+frontend/src/Api.elm
+token_key.json
+*.eventlog
+*.profiterole.html
+*.profiterole.txt
+*.prof
 node_modules
