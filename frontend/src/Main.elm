@@ -14,6 +14,7 @@ import Page.Home as Home
 import Page.LeaderBoard as LeaderBoard
 import Page.Login as Login
 import Page.NotFound as NotFound
+import Page.Register as Register
 import Page.Story as Story
 import Page.Student as Student
 import Page.Students as Students
@@ -39,6 +40,7 @@ type Page
     | Editor Editor.Model
     | LeaderBoard LeaderBoard.Model
     | Account Account.Model
+    | Register Register.Model
 
 
 type PageState
@@ -145,6 +147,11 @@ viewPage session isLoading page =
                     |> frame Page.Account
                     |> mapMsg AccountMsg
 
+            Register subModel ->
+                Register.view subModel
+                    |> frame Page.Register
+                    |> mapMsg RegisterMsg
+
 
 type Msg
     = SetRoute (Maybe Route)
@@ -175,6 +182,7 @@ type PageMsg
     | ClassMsg Class.Msg
     | EditorMsg Editor.Msg
     | AccountMsg Account.Msg
+    | RegisterMsg Register.Msg
 
 
 getPage : PageState -> Page
@@ -263,7 +271,7 @@ setRoute maybeRoute model =
                 transition AccountLoaded (Account.init session)
 
             Just (Route.Register) ->
-                model => Cmd.none
+                { model | pageState = Loaded (Register (Register.init session)) } => Cmd.none
 
             Just (Route.Trails) ->
                 model => Cmd.none
@@ -415,6 +423,9 @@ updatePage page msg model =
 
             ( AccountMsg subMsg, Account subModel ) ->
                 toPageUpdateSession Account AccountMsg Account.update subMsg subModel
+
+            ( RegisterMsg subMsg, Register subModel ) ->
+                toPage Register RegisterMsg (Register.update model.session) subMsg subModel
 
             ( _, _ ) ->
                 model => Cmd.none

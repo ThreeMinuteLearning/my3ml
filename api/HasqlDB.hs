@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE RecordWildCards #-}
 module HasqlDB where
 
 import           Control.Exception.Safe
 import           Control.Monad (when, replicateM)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
+import           Contravariant.Extras.Contrazip
 import qualified Data.Aeson as JSON
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BC
@@ -37,6 +39,13 @@ mkDB connStr = H <$> acquire (10, 120, BC.pack connStr)
 newtype HasqlDB = H Pool
 
 instance DB HasqlDB where
+    registerNewAccount Registration {..} db = runSession db $ do
+        begin
+        schoolId_ <- S.query (schoolName, Nothing) insertSchool
+        subId <- S.query (email, password, schoolAdmin) insertAccount
+        S.query (subId, teacherName, schoolId_) insertTeacher
+        commit
+
     getAccountByUsername = runQuery selectAccountByUsername
 
     getStories = runQuery selectAllStories ()
@@ -89,9 +98,9 @@ instance DB HasqlDB where
 
     getStudentBySubjectId = runQuery selectStudentBySubjectId
 
-    createStudent (nm, lvl, schoolId_) creds db = runSession db $ do
+    createStudent (nm, lvl, schoolId_) (username, password) db = runSession db $ do
         begin
-        subId <- S.query creds insertStudentAccount
+        subId <- S.query (username, password, student) insertAccount
         let subIdText = UUID.toText subId
             s = Student subIdText nm Nothing lvl schoolId_ False Nothing
         S.query (s, subId) insertStudent
@@ -199,6 +208,9 @@ evText = E.value E.text
 eTextPair :: E.Params (Text, Text)
 eTextPair = contramap fst evText <> contramap snd evText
 
+evUserType :: E.Params UserType
+evUserType = E.value (contramap userType E.text)
+
 dvUUID :: D.Row Text
 dvUUID = UUID.toText <$> D.value D.uuid
 
@@ -232,7 +244,7 @@ userTypeValue = -- D.composite (uType <$> D.compositeValue D.text)
 selectAccountByUsername :: Query Text (Maybe Account)
 selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
   where
-    sql = "SELECT login.id, username, password, user_type :: text, level, settings \
+    sql = "SELECT login.id, username, password, user_type :: text, level, active, settings \
           \ FROM login \
           \ LEFT JOIN student \
           \ ON login.id = student.id \
@@ -244,12 +256,14 @@ selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
         <*> dvText
         <*> userTypeValue
         <*> (maybe 10 fromIntegral <$> D.nullableValue D.int2)
+        <*> D.value D.bool
         <*> D.nullableValue D.jsonb
 
-insertStudentAccount :: Query (Text, Text) UUID.UUID
-insertStudentAccount = Q.statement sql eTextPair (D.singleRow (D.value D.uuid))True
+insertAccount :: Query (Text, Text, UserType) UUID.UUID
+insertAccount = Q.statement sql encode (D.singleRow (D.value D.uuid))True
   where
-    sql = "INSERT INTO login (username, password) VALUES (lower($1), $2) RETURNING id"
+    sql = "INSERT INTO login (username, password, user_type) VALUES (lower($1), $2, $3 :: user_type) RETURNING id"
+    encode = contrazip3 evText evText evUserType
 
 updateStudentPassword :: Query (SchoolId, SubjectId, Text) ()
 updateStudentPassword = Q.statement sql encode D.unit True
@@ -329,13 +343,12 @@ storyEncoder = contramap (fromIntegral . (id :: Story -> StoryId)) (E.value E.in
 
 -- School
 
-insertSchool :: Query School ()
-insertSchool = Q.statement sql encode D.unit True
+insertSchool :: Query (Text, Maybe Text) UUID.UUID
+insertSchool = Q.statement sql encode (D.singleRow (D.value D.uuid)) False
   where
-    sql = "INSERT INTO school (id, name, description) values ($1 :: uuid,$2,$3)"
-    encode = contramap (id :: School -> SchoolId) evText
-        <> contramap (name :: School -> Text) evText
-        <> contramap (description :: School -> Maybe Text) (E.nullableValue E.text)
+    sql = "INSERT INTO school (name, description) values ($1, $2) RETURNING id"
+    encode = contramap fst evText
+        <> contramap snd (E.nullableValue E.text)
 
 -- Teachers
 
@@ -353,6 +366,12 @@ teacherRow = Teacher
     <*> dvText
     <*> D.nullableValue D.text
     <*> dvUUID
+
+insertTeacher :: Query (UUID.UUID, Text, UUID.UUID) ()
+insertTeacher = Q.statement sql encode D.unit False
+  where
+    sql = "INSERT INTO teacher (id, name, school_id) VALUES ($1, $2, $3)"
+    encode = contrazip3 (E.value E.uuid) evText (E.value E.uuid)
 
 -- Students
 
@@ -387,7 +406,7 @@ studentRow = Student
 insertStudent :: Query (Student, UUID.UUID) ()
 insertStudent = Q.statement sql encode D.unit True
   where
-    sql = "INSERT INTO student (id, name, description, level, school_id) values ($1, $2, $3, $4, $5 :: uuid)"
+    sql = "INSERT INTO student (id, name, description, level, school_id) VALUES ($1, $2, $3, $4, $5 :: uuid)"
     encode = contramap snd (E.value E.uuid)
         <> contramap ((name :: Student -> Text) . fst) evText
         <> contramap ((description :: Student -> Maybe Text) . fst) (E.nullableValue E.text)

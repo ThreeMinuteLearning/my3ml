@@ -10,7 +10,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
 import Route exposing (Route)
-import Util exposing ((=>))
+import Util exposing ((=>), defaultHttpErrorMsg)
 import Validate exposing (..)
 import Views.Form as Form
 
@@ -123,14 +123,17 @@ update msg model =
                                 401 ->
                                     [ "Username or password is incorrect" ]
 
-                                500 ->
-                                    [ "Ooops! We had trouble processing your sign-in request." ]
+                                403 ->
+                                    [ "Please wait till your account is enabled before signing in" ]
+
+                                429 ->
+                                    [ "The login server is a bit busy. Please try again" ]
 
                                 _ ->
-                                    [ response.status.message ]
+                                    [ defaultHttpErrorMsg error ]
 
                         _ ->
-                            [ "Couldn't process sign-in request" ]
+                            [ defaultHttpErrorMsg error ]
             in
                 { model | errors = List.map (\errorMessage -> Form => errorMessage) errorMessages }
                     => Cmd.none

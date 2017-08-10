@@ -16,6 +16,8 @@ import           Prelude hiding (id)
 import Api.Types
 
 class DB db where
+    registerNewAccount :: MonadIO m => Registration -> db -> m ()
+
     getAccountByUsername :: MonadIO m => Text -> db -> m (Maybe Account)
 
     getStories :: MonadIO m => db -> m [Story]

@@ -16,6 +16,7 @@ import           Control.Monad.Except (MonadError, throwError)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Logger
 import           Control.Monad.Reader
+import           Data.Maybe (isNothing)
 import           Data.Monoid ((<>), Sum(..))
 import           Data.List (scanl', last, uncons)
 import           Data.Text (Text)
@@ -59,6 +60,8 @@ loginServer authReq = do
         Just a -> do
             unless (validatePassword (password (a :: Account)) (password (authReq :: LoginRequest)))
                 (throwError err401)
+            -- new account which hasn't been enabled yet
+            unless (active a) (throwError err403)
             (accessToken, nm) <- createToken a
 
             return $ Login (id (a :: Account)) uName nm (role (a :: Account)) (level (a :: Account)) (settings (a :: Account)) accessToken
@@ -86,10 +89,20 @@ loginServer authReq = do
         return (token_, nm)
 
 accountServer :: DB db => ApiServer AccountApi db
-accountServer Nothing _ = throwError err401
-accountServer (Just token_) newSettings = do
-    runDB $ DB.updateAccountSettings (scopeSubjectId token_, newSettings)
-    return NoContent
+accountServer token_ =
+    case token_ of
+        Nothing -> throwAll err401 :<|> registerNewAccount
+        Just t -> updateSettings (scopeSubjectId t) :<|> throwAll err403
+  where
+    updateSettings userId newSettings = do
+        runDB $ DB.updateAccountSettings (userId, newSettings)
+        return NoContent
+
+    registerNewAccount registration = do
+        existing <- runDB $ DB.getAccountByUsername (email registration)
+        unless (isNothing existing) $ throwError err409
+        runDB $ DB.registerNewAccount registration
+        return NoContent
 
 storyServer :: DB db => ApiServer StoriesApi db
 storyServer token_ =

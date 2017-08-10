@@ -1,9 +1,10 @@
-module Util exposing ((=>), pair, onClickStopPropagation, viewIf, appendErrors, dialog, printButton)
+module Util exposing ((=>), pair, onClickStopPropagation, viewIf, appendErrors, dialog, printButton, defaultHttpErrorMsg)
 
 import Dialog
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onWithOptions, onClick, defaultOptions)
+import Http
 import Json.Decode as Decode
 
 
@@ -65,3 +66,27 @@ dialog closeMsg hdr body =
 printButton : msg -> String -> Html msg
 printButton print caption =
     a [ class "hidden-print", onClick print, href "#" ] [ text caption ]
+
+
+defaultHttpErrorMsg : Http.Error -> String
+defaultHttpErrorMsg err =
+    case err of
+        Http.Timeout ->
+            "The server took too long to respond. Please try again later"
+
+        Http.NetworkError ->
+            "Unable to contact the server. Please check that your network is OK"
+
+        Http.BadStatus { status } ->
+            case status.code of
+                409 ->
+                    "The server detected some conflict. Please report an error"
+
+                _ ->
+                    "Sorry, there was an error processing the request"
+
+        Http.BadPayload _ _ ->
+            "Oops. Looks like there might be a bug in the app. Couldn't decode the server response"
+
+        Http.BadUrl _ ->
+            "Couldn't send the request because the URL was wrong (shouldn't happen :-/)"

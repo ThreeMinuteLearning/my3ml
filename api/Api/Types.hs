@@ -108,6 +108,7 @@ data Account = Account
     , password :: Text
     , role :: UserType
     , level :: Int
+    , active :: Bool
     , settings :: Maybe Value
     }
 
@@ -126,6 +127,13 @@ data LeaderBoardEntry = LeaderBoardEntry
     , name :: Text
     , studentId :: SubjectId
     , score :: Int
+    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+
+data Registration = Registration
+    { email :: Text
+    , schoolName :: Text
+    , teacherName :: Text
+    , password :: Text
     } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
 
 type SubjectId = Text
@@ -149,7 +157,10 @@ type LoginApi =
     "authenticate" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] Login
 
 type AccountApi =
-    "account" :> "settings" :> AccessTokenAuth :> ReqBody '[JSON] Value :> Post '[JSON] NoContent
+    "account" :> AccessTokenAuth :>
+        (    "settings" :> ReqBody '[JSON] Value :> Post '[JSON] NoContent
+        :<|> "register" :> ReqBody '[JSON] Registration :> Post '[JSON] NoContent
+        )
 
 type StoriesApi =
     "stories" :> AccessTokenAuth :>
