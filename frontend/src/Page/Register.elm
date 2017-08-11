@@ -109,11 +109,18 @@ view : Model -> Html Msg
 view model =
     div [ class "container page" ]
         [ div [ class "row" ]
-            [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
+            [ div [ class "col-md-12" ]
                 [ h1 [ class "text-xs-center" ] [ text "Sign up" ]
-                , p [ class "text-xs-center" ]
+                , p []
+                    [ text blurb
+                    ]
+                ]
+            ]
+        , div [ class "row" ]
+            [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
+                [ p [ class "text-xs-center" ]
                     [ a [ Route.href Route.Login ]
-                        [ text "Have an account?" ]
+                        [ text "Have an account already?" ]
                     ]
                 , Form.viewErrors model.errors
                 , if model.completed then
@@ -123,6 +130,17 @@ view model =
                 ]
             ]
         ]
+
+
+blurb : String
+blurb =
+    """
+Registering will create a new school in the system for which you will be the administrator.
+You will be able to create accounts for the children in your school to use 3ml and also
+accounts for other teachers. You will be responsible for obtaining consent for your students
+to use the system, for controlling the data that they enter and for maintaining the accounts
+for your school.
+"""
 
 
 viewForm : Html Msg
