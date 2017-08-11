@@ -12,12 +12,14 @@ import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Table
 import Task exposing (Task)
-import Util exposing ((=>), dialog, viewIf)
+import Util exposing ((=>), dialog, viewIf, defaultHttpErrorMsg)
+import Views.Form as Form
 import Views.StudentTable as StudentTable
 
 
 type alias Model =
-    { class : Api.Class
+    { errors : List String
+    , class : Api.Class
     , membersTable : Table.State
     , selectedStudents : Dict String Api.Student
     , showConfirmDelete : Bool
@@ -53,7 +55,7 @@ init session_ slug =
                 |> Http.toTask
 
         mkModel newSession class =
-            ( Model class StudentTable.init Dict.empty False, newSession )
+            ( Model [] class StudentTable.init Dict.empty False, newSession )
     in
         Task.map2 mkModel (Session.loadStudents session_) loadClass
             |> Task.mapError handleLoadError
@@ -123,10 +125,14 @@ update session msg model =
                 newSession =
                     { session | cache = { cache | classes = newClasses } }
             in
-                { model | class = updatedClass } => Cmd.none => Updated newSession
+                { model | errors = [], class = updatedClass }
+                    => Cmd.none
+                    => Updated newSession
 
-        ClassMembersResponse (Err _) ->
-            model => Cmd.none => NoOp
+        ClassMembersResponse (Err e) ->
+            { model | errors = [ defaultHttpErrorMsg e ] }
+                => Cmd.none
+                => NoOp
 
 
 deleteFromCache : Api.Class -> Session -> Session
@@ -145,6 +151,7 @@ view session model =
         [ h3 [] [ text (.name model.class) ]
         , h4 [] [ text (Maybe.withDefault "" (.description model.class)) ]
         , viewToolbar model
+        , Form.viewErrorMsgs model.errors
         , h4 [] [ text "Class members" ]
         , viewTable session.cache model
         , Dialog.view

@@ -8,7 +8,7 @@ import Html exposing (..)
 import Html.Attributes exposing (class, id, selected)
 import Html.Events exposing (onInput, onSubmit)
 import Http
-import Util exposing ((=>))
+import Util exposing ((=>), defaultHttpErrorMsg)
 import Validate exposing (Validator, ifBlank, ifInvalid)
 import Views.Form as Form
 
@@ -76,7 +76,7 @@ update session msg model =
             ( model, Cmd.none ) => Just newAccounts
 
         AddStudentsResponse (Err e) ->
-            { model | errors = model.errors ++ [ (Form => "Server error while trying to save new accounts") ] }
+            { model | errors = model.errors ++ [ (Form => "Couldn't save the new accounts: " ++ defaultHttpErrorMsg e) ] }
                 => Cmd.none
                 => Nothing
 

@@ -6,7 +6,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
 import Http
-import Util exposing ((=>))
+import Util exposing ((=>), defaultHttpErrorMsg)
 import Validate exposing (Validator, ifInvalid)
 import Views.Form as Form
 
@@ -69,13 +69,13 @@ update session msg model =
                 Http.BadStatus { status } ->
                     case status.code of
                         409 ->
-                            addError model ( "username", "This user name is already taken" )
+                            addError model ("This user name is already taken")
 
                         _ ->
-                            addError model ( "", "There was an error updating the username" )
+                            addError model (defaultHttpErrorMsg e)
 
                 _ ->
-                    addError model ( "", "Username update failed" )
+                    addError model (defaultHttpErrorMsg e)
             )
                 => Cmd.none
                 => NoOp
@@ -93,7 +93,7 @@ sendUsernameChangeRequest session model =
 
 
 type alias Error =
-    ( String, String )
+    String
 
 
 validate : Model -> List Error
@@ -101,7 +101,7 @@ validate =
     Validate.all
         [ \m ->
             (ifNotLongEnough minLength)
-                ( "", "Username must be at least " ++ toString minLength ++ " characters" )
+                ("Username must be at least " ++ toString minLength ++ " characters")
                 m.username
         ]
 
@@ -130,6 +130,6 @@ view model =
             Html.button [ class "btn btn-primary pull-xs-right", tabindex 2 ] [ text "Save new username" ]
     in
         div []
-            [ Form.viewErrors model.errors
+            [ Form.viewErrorMsgs model.errors
             , viewForm
             ]

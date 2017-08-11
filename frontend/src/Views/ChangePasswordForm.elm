@@ -6,7 +6,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
 import Http
-import Util exposing ((=>))
+import Util exposing ((=>), defaultHttpErrorMsg)
 import Validate exposing (Validator, ifInvalid)
 import Views.Form as Form
 
@@ -67,8 +67,8 @@ update session msg model =
                 => Cmd.none
                 => Completed
 
-        PasswordUpdateResponse (Err _) ->
-            { model | errors = ( "", "Password update failed" ) :: model.errors }
+        PasswordUpdateResponse (Err e) ->
+            { model | errors = ("Password update failed: " ++ defaultHttpErrorMsg e) :: model.errors }
                 => Cmd.none
                 => NoOp
 
@@ -80,7 +80,7 @@ sendPasswordChangeRequest session model =
 
 
 type alias Error =
-    ( String, String )
+    String
 
 
 validate : Model -> List Error
@@ -88,9 +88,9 @@ validate =
     Validate.all
         [ \m ->
             (ifNotLongEnough m.minLength)
-                ( "", "Password must be at least " ++ toString m.minLength ++ " characters" )
+                ("Password must be at least " ++ toString m.minLength ++ " characters")
                 m.password
-        , ifInvalid (\m -> m.password /= m.confirmPassword) ( "", "Passwords don't match" )
+        , ifInvalid (\m -> m.password /= m.confirmPassword) ("Passwords don't match")
         ]
 
 
@@ -125,6 +125,6 @@ view model =
             Html.button [ class "btn btn-primary pull-xs-right", tabindex 3 ] [ text "Save new password" ]
     in
         div []
-            [ Form.viewErrors model.errors
+            [ Form.viewErrorMsgs model.errors
             , viewForm
             ]

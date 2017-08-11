@@ -13,12 +13,14 @@ import Ports
 import Set
 import Task exposing (Task)
 import Tuple exposing (second)
-import Util exposing ((=>))
+import Util exposing ((=>), defaultHttpErrorMsg)
+import Views.Form as Form
 import Views.Story as Story
 
 
 type alias Model =
-    { story : Api.Story
+    { errors : List String
+    , story : Api.Story
     , picWidth : Int
     , sqaTags : List String
     , tagsMultiselect : Multiselect.Model
@@ -44,7 +46,8 @@ init originalSession slug =
             case findStoryById session.cache slug of
                 Just story ->
                     Task.succeed
-                        ( Model story
+                        ( Model []
+                            story
                             0
                             (makeSqaTags session.cache.stories)
                             (initMultiselect session.cache.stories story.tags)
@@ -101,10 +104,11 @@ update session msg ({ story } as model) =
                    )
 
         SaveResponse (Ok story) ->
-            { model | story = story } => Cmd.none
+            { model | errors = [], story = story } => Cmd.none
 
-        SaveResponse (Err _) ->
-            ( model, Cmd.none )
+        SaveResponse (Err e) ->
+            { model | errors = [ defaultHttpErrorMsg e ] }
+                => Cmd.none
 
         MSMsg sub ->
             let
@@ -154,7 +158,8 @@ view model =
         , div [ class "row" ]
             [ div [ class "col-xs-1" ] []
             , div [ class "col-md-5" ]
-                [ button [ class "btn btn-default", onClick Save ] [ text "Save Changes" ]
+                [ Form.viewErrorMsgs model.errors
+                , button [ class "btn btn-default", onClick Save ] [ text "Save Changes" ]
                 ]
             ]
         ]

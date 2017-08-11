@@ -10,15 +10,17 @@ import Html.Events exposing (onClick)
 import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
-import Util exposing ((=>), dialog)
+import Util exposing ((=>), dialog, defaultHttpErrorMsg)
 import Views.Answers as Answers
 import Views.ChangePasswordForm as ChangePassword
 import Views.ChangeUsernameForm as ChangeUsername
+import Views.Form as Form
 import Views.SelectLevel as SelectLevel
 
 
 type alias Model =
-    { student : Api.Student
+    { errors : List String
+    , student : Api.Student
     , answers : List ( Api.Answer, Api.Story )
     , changePasswordForm : Maybe ChangePassword.Model
     , changeUsernameForm : Maybe ChangeUsername.Model
@@ -60,7 +62,7 @@ init session_ slug =
             Maybe.map ((,) a) (findStoryById session.cache a.storyId)
 
         mkModel newSession student answers =
-            ( Model student (List.filterMap (zipWithStory newSession) answers) Nothing Nothing False False (Session.isSchoolAdmin newSession), newSession )
+            ( Model [] student (List.filterMap (zipWithStory newSession) answers) Nothing Nothing False False (Session.isSchoolAdmin newSession), newSession )
     in
         Task.map3 mkModel (Session.loadStories session_) loadStudent loadAnswers
             |> Task.mapError handleLoadError
@@ -147,20 +149,24 @@ update session msg model =
                 student =
                     model.student
             in
-                { model | student = { student | deleted = Nothing } }
+                { model | errors = [], student = { student | deleted = Nothing } }
                     => Cmd.none
                     => updateSession session student
 
-        UndeleteResponse (Err _) ->
-            model => Cmd.none => session
+        UndeleteResponse (Err e) ->
+            { model | errors = [ defaultHttpErrorMsg e ] }
+                => Cmd.none
+                => session
 
         UpdateStudentResponse (Ok student) ->
-            { model | student = student, showConfirmDelete = False }
+            { model | errors = [], student = student, showConfirmDelete = False }
                 => Cmd.none
                 => updateSession session student
 
-        UpdateStudentResponse (Err _) ->
-            model => Cmd.none => session
+        UpdateStudentResponse (Err e) ->
+            { model | errors = [ defaultHttpErrorMsg e ] }
+                => Cmd.none
+                => session
 
         SetLevel newLevel ->
             if newLevel == (.level model.student) then
@@ -203,6 +209,7 @@ view model =
     div [ class "container page" ]
         [ h3 [] [ text (.name model.student) ]
         , viewToolbar model.userIsAdmin model.student
+        , Form.viewErrorMsgs model.errors
         , Answers.viewWithStories model.answers
         , Dialog.view (Maybe.map changePasswordDialog model.changePasswordForm)
         , Dialog.view (Maybe.map changeUsernameDialog model.changeUsernameForm)
