@@ -5,6 +5,7 @@ module HasqlDB where
 
 import           Control.Exception.Safe
 import           Control.Monad (when, replicateM)
+import           Control.Monad.Except (catchError, throwError)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Contravariant.Extras.Contrazip
 import qualified Data.Aeson as JSON
@@ -188,10 +189,13 @@ runQuery q p db = runSession db (S.query p q)
 
 runSession :: MonadIO m => HasqlDB -> S.Session a -> m a
 runSession (H pool) s = liftIO $ do
-    result <- use pool s
+    result <- use pool (rollbackOnError s)
     case result of
         Left e -> liftIO $ throwString (show e)
         Right r -> return r
+
+rollbackOnError :: S.Session a -> S.Session a
+rollbackOnError s_ = s_ `catchError` (\e -> S.sql "rollback;" >> throwError e)
 
 begin :: S.Session ()
 begin = S.sql "begin"
