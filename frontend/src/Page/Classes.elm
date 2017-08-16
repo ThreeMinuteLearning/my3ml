@@ -90,7 +90,7 @@ update session msg model =
 view : Session -> Model -> Html Msg
 view session model =
     div [ class "container page" ]
-        [ TeacherToolbar.view subtools
+        [ TeacherToolbar.view session subtools
         , viewTable session model
         , Dialog.view (Maybe.map addClassesDialog model.addClassForm)
         ]

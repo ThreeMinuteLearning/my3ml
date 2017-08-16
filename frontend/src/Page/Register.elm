@@ -4,7 +4,7 @@ import Api
 import Data.Session as Session exposing (Session, authorization)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onSubmit, onInput)
+import Html.Events exposing (onSubmit, onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, decodeString, field, string)
 import Json.Decode.Pipeline as Pipeline exposing (decode, optional)
@@ -17,6 +17,8 @@ import Views.Form as Form
 type alias Model =
     { errors : List Error
     , email : String
+    , registrationType : Maybe RegistrationType
+    , code : Maybe String
     , schoolName : String
     , teacherName : String
     , password : String
@@ -25,20 +27,29 @@ type alias Model =
     }
 
 
+type RegistrationType
+    = WithCode
+    | NewSchool
+
+
 type Msg
     = SubmitForm
     | SetEmail String
+    | SetCode String
     | SetSchoolName String
+    | SetRegistrationType RegistrationType
     | SetTeacherName String
     | SetPassword String
     | SetConfirmPassword String
     | RegisterResponse (Result Http.Error Api.NoContent)
 
 
-init : Session -> Model
-init session =
+init : Model
+init =
     { errors = []
     , email = ""
+    , registrationType = Nothing
+    , code = Nothing
     , schoolName = ""
     , teacherName = ""
     , password = ""
@@ -54,7 +65,7 @@ update session msg model =
             case validate model of
                 [] ->
                     { model | errors = [] }
-                        => (Api.postAccountRegister (authorization session) (Api.Registration model.email model.schoolName model.teacherName model.password)
+                        => (Api.postAccountRegister (authorization session) (Api.Registration model.email model.code model.schoolName model.teacherName model.password)
                                 |> Http.send RegisterResponse
                            )
 
@@ -64,6 +75,10 @@ update session msg model =
 
         SetEmail email ->
             { model | email = email }
+                => Cmd.none
+
+        SetCode code ->
+            { model | code = Just code, schoolName = code }
                 => Cmd.none
 
         SetSchoolName name ->
@@ -82,6 +97,10 @@ update session msg model =
             { model | confirmPassword = password }
                 => Cmd.none
 
+        SetRegistrationType t ->
+            { model | registrationType = Just t }
+                => Cmd.none
+
         RegisterResponse (Err error) ->
             let
                 errorMessages =
@@ -90,6 +109,9 @@ update session msg model =
                             case status.code of
                                 409 ->
                                     [ "Account already registered" ]
+
+                                403 ->
+                                    [ "The registration code was not found or may have expired" ]
 
                                 _ ->
                                     [ "There was an error during registration" ]
@@ -112,7 +134,7 @@ view model =
             [ div [ class "col-md-12" ]
                 [ h1 [ class "text-xs-center" ] [ text "Sign up" ]
                 , p []
-                    [ text blurb
+                    [ text (blurb model.registrationType)
                     ]
                 ]
             ]
@@ -123,19 +145,35 @@ view model =
                         [ text "Have an account already?" ]
                     ]
                 , Form.viewErrors model.errors
-                , if model.completed then
+                , if model.registrationType == Nothing then
+                    viewRegistrationOptions
+                  else if model.completed then
                     p [] [ text "Registration complete. Someone will be in touch when your account has been activated." ]
                   else
-                    viewForm
+                    viewForm model
                 ]
             ]
         ]
 
 
-blurb : String
-blurb =
-    """
-Registering will create a new school in the system for which you will be the administrator.
+blurb : Maybe RegistrationType -> String
+blurb rt =
+    case rt of
+        Nothing ->
+            """
+You can either register a new school or, if your school is already using 3ml, as a teacher in an existing school.
+"""
+
+        Just WithCode ->
+            """To register for an existing school, a 3ml admin at your school should have given
+you a registration code. Please enter it in the form below. If you don't have a code, please
+ask the teacher who registered your school for one. The code is only valid for a short time, so you
+should complete your registration right away.
+"""
+
+        Just NewSchool ->
+            """
+Registering will create a new school in the 3ml system for which you will be the administrator.
 You will be able to create accounts for the children in your school to use 3ml and also
 accounts for other teachers. You will be responsible for obtaining consent for your students
 to use the system, for controlling the data that they enter and for maintaining the accounts
@@ -143,16 +181,36 @@ for your school.
 """
 
 
-viewForm : Html Msg
-viewForm =
+viewRegistrationOptions : Html Msg
+viewRegistrationOptions =
+    div []
+        [ button [ type_ "button", class "btn", onClick (SetRegistrationType NewSchool) ] [ text "Register a new school" ]
+        , text " "
+        , button [ type_ "button", class "btn btn-primary", onClick (SetRegistrationType WithCode) ] [ text "Register as a teacher in an existing school" ]
+        ]
+
+
+viewForm : Model -> Html Msg
+viewForm model =
     Html.form [ onSubmit SubmitForm ]
-        [ Form.input
-            [ class "form-control-lg"
-            , placeholder "School name"
-            , onInput SetSchoolName
-            , maxlength 100
-            ]
-            []
+        [ case model.registrationType of
+            Just WithCode ->
+                Form.input
+                    [ class "form-control-lg"
+                    , placeholder "Registration code"
+                    , onInput SetCode
+                    , maxlength 100
+                    ]
+                    []
+
+            _ ->
+                Form.input
+                    [ class "form-control-lg"
+                    , placeholder "School name"
+                    , onInput SetSchoolName
+                    , maxlength 100
+                    ]
+                    []
         , Form.input
             [ class "form-control-lg"
             , placeholder "Your name"

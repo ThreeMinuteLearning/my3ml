@@ -3,12 +3,15 @@
 {-# LANGUAGE RecordWildCards #-}
 module HasqlDB where
 
+import           Control.Applicative (liftA2)
 import           Control.Exception.Safe
 import           Control.Monad (when, replicateM)
 import           Control.Monad.Except (catchError, throwError)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Contravariant.Extras.Contrazip
+import           Crypto.Random (getRandomBytes)
 import qualified Data.Aeson as JSON
+import           Data.ByteArray.Encoding (convertToBase, Base(Base16))
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BC
 import           Data.Functor.Contravariant
@@ -20,6 +23,7 @@ import           Data.Maybe (fromMaybe)
 import           Data.Monoid
 import           Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Data.UUID as UUID
 import           Hasql.Query (Query)
 import           Hasql.Pool (Pool, use, acquire)
@@ -40,12 +44,32 @@ mkDB connStr = H <$> acquire (10, 120, BC.pack connStr)
 newtype HasqlDB = H Pool
 
 instance DB HasqlDB where
-    registerNewAccount Registration {..} db = runSession db $ do
-        begin
-        schoolId_ <- S.query (schoolName, Nothing) insertSchool
-        subId <- S.query (email, password, schoolAdmin) insertAccount
-        S.query (subId, teacherName, schoolId_) insertTeacher
-        commit
+    registerNewAccount Registration {..} db = runSession db $
+        case code of
+            Nothing -> do
+                begin
+                schoolId_ <- S.query (schoolName, Nothing) insertSchool
+                subId <- S.query (email, password, schoolAdmin) insertAccount
+                S.query (subId, teacherName, schoolId_) insertTeacher
+                commit
+                return (Just ())
+            Just cd -> do
+                begin
+                schoolId_ <- S.query cd getRegistrationCode
+                case schoolId_ of
+                    Nothing -> S.sql "rollback" >> return Nothing
+                    Just sid ->  do
+                        subId <- S.query (email, password, teacher) insertAccount
+                        S.query (subId, teacherName, sid) insertTeacher
+                        commit
+                        return (Just ())
+
+    createRegistrationCode schoolId_ db = do
+        code <- liftIO generateCode
+        runQuery insertRegistrationCode (code, schoolId_) db
+        return code
+
+    activateAccount = runQuery activateTeacherAccount
 
     getAccountByUsername = runQuery selectAccountByUsername
 
@@ -142,6 +166,8 @@ instance DB HasqlDB where
 
     getTeacherBySubjectId = runQuery selectTeacherBySubjectId
 
+    getTeachers = runQuery selectTeachersBySchool
+
     getDictionary db = do
         elts <- groupBy ((==) `on` fst) <$> runQuery selectDictionary () db
         return $ Map.fromList (map dictWord elts)
@@ -172,6 +198,13 @@ instance DB HasqlDB where
     getLeaderBoard = runQuery selectLeaderboardBySchoolId
 
     updateAccountSettings = runQuery updateAccountSettings_
+
+
+generateCode :: IO Text
+generateCode = do
+    codeBytes <- getRandomBytes 8 :: IO ByteString
+    let hexCode = convertToBase Base16 codeBytes :: ByteString
+    return $ TE.decodeUtf8 hexCode
 
 updatedFromMaybe :: MonadIO m => Maybe a -> m a
 updatedFromMaybe (Just a) = return a
@@ -244,6 +277,26 @@ userTypeValue = -- D.composite (uType <$> D.compositeValue D.text)
         _ -> student
 
 -- User accounts
+
+insertRegistrationCode :: Query (Text, SchoolId) ()
+insertRegistrationCode = Q.statement sql eTextPair D.unit False
+  where
+    sql = "INSERT INTO registration_code (code, school_id) VALUES ($1, $2 :: uuid)"
+
+getRegistrationCode :: Query Text (Maybe UUID.UUID)
+getRegistrationCode = Q.statement sql evText (D.maybeRow (D.value D.uuid)) False
+  where
+    sql = "DELETE FROM registration_code WHERE code = $1 RETURNING school_id"
+
+
+activateTeacherAccount :: Query (SchoolId, SubjectId) ()
+activateTeacherAccount = Q.statement sql eTextPair D.unit False
+  where
+    sql = "UPDATE login SET active = true \
+          \ WHERE id = (SELECT id FROM teacher \
+                     \  WHERE id = $2 :: uuid \
+                     \  AND school_id = $1 :: uuid \
+                     \ )"
 
 selectAccountByUsername :: Query Text (Maybe Account)
 selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
@@ -363,6 +416,16 @@ selectTeacherBySubjectId :: Query SubjectId Teacher
 selectTeacherBySubjectId = Q.statement sql evText (D.singleRow teacherRow) True
   where
     sql = selectTeacherSql <> " WHERE id = $1 :: uuid"
+
+selectTeachersBySchool :: Query SchoolId [(Teacher, Bool)]
+selectTeachersBySchool = Q.statement sql evText (D.rowsList (liftA2 (,) teacherRow (D.value D.bool))) True
+  where
+    sql = "SELECT t.id, t.name, t.bio, t.school_id, a.active \
+          \ FROM teacher as t \
+          \ JOIN login as a \
+          \ ON t.id = a.id \
+          \ WHERE school_id = $1 :: uuid "
+
 
 teacherRow :: D.Row Teacher
 teacherRow = Teacher

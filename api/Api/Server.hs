@@ -91,8 +91,8 @@ loginServer authReq = do
 accountServer :: DB db => ApiServer AccountApi db
 accountServer token_ =
     case token_ of
-        Nothing -> throwAll err401 :<|> registerNewAccount
-        Just t -> updateSettings (scopeSubjectId t) :<|> throwAll err403
+        Nothing -> throwAll err401 :<|> registerNewAccount :<|> throwAll err401
+        Just t -> updateSettings (scopeSubjectId t) :<|> throwAll err403 :<|> newRegistrationCode t
   where
     updateSettings userId newSettings = do
         runDB $ DB.updateAccountSettings (userId, newSettings)
@@ -101,8 +101,15 @@ accountServer token_ =
     registerNewAccount registration = do
         existing <- runDB $ DB.getAccountByUsername (email registration)
         unless (isNothing existing) $ throwError err409
-        runDB $ DB.registerNewAccount registration
-        return NoContent
+        result <- runDB $ DB.registerNewAccount registration
+        case result of
+            Just _ -> return NoContent
+            Nothing -> throwError err403
+
+    newRegistrationCode t = case t of
+        TeacherScope _ schoolId_ True ->
+            runDB $ DB.createRegistrationCode schoolId_
+        _ -> throwError err403
 
 storyServer :: DB db => ApiServer StoriesApi db
 storyServer token_ =
@@ -167,11 +174,12 @@ schoolServer scope = case scope of
         :<|> throwAll err403
         :<|> answersServer scp
         :<|> leaderBoardServer sid
+        :<|> throwAll err403
     _ -> throwAll err403
 
 
-specificSchoolServer :: DB db => AccessScope -> SchoolId -> ApiServer (ClassesApi :<|> StudentsApi :<|> AnswersApi :<|> LeaderBoardApi) db
-specificSchoolServer scp sid = classesServer (scopeSubjectId scp) sid :<|> studentsServer scp sid :<|> answersServer scp :<|> leaderBoardServer sid
+specificSchoolServer :: DB db => AccessScope -> SchoolId -> ApiServer (ClassesApi :<|> StudentsApi :<|> AnswersApi :<|> LeaderBoardApi :<|> TeachersApi) db
+specificSchoolServer scp sid = classesServer (scopeSubjectId scp) sid :<|> studentsServer scp sid :<|> answersServer scp :<|> leaderBoardServer sid :<|> teachersServer scp sid
 
 
 classesServer :: DB db => SubjectId -> SchoolId -> ApiServer ClassesApi db
@@ -260,6 +268,13 @@ studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStu
         let creds = (uname, pass)
         stdnt <- runDB $ DB.createStudent (uname, 5, schoolId_) creds
         return (stdnt, creds)
+
+teachersServer :: DB db => AccessScope -> SchoolId -> ApiServer TeachersApi db
+teachersServer (TeacherScope _ _ True) schoolId_ = runDB (DB.getTeachers schoolId_) :<|> activateAccount
+  where
+    activateAccount accountId = runDB (DB.activateAccount (schoolId_, accountId)) >> return accountId
+teachersServer _ _ = throwAll err403
+
 
 
 answersServer :: DB db => AccessScope -> ApiServer AnswersApi db

@@ -166,7 +166,7 @@ update session msg model =
 view : Session -> Model -> Html Msg
 view session model =
     div [ class "container page" ]
-        [ TeacherToolbar.view (subtools session)
+        [ TeacherToolbar.view session (subtools session)
         , row [ NewAccounts.view PrintWindow ClearNewAccounts model.studentAccountsCreated ]
         , viewStudentsFilter session.cache model
         , viewTable session.cache model

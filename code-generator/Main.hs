@@ -53,6 +53,7 @@ specs =
         <> sourceFor (Proxy :: Proxy Login)
         <> sourceFor (Proxy :: Proxy UserType)
         <> sourceFor (Proxy :: Proxy Student)
+        <> sourceFor (Proxy :: Proxy Teacher)
         <> sourceFor (Proxy :: Proxy StoryTrail)
         <> sourceFor (Proxy :: Proxy LoginRequest)
         <> sourceFor (Proxy :: Proxy LeaderBoardEntry)

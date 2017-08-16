@@ -1,19 +1,23 @@
 module Views.TeacherToolbar exposing (view)
 
 import Bootstrap exposing (toolbar, btnGroup)
+import Data.Session exposing (Session, isSchoolAdmin)
 import Exts.Html.Bootstrap exposing (formGroup, row)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Route
+import Util exposing (viewIf)
 
 
-view : List (Html msg) -> Html msg
-view subtools =
+view : Session -> List (Html msg) -> Html msg
+view session subtools =
     row
         [ toolbar "toolbar"
             [ btnGroup
                 [ btn (routeTo Route.Students) [ text "Students" ]
                 , btn (routeTo Route.Classes) [ text "Classes" ]
+                , viewIf (isSchoolAdmin session)
+                    (btn (routeTo Route.Teachers) [ text "Teachers" ])
                 ]
             , btnGroup subtools
             ]

@@ -26,6 +26,7 @@ type Route
 type TeacherSubRoute
     = Students
     | Classes
+    | Teachers
     | Student String
     | Class String
 
@@ -54,6 +55,7 @@ teacherSubRoute =
         , Url.map Students (s "students")
         , Url.map Class (s "classes" </> string)
         , Url.map Classes (s "classes")
+        , Url.map Teachers (s "teachers")
         ]
 
 
@@ -95,6 +97,9 @@ routeToString page =
 
                 Teacher Classes ->
                     [ "teacher", "classes" ]
+
+                Teacher Teachers ->
+                    [ "teacher", "teachers" ]
 
                 Teacher (Student slug) ->
                     [ "teacher", "students", slug ]

@@ -16,7 +16,11 @@ import           Prelude hiding (id)
 import Api.Types
 
 class DB db where
-    registerNewAccount :: MonadIO m => Registration -> db -> m ()
+    registerNewAccount :: MonadIO m => Registration -> db -> m (Maybe ())
+
+    createRegistrationCode :: MonadIO m => SchoolId -> db -> m Text
+
+    activateAccount :: MonadIO m => (SchoolId, SubjectId) -> db -> m ()
 
     getAccountByUsername :: MonadIO m => Text -> db -> m (Maybe Account)
 
@@ -69,6 +73,8 @@ class DB db where
     setStudentUsername :: MonadIO m => SchoolId -> SubjectId -> Text -> db -> m ()
 
     getTeacherBySubjectId :: MonadIO m => SubjectId -> db -> m Teacher
+
+    getTeachers :: MonadIO m => SchoolId -> db -> m [(Teacher, Bool)]
 
     getDictionary :: MonadIO m => db -> m WordDictionary
 

@@ -35,6 +35,7 @@ library
                      , hasql-pool
                      , jose-jwt
                      , monad-logger
+                     , memory > 0.14
                      , mtl
                      , safe-exceptions >= 0.1.4
                      , servant-server >= 0.11

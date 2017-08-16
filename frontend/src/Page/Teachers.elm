@@ -1,0 +1,124 @@
+module Page.Teachers exposing (Model, Msg, init, update, view)
+
+import Api
+import Bootstrap
+import Data.Session as Session exposing (Session, authorization)
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
+import Http
+import Page.Errored exposing (PageLoadError(..), pageLoadError)
+import Table
+import Task exposing (Task)
+import Tuple exposing (first, second)
+import Util exposing ((=>))
+import Views.TeacherToolbar as TeacherToolbar
+
+
+type alias Model =
+    { tableState : Table.State
+    , registrationCode : Maybe String
+    , teachers : List ( Api.Teacher, Bool )
+    }
+
+
+type Msg
+    = SetTableState Table.State
+    | ActivateAccount String
+    | ActivateAccountResponse (Result Http.Error String)
+    | GenerateRegistrationCode
+    | GenerateRegistrationCodeResponse (Result Http.Error String)
+
+
+init : Session -> Task PageLoadError Model
+init session =
+    let
+        handleLoadError e =
+            pageLoadError e "Unable to load teacher data."
+
+        createModel =
+            Debug.log "Creating model" <|
+                Model (Table.initialSort "Name") Nothing
+    in
+        Api.getSchoolTeachers (authorization session)
+            |> Http.toTask
+            |> Task.mapError handleLoadError
+            |> Task.map createModel
+
+
+update : Session -> Msg -> Model -> ( Model, Cmd Msg )
+update session msg model =
+    case msg of
+        SetTableState state ->
+            { model | tableState = state } => Cmd.none
+
+        ActivateAccount accId ->
+            model
+                => (Api.postSchoolTeachersByTeacherIdActivate (authorization session) accId
+                        |> Http.send ActivateAccountResponse
+                   )
+
+        ActivateAccountResponse (Ok accId) ->
+            model => Cmd.none
+
+        ActivateAccountResponse (Err e) ->
+            model => Cmd.none
+
+        GenerateRegistrationCode ->
+            model
+                => (Api.postAccountRegisterCode (authorization session)
+                        |> Http.send GenerateRegistrationCodeResponse
+                   )
+
+        GenerateRegistrationCodeResponse (Ok code) ->
+            { model | registrationCode = Just code } => Cmd.none
+
+        GenerateRegistrationCodeResponse (Err _) ->
+            model => Cmd.none
+
+
+view : Session -> Model -> Html Msg
+view session model =
+    div [ class "container page" ]
+        [ TeacherToolbar.view session [ newRegistrationCodeButton ]
+        , viewTable model
+        ]
+
+
+viewTable : Model -> Html Msg
+viewTable model =
+    div [ class "row hidden-print" ]
+        [ Table.view tableConfig model.tableState model.teachers
+        ]
+
+
+newRegistrationCodeButton : Html Msg
+newRegistrationCodeButton =
+    Bootstrap.btn GenerateRegistrationCode [ text "New Teacher Account" ]
+
+
+tableConfig : Table.Config ( Api.Teacher, Bool ) Msg
+tableConfig =
+    Table.customConfig
+        { toId = .id << first
+        , toMsg = SetTableState
+        , columns =
+            [ Table.stringColumn "Name" (.name << first)
+            , Table.veryCustomColumn
+                { name = ""
+                , viewData = viewActivationButton
+                , sorter = Table.unsortable
+                }
+            ]
+        , customizations = Bootstrap.tableCustomizations
+        }
+
+
+viewActivationButton : ( Api.Teacher, Bool ) -> Table.HtmlDetails Msg
+viewActivationButton ( teacher, isActive ) =
+    if isActive then
+        Table.HtmlDetails [] []
+    else
+        Table.HtmlDetails []
+            [ button [ type_ "button", onClick (ActivateAccount teacher.id) ] [ text "Activate account" ]
+            ]

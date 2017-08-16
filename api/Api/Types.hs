@@ -131,6 +131,7 @@ data LeaderBoardEntry = LeaderBoardEntry
 
 data Registration = Registration
     { email :: Text
+    , code :: Maybe Text
     , schoolName :: Text
     , teacherName :: Text
     , password :: Text
@@ -160,6 +161,7 @@ type AccountApi =
     "account" :> AccessTokenAuth :>
         (    "settings" :> ReqBody '[JSON] Value :> Post '[JSON] NoContent
         :<|> "register" :> ReqBody '[JSON] Registration :> Post '[JSON] NoContent
+        :<|> "register" :> "code" :> PostNoContent '[JSON] Text
         )
 
 type StoriesApi =
@@ -186,6 +188,7 @@ type SchoolsApi =
              :<|> StudentsApi
              :<|> AnswersApi
              :<|> LeaderBoardApi
+             :<|> TeachersApi
              )
         )
 
@@ -195,6 +198,7 @@ type SchoolApi =
         :<|> StudentsApi
         :<|> AnswersApi
         :<|> LeaderBoardApi
+        :<|> TeachersApi
         )
 
 type ClassesApi =
@@ -220,6 +224,16 @@ type StudentsApi =
              :<|> "undelete" :> PostNoContent '[JSON] NoContent
              )
         :<|> ReqBody '[JSON] [Text] :> Post '[JSON] [(Student, (Text, Text))]
+        )
+
+
+type TeachersApi =
+    "teachers" :>
+        (    Get '[JSON] [(Teacher, Bool)]
+        :<|> Capture "teacherId" SubjectId :>
+            (
+             "activate" :> PostNoContent '[JSON] SubjectId
+            )
         )
 
 type AnswersApi =

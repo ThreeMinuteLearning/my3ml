@@ -103,6 +103,12 @@ CREATE TABLE story_answer
     , PRIMARY KEY (student_id, story_id)
     );
 
+CREATE TABLE registration_code
+    ( code text PRIMARY KEY
+    , school_id uuid NOT NULL REFERENCES school
+    , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
 CREATE MATERIALIZED VIEW leaderboard
 AS
     SELECT row_number() OVER (ORDER BY a.score DESC) AS position

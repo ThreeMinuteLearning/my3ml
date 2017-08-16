@@ -18,6 +18,7 @@ import Page.Register as Register
 import Page.Story as Story
 import Page.Student as Student
 import Page.Students as Students
+import Page.Teachers as Teachers
 import Ports
 import Route exposing (Route)
 import Task
@@ -41,6 +42,7 @@ type Page
     | LeaderBoard LeaderBoard.Model
     | Account Account.Model
     | Register Register.Model
+    | Teachers Teachers.Model
 
 
 type PageState
@@ -152,6 +154,11 @@ viewPage session isLoading page =
                     |> frame Page.Register
                     |> mapMsg RegisterMsg
 
+            Teachers subModel ->
+                Teachers.view session subModel
+                    |> frame Page.Teacher
+                    |> mapMsg TeachersMsg
+
 
 type Msg
     = SetRoute (Maybe Route)
@@ -164,6 +171,7 @@ type PageLoaded
     | StoryLoaded (Result PageLoadError ( Story.Model, Session ))
     | FindStoryLoaded (Result PageLoadError ( FindStory.Model, Session ))
     | StudentsLoaded (Result PageLoadError ( Students.Model, Session ))
+    | TeachersLoaded (Result PageLoadError Teachers.Model)
     | StudentLoaded (Result PageLoadError ( Student.Model, Session ))
     | ClassesLoaded (Result PageLoadError ( Classes.Model, Session ))
     | ClassLoaded (Result PageLoadError ( Class.Model, Session ))
@@ -183,6 +191,7 @@ type PageMsg
     | EditorMsg Editor.Msg
     | AccountMsg Account.Msg
     | RegisterMsg Register.Msg
+    | TeachersMsg Teachers.Msg
 
 
 getPage : PageState -> Page
@@ -226,6 +235,9 @@ setRoute maybeRoute model =
 
                 Route.Classes ->
                     transition ClassesLoaded (Classes.init session)
+
+                Route.Teachers ->
+                    transition TeachersLoaded (Teachers.init session)
 
                 Route.Student slug ->
                     transition StudentLoaded (Student.init session slug)
@@ -271,7 +283,7 @@ setRoute maybeRoute model =
                 transition AccountLoaded (Account.init session)
 
             Just (Route.Register) ->
-                { model | pageState = Loaded (Register (Register.init session)) } => Cmd.none
+                { model | pageState = Loaded (Register Register.init) } => Cmd.none
 
             Just (Route.Trails) ->
                 model => Cmd.none
@@ -344,11 +356,18 @@ pageLoaded msg model =
 
             LeaderBoardLoaded r ->
                 handlePageLoadError r <|
-                    \subModel -> { model | pageState = Loaded (LeaderBoard subModel) } => Cmd.none
+                    \subModel ->
+                        { model | pageState = Loaded (LeaderBoard subModel) } => Cmd.none
 
             AccountLoaded r ->
                 handlePageLoadError r <|
-                    \subModel -> { model | pageState = Loaded (Account subModel) } => Cmd.none
+                    \subModel ->
+                        { model | pageState = Loaded (Account subModel) } => Cmd.none
+
+            TeachersLoaded r ->
+                handlePageLoadError r <|
+                    \subModel ->
+                        { model | pageState = Loaded (Teachers subModel) } => Cmd.none
 
 
 updatePage : Page -> PageMsg -> Model -> ( Model, Cmd Msg )
@@ -426,6 +445,9 @@ updatePage page msg model =
 
             ( RegisterMsg subMsg, Register subModel ) ->
                 toPage Register RegisterMsg (Register.update model.session) subMsg subModel
+
+            ( TeachersMsg subMsg, Teachers subModel ) ->
+                toPage Teachers TeachersMsg (Teachers.update model.session) subMsg subModel
 
             ( _, _ ) ->
                 model => Cmd.none
