@@ -55,7 +55,7 @@ instance DB HasqlDB where
                 return (Just ())
             Just cd -> do
                 begin
-                schoolId_ <- S.query cd getRegistrationCode
+                schoolId_ <- S.query (T.concat (T.split ('-' ==) cd)) getRegistrationCode
                 case schoolId_ of
                     Nothing -> S.sql "rollback" >> return Nothing
                     Just sid ->  do
@@ -67,7 +67,7 @@ instance DB HasqlDB where
     createRegistrationCode schoolId_ db = do
         code <- liftIO generateCode
         runQuery insertRegistrationCode (code, schoolId_) db
-        return code
+        return $ T.intercalate "-" (T.chunksOf 4 code)
 
     activateAccount = runQuery activateTeacherAccount
 
@@ -286,7 +286,10 @@ insertRegistrationCode = Q.statement sql eTextPair D.unit False
 getRegistrationCode :: Query Text (Maybe UUID.UUID)
 getRegistrationCode = Q.statement sql evText (D.maybeRow (D.value D.uuid)) False
   where
-    sql = "DELETE FROM registration_code WHERE code = $1 RETURNING school_id"
+    sql = "DELETE FROM registration_code \
+          \ WHERE code = $1 \
+          \ AND created_at > now() - interval '20 minutes'\
+          \ RETURNING school_id"
 
 
 activateTeacherAccount :: Query (SchoolId, SubjectId) ()

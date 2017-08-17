@@ -161,7 +161,7 @@ type AccountApi =
     "account" :> AccessTokenAuth :>
         (    "settings" :> ReqBody '[JSON] Value :> Post '[JSON] NoContent
         :<|> "register" :> ReqBody '[JSON] Registration :> Post '[JSON] NoContent
-        :<|> "register" :> "code" :> PostNoContent '[JSON] Text
+        :<|> "register" :> "code" :> Get '[JSON] Text
         )
 
 type StoriesApi =

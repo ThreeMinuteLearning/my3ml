@@ -66,7 +66,7 @@ update session msg model =
 
         GenerateRegistrationCode ->
             model
-                => (Api.postAccountRegisterCode (authorization session)
+                => (Api.getAccountRegisterCode (authorization session)
                         |> Http.send GenerateRegistrationCodeResponse
                    )
 
@@ -81,6 +81,7 @@ view : Session -> Model -> Html Msg
 view session model =
     div [ class "container page" ]
         [ TeacherToolbar.view session [ newRegistrationCodeButton ]
+        , viewCode model.registrationCode
         , viewTable model
         ]
 
@@ -90,6 +91,22 @@ viewTable model =
     div [ class "row hidden-print" ]
         [ Table.view tableConfig model.tableState model.teachers
         ]
+
+
+viewCode : Maybe String -> Html msg
+viewCode code =
+    case code of
+        Nothing ->
+            div [] []
+
+        Just c ->
+            div [ class "row" ]
+                [ p [] [ text "Copy the code below and give it to the person you want to create an account for. They should then register for an account and enter the code to become a member of your school. The code is valid for 20 minutes." ]
+                , p [] [ text "Once they have completed their registration, they should tell you and you can activate their account from this page (reload the page if necessary)." ]
+                , div [ class "registration-code text-center" ]
+                    [ p [] [ text c ]
+                    ]
+                ]
 
 
 newRegistrationCodeButton : Html Msg

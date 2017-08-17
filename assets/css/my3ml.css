@@ -33,6 +33,13 @@ html, body {
     width: 100%;
 }
 
+/* Registration */
+.registration-code {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+
 /* Form error styling */
 .error-messages {
     color: #b85c5c !important;
