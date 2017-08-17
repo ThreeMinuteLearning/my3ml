@@ -54,6 +54,7 @@ executable backend
   ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , aeson
+                     , array
                      , bytestring
                      , containers >= 0.5.6.2
                      , cryptonite
@@ -64,6 +65,7 @@ executable backend
                      , monad-logger
                      , mtl
                      , my3ml
+                     , random
                      , servant-server >= 0.9
                      , stm >= 2.4.4
                      , uuid

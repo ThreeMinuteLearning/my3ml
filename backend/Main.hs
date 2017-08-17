@@ -10,6 +10,7 @@ import           Control.Monad.Logger
 import           Control.Monad.Reader
 import           Crypto.Random (getRandomBytes)
 import qualified Data.Aeson as A
+import           Data.Array.IO
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import           Data.Maybe (fromMaybe)
@@ -21,6 +22,7 @@ import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import           Servant
 import           System.Environment (getEnvironment)
 import           System.Directory (doesFileExist)
+import           System.Random (randomRIO)
 
 import           Api.Server (HandlerT, Config(..))
 import qualified Api.Server as Api
@@ -74,8 +76,27 @@ main = do
         assets = fromMaybe "assets" $ lookup "ASSETS" env
     putStrLn $ "Serving on port " ++ show port ++ "..."
     db <- mkDB pgdb
-    stories <- getStories db
-    let cfg = Config db jwk (take 24 (reverse (sortOn (id :: Story -> StoryId) stories)))
+    starterStories <- getStarterStories db
+    let cfg = Config db jwk starterStories
         my3mlServer = server cfg assets
 
     run port $ logStdoutDev $ serveWithContext siteApi (authServerContext jwk) my3mlServer
+
+  where
+    getStarterStories db = do
+        stories <- take 100 . reverse . sortOn (id :: Story -> StoryId) <$> getStories db
+        take 24 <$> shuffle stories
+
+shuffle :: [a] -> IO [a]
+shuffle xs = do
+    ar <- newArray n xs
+    forM [1..n] $ \i -> do
+        j <- randomRIO (i,n)
+        vi <- readArray ar i
+        vj <- readArray ar j
+        writeArray ar j vi
+        return vj
+  where
+    n = length xs
+    newArray :: Int -> [a] -> IO (IOArray Int a)
+    newArray n xs =  newListArray (1,n) xs
