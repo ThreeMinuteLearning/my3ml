@@ -95,6 +95,10 @@ th span {
     padding-top: 20px;
 }
 
+#storypic {
+    padding-bottom: 20px;
+}
+
 #storypic img {
     max-width: 100%;
 }
