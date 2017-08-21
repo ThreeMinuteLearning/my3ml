@@ -21,6 +21,7 @@ import           Data.Monoid ((<>), Sum(..))
 import           Data.List (scanl', last, uncons)
 import           Data.Text (Text)
 import qualified Data.Text as T
+import           Data.Text.Encoding (encodeUtf8, decodeUtf8)
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Jose.Jwk
@@ -31,6 +32,7 @@ import           Api.Auth (AccessScope(..), mkAccessToken, scopeSubjectId)
 import           Api.Types hiding (AccessToken)
 import           DB (DB)
 import qualified DB
+import           Password
 
 data Config db = Config
     { database :: db
@@ -58,7 +60,7 @@ loginServer authReq = do
     case user of
         Nothing -> logInfoN ("User not found: " <> uName) >> throwError err401
         Just a -> do
-            unless (validatePassword (password (a :: Account)) (password (authReq :: LoginRequest)))
+            unless (validatePassword (encodeUtf8 (password (authReq :: LoginRequest))) (encodeUtf8 (password (a :: Account))))
                 (throwError err401)
             -- new account which hasn't been enabled yet
             unless (active a) (throwError err403)
@@ -67,8 +69,6 @@ loginServer authReq = do
             return $ Login (id (a :: Account)) uName nm (role (a :: Account)) (level (a :: Account)) (settings (a :: Account)) accessToken
   where
     uName = T.toLower $ username (authReq :: LoginRequest)
-
-    validatePassword passwd encodedPasswd = passwd == encodedPasswd
 
     getTeacher subId isAdmin = do
         teachr <- runDB $ DB.getTeacherBySubjectId subId
@@ -101,7 +101,8 @@ accountServer token_ =
     registerNewAccount registration = do
         existing <- runDB $ DB.getAccountByUsername (email registration)
         unless (isNothing existing) $ throwError err409
-        result <- runDB $ DB.registerNewAccount registration
+        hashedPassword <- fmap decodeUtf8 $ liftIO $ hashPassword passwordOptions (encodeUtf8 (password (registration :: Registration)))
+        result <- runDB $ DB.registerNewAccount (registration { password = hashedPassword } )
         case result of
             Just _ -> return NoContent
             Nothing -> throwError err403
@@ -110,6 +111,8 @@ accountServer token_ =
         TeacherScope _ schoolId_ True ->
             runDB $ DB.createRegistrationCode schoolId_
         _ -> throwError err403
+
+    passwordOptions = defaultOptions { iterations = 3, parallelism = 1, memory = 4096}
 
 storyServer :: DB db => ApiServer StoriesApi db
 storyServer token_ =
@@ -224,7 +227,8 @@ studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStu
     changePassword studId password_ = do
         logInfoN $ "Setting password for student: " <> studId
         when (T.length password_ < 8) (throwError err400)
-        runDB $ DB.setStudentPassword schoolId_ studId password_
+        hashedPassword <- encodePassword password_
+        runDB $ DB.setStudentPassword schoolId_ studId hashedPassword
         return NoContent
 
     changeUsername studId username_ = do
@@ -264,10 +268,14 @@ studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStu
         uname <- runDB $ DB.generateUsername (T.toLower (clean nm))
         logInfoN $ "Generated username is: " <> uname
         pass <- generatePassword 15
+        hashedPassword <- encodePassword pass
 
-        let creds = (uname, pass)
-        stdnt <- runDB $ DB.createStudent (uname, 5, schoolId_) creds
-        return (stdnt, creds)
+        stdnt <- runDB $ DB.createStudent (nm, 5, schoolId_) (uname, hashedPassword)
+        return (stdnt, (uname, pass))
+
+    encodePassword p = fmap decodeUtf8 $ liftIO $ hashPassword passwordOptions (encodeUtf8 p)
+
+    passwordOptions = defaultOptions { iterations = 3, parallelism = 1, memory = 4096}
 
 teachersServer :: DB db => AccessScope -> SchoolId -> ApiServer TeachersApi db
 teachersServer (TeacherScope _ _ True) schoolId_ = runDB (DB.getTeachers schoolId_) :<|> activateAccount
