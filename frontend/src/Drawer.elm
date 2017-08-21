@@ -88,7 +88,7 @@ view showDrawer toggleDrawer =
                         , mkList
                             [ "Read a line or two around the word, looking for clues."
                             , "Look for parts of words or whole words in the unknown word."
-                            , "Imagine the word isn&#39;t there and try another word or words in its place."
+                            , "Imagine the word isn't there and try another word or words in its place."
                             ]
                         ]
                         "clarifyblack.png"
