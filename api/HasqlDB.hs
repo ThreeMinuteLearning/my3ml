@@ -49,7 +49,7 @@ instance DB HasqlDB where
             Nothing -> do
                 begin
                 schoolId_ <- S.query (schoolName, Nothing) insertSchool
-                subId <- S.query (email, password, schoolAdmin) insertAccount
+                subId <- S.query (email, password, schoolAdmin, False) insertAccount
                 S.query (subId, teacherName, schoolId_) insertTeacher
                 commit
                 return (Just ())
@@ -59,7 +59,7 @@ instance DB HasqlDB where
                 case schoolId_ of
                     Nothing -> S.sql "rollback" >> return Nothing
                     Just sid ->  do
-                        subId <- S.query (email, password, teacher) insertAccount
+                        subId <- S.query (email, password, teacher, False) insertAccount
                         S.query (subId, teacherName, sid) insertTeacher
                         commit
                         return (Just ())
@@ -125,7 +125,7 @@ instance DB HasqlDB where
 
     createStudent (nm, lvl, schoolId_) (username, password) db = runSession db $ do
         begin
-        subId <- S.query (username, password, student) insertAccount
+        subId <- S.query (username, password, student, True) insertAccount
         let subIdText = UUID.toText subId
             s = Student subIdText nm Nothing lvl schoolId_ False Nothing
         S.query (s, subId) insertStudent
@@ -319,11 +319,11 @@ selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
         <*> D.value D.bool
         <*> D.nullableValue D.jsonb
 
-insertAccount :: Query (Text, Text, UserType) UUID.UUID
+insertAccount :: Query (Text, Text, UserType, Bool) UUID.UUID
 insertAccount = Q.statement sql encode (D.singleRow (D.value D.uuid))True
   where
-    sql = "INSERT INTO login (username, password, user_type) VALUES (lower($1), $2, $3 :: user_type) RETURNING id"
-    encode = contrazip3 evText evText evUserType
+    sql = "INSERT INTO login (username, password, user_type, active) VALUES (lower($1), $2, $3 :: user_type, $4) RETURNING id"
+    encode = contrazip4 evText evText evUserType (E.value E.bool)
 
 updateStudentPassword :: Query (SchoolId, SubjectId, Text) ()
 updateStudentPassword = Q.statement sql encode D.unit True
