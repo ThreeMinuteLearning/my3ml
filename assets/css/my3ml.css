@@ -46,6 +46,29 @@ html, body {
     font-weight: bold;
 }
 
+/* Password strength */
+
+#password-strength-meter {
+    width: 100%;
+    margin: 0 auto 0;
+    height: 0.5em;
+
+    background: none;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Webkit based browsers */
+meter[value="1"]::-webkit-meter-optimum-value { background: red; }
+meter[value="2"]::-webkit-meter-optimum-value { background: yellow; }
+meter[value="3"]::-webkit-meter-optimum-value { background: orange; }
+meter[value="4"]::-webkit-meter-optimum-value { background: green; }
+
+/* Gecko based browsers */
+meter[value="1"]::-moz-meter-bar { background: red; }
+meter[value="2"]::-moz-meter-bar { background: yellow; }
+meter[value="3"]::-moz-meter-bar { background: orange; }
+meter[value="4"]::-moz-meter-bar { background: green; }
+
 /* Tables */
 
 /* Make sortable table icons more obvious */

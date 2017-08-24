@@ -1,13 +1,16 @@
-module Page.Register exposing (Model, Msg, init, update, view)
+module Page.Register exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
 import Data.Session as Session exposing (Session, authorization)
+import Data.Zxcvbn as Zxcvbn exposing (Zxcvbn, decodeZxcvbn)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onSubmit, onClick, onInput)
 import Http
-import Json.Decode as Decode exposing (Decoder, decodeString, field, string)
+import Json.Decode as Decode exposing (Decoder, decodeValue, decodeString, field, string)
 import Json.Decode.Pipeline as Pipeline exposing (decode, optional)
+import Json.Encode exposing (encode)
+import Ports
 import Route
 import Util exposing ((=>), defaultHttpErrorMsg, viewIf)
 import Validate exposing (Validator, ifBlank, ifNothing)
@@ -24,6 +27,7 @@ type alias Model =
     , password : String
     , confirmPassword : String
     , completed : Bool
+    , zxcvbn : Maybe Zxcvbn
     }
 
 
@@ -41,6 +45,7 @@ type Msg
     | SetTeacherName String
     | SetPassword String
     | SetConfirmPassword String
+    | PasswordCheck Decode.Value
     | RegisterResponse (Result Http.Error Api.NoContent)
 
 
@@ -55,7 +60,13 @@ init =
     , password = ""
     , confirmPassword = ""
     , completed = False
+    , zxcvbn = Nothing
     }
+
+
+subscriptions : Sub Msg
+subscriptions =
+    Ports.passwordChecked PasswordCheck
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
@@ -91,7 +102,7 @@ update session msg model =
 
         SetPassword password ->
             { model | password = password }
-                => Cmd.none
+                => Ports.checkPassword password
 
         SetConfirmPassword password ->
             { model | confirmPassword = password }
@@ -125,6 +136,16 @@ update session msg model =
         RegisterResponse (Ok _) ->
             { model | completed = True }
                 => Cmd.none
+
+        PasswordCheck json ->
+            case decodeValue decodeZxcvbn json of
+                Ok zxcvbn ->
+                    { model | zxcvbn = Just zxcvbn } => Cmd.none
+
+                Err e ->
+                    Debug.log (toString e)
+                        model
+                        => Cmd.none
 
 
 view : Model -> Html Msg
@@ -225,13 +246,19 @@ viewForm model =
             , maxlength 50
             ]
             []
-        , Form.password
-            [ class "form-control-lg"
-            , placeholder "Choose a password"
-            , onInput SetPassword
-            , maxlength 100
+        , fieldset [ class "form-group" ]
+            [ Html.input
+                [ class "form-control form-control-lg"
+                , placeholder "Choose a password"
+                , onInput SetPassword
+                , maxlength 100
+                , type_ "password"
+                ]
+                []
+            , meter [ id "password-strength-meter", Html.Attributes.max "4", value (passwordScore model) ] []
+            , p [ id "password-strength-warning" ] [ text (passwordWarning model) ]
+            , passwordSuggestions model
             ]
-            []
         , Form.password
             [ class "form-control-lg"
             , placeholder "Confirm Password"
@@ -242,6 +269,36 @@ viewForm model =
         , button [ class "btn btn-lg btn-primary pull-xs-right" ]
             [ text "Sign up" ]
         ]
+
+
+passwordScore : Model -> String
+passwordScore model =
+    Maybe.map .score model.zxcvbn
+        |> Maybe.map toString
+        |> Maybe.withDefault "0"
+
+
+passwordWarning : Model -> String
+passwordWarning model =
+    Maybe.map .feedback model.zxcvbn
+        |> Maybe.map .warning
+        |> Maybe.withDefault ""
+
+
+passwordSuggestions : Model -> Html msg
+passwordSuggestions model =
+    let
+        formatSuggestion s =
+            li [] [ text s ]
+    in
+        case model.zxcvbn of
+            Nothing ->
+                div [] []
+
+            Just z ->
+                div [ id "password-strength-suggestions" ]
+                    [ ul [] (List.map formatSuggestion z.feedback.suggestions)
+                    ]
 
 
 
@@ -265,13 +322,13 @@ validate =
     Validate.all
         [ .schoolName >> ifBlank (SchoolName => "school name can't be blank.")
         , .email >> ifBlank (Email => "email can't be blank.")
-        , .email >> ifBlank (TeacherName => "name can't be blank.")
+        , .teacherName >> ifBlank (TeacherName => "name can't be blank.")
         , validatePassword
         ]
 
 
 validatePassword : Model -> List Error
-validatePassword { password, confirmPassword } =
+validatePassword { password, confirmPassword, zxcvbn } =
     case password of
         "" ->
             [ ( Password, "password can't be blank" ) ]
@@ -279,5 +336,20 @@ validatePassword { password, confirmPassword } =
         _ ->
             if password /= confirmPassword then
                 [ ( Form, "the passwords must be the same" ) ]
+            else if String.length password < 8 then
+                [ ( Password, "password must be at least 8 characters" ) ]
+            else
+                validateZxcvbn password zxcvbn
+
+
+validateZxcvbn : String -> Maybe Zxcvbn -> List Error
+validateZxcvbn password zxcvbn =
+    case zxcvbn of
+        Nothing ->
+            []
+
+        Just z ->
+            if z.password == password && z.score < 3 then
+                [ ( Password, "password is too weak" ) ]
             else
                 []

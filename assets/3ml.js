@@ -19,6 +19,11 @@ app.ports.storeSession.subscribe(function(session) {
     sessionStorage.session = session;
 });
 
+app.ports.checkPassword.subscribe(function(password) {
+    var report = zxcvbn(password);
+    app.ports.passwordChecked.send(report);
+});
+
 var getWidth = function (selector, count, callback) {
     var node = document.querySelector(selector);
 
