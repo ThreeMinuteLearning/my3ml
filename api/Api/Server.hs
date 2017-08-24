@@ -213,7 +213,7 @@ classesServer subId sid = runDB (DB.getClasses sid) :<|> specificClassServer :<|
 
 
 studentsServer :: DB db => AccessScope -> SchoolId -> ApiServer StudentsApi db
-studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStudentServer :<|> mapM createStudent
+studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStudentServer :<|> createStudents
   where
     specificStudentServer studId = getStudent studId :<|> updateStudent studId :<|> changePassword studId :<|> changeUsername studId :<|> studentAdmin studId scp
 
@@ -263,14 +263,16 @@ studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStu
 
         return (T.toLower pass)
 
-    createStudent nm = do
+    createStudents (level_, names) = mapM (createStudent level_) names
+
+    createStudent level_ nm = do
         logInfoN $ "Creating new student account for: " <> nm
         uname <- runDB $ DB.generateUsername (T.toLower (clean nm))
         logInfoN $ "Generated username is: " <> uname
         pass <- generatePassword 15
         hashedPassword <- encodePassword pass
 
-        stdnt <- runDB $ DB.createStudent (nm, 5, schoolId_) (uname, hashedPassword)
+        stdnt <- runDB $ DB.createStudent (nm, level_, schoolId_) (uname, hashedPassword)
         return (stdnt, (uname, pass))
 
     encodePassword p = fmap decodeUtf8 $ liftIO $ hashPassword passwordOptions (encodeUtf8 p)

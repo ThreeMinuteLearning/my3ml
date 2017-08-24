@@ -11,6 +11,7 @@ import Http
 import Util exposing ((=>), defaultHttpErrorMsg)
 import Validate exposing (Validator, ifBlank, ifInvalid)
 import Views.Form as Form
+import Views.SelectLevel as SelectLevel
 
 
 type alias Model =
@@ -24,7 +25,7 @@ type alias Model =
 init : Model
 init =
     { errors = []
-    , level = 5
+    , level = 3
     , class = Nothing
     , names = List.repeat 10 ""
     }
@@ -33,7 +34,7 @@ init =
 type Msg
     = SubmitForm
     | SetClass (Maybe String)
-    | SetLevel String
+    | SetLevel Int
     | SetName Int String
     | AddStudentsResponse (Result Http.Error (List NewAccount))
 
@@ -63,7 +64,7 @@ update session msg model =
                 => Nothing
 
         SetLevel level ->
-            { model | level = Result.withDefault (model.level) (String.toInt level) }
+            { model | level = level }
                 => Cmd.none
                 => Nothing
 
@@ -95,6 +96,7 @@ setNameAtIndex index name =
 sendNewAccountsRequest : Session -> Model -> Cmd Msg
 sendNewAccountsRequest session model =
     List.filter (not << String.isEmpty) model.names
+        |> (,) model.level
         |> Api.postSchoolStudents (authorization session)
         |> Http.send AddStudentsResponse
 
@@ -150,20 +152,10 @@ view model =
             Html.form
                 [ onSubmit SubmitForm ]
                 [ Html.fieldset []
-                    (List.append nameFields [ submitButton ])
+                    (List.append nameFields [ SelectLevel.view SetLevel model.level, submitButton ])
                 ]
     in
         div []
             [ Form.viewErrors model.errors
             , viewForm
             ]
-
-
-viewLevelSelect : Model -> Html Msg
-viewLevelSelect model =
-    let
-        levelOption lvl =
-            option [ selected (model.level == lvl) ] [ text (toString lvl) ]
-    in
-        Html.select [ onInput SetLevel ]
-            (List.map levelOption (List.range 1 10))

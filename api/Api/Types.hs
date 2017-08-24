@@ -223,7 +223,7 @@ type StudentsApi =
              :<|> Delete '[JSON] Student
              :<|> "undelete" :> PostNoContent '[JSON] NoContent
              )
-        :<|> ReqBody '[JSON] [Text] :> Post '[JSON] [(Student, (Text, Text))]
+        :<|> ReqBody '[JSON] (Int, [Text]) :> Post '[JSON] [(Student, (Text, Text))]
         )
 
 
