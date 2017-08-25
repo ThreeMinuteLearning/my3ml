@@ -50,7 +50,7 @@ class DB db where
 
     removeClassMembers :: MonadIO m => SchoolId -> ClassId -> [SubjectId] -> db -> m Class
 
-    createClass :: MonadIO m => Class -> db -> m ()
+    createClass :: MonadIO m => Class -> db -> m (Maybe ())
 
     deleteClass :: MonadIO m => ClassId -> SchoolId -> db -> m ()
 

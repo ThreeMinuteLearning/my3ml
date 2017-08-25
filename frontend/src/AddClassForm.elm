@@ -8,7 +8,7 @@ import Html exposing (..)
 import Html.Attributes exposing (class, id, placeholder)
 import Html.Events exposing (onInput, onSubmit)
 import Http
-import Util exposing ((=>))
+import Util exposing ((=>), defaultHttpErrorMsg)
 import Validate exposing (Validator, ifBlank, ifInvalid)
 import Views.Form as Form
 
@@ -61,9 +61,23 @@ update session msg model =
             ( model, Cmd.none ) => Just newClass
 
         AddClassResponse (Err e) ->
-            { model | errors = model.errors ++ [ (Form => "Server error while trying to create new class") ] }
-                => Cmd.none
-                => Nothing
+            let
+                errorMessage =
+                    case e of
+                        Http.BadStatus { status } ->
+                            case status.code of
+                                409 ->
+                                    "A class with that name already exists"
+
+                                _ ->
+                                    defaultHttpErrorMsg e
+
+                        _ ->
+                            defaultHttpErrorMsg e
+            in
+                { model | errors = [ (Form => errorMessage) ] }
+                    => Cmd.none
+                    => Nothing
 
 
 sendNewClassRequest : Session -> Model -> Cmd Msg

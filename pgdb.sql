@@ -43,6 +43,7 @@ CREATE TABLE class
     , school_id uuid NOT NULL REFERENCES school
     , created_by uuid NOT NULL REFERENCES login
     , UNIQUE (id, school_id)
+    , UNIQUE (name, school_id)
     );
 
 CREATE TABLE teacher

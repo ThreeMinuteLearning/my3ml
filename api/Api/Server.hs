@@ -208,8 +208,10 @@ classesServer subId sid = runDB (DB.getClasses sid) :<|> specificClassServer :<|
     createClass (nm, desc) = do
         uuid <- newUUID
         let c = Class uuid nm (Just desc) sid subId []
-        _ <- runDB (DB.createClass c)
-        return c
+        result <- runDB (DB.createClass c)
+        case result of
+            Nothing -> throwError err409
+            Just _ -> return c;
 
 
 studentsServer :: DB db => AccessScope -> SchoolId -> ApiServer StudentsApi db

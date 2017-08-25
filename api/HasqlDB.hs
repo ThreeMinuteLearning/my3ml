@@ -26,7 +26,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.UUID as UUID
 import           Hasql.Query (Query)
-import           Hasql.Pool (Pool, use, acquire)
+import           Hasql.Pool (Pool, UsageError(..), use, acquire)
 import qualified Hasql.Query as Q
 import qualified Hasql.Encoders as E
 import qualified Hasql.Decoders as D
@@ -111,7 +111,12 @@ instance DB HasqlDB where
 
     getClass = runQuery selectClassById
 
-    createClass = runQuery insertClass
+    createClass class_ db = do
+        result <- runSessionEither db (S.query class_ insertClass)
+        case result of
+            Right () -> return (Just ())
+            Left (SessionError (S.ResultError (S.ServerError "23505" _ _ _))) -> return Nothing
+            Left e -> liftIO $ throwString (show e)
 
     deleteClass classId_ schoolId_ db = do
         nRows <- runQuery deleteClassById (classId_, schoolId_) db
@@ -226,6 +231,9 @@ runSession (H pool) s = liftIO $ do
     case result of
         Left e -> liftIO $ throwString (show e)
         Right r -> return r
+
+runSessionEither :: MonadIO m => HasqlDB -> S.Session a -> m (Either UsageError a)
+runSessionEither (H pool) s = liftIO $ use pool (rollbackOnError s)
 
 rollbackOnError :: S.Session a -> S.Session a
 rollbackOnError s_ = s_ `catchError` (\e -> S.sql "rollback;" >> throwError e)
