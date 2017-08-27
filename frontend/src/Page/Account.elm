@@ -1,20 +1,22 @@
 module Page.Account exposing (Model, Msg, init, update, view)
 
 import Api
-import Data.Session as Session exposing (Session, authorization)
+import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Data.Settings exposing (Settings, defaultSettings, encode, toStyle, fontOptions)
+import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
 import Http
-import Json.Decode as Decode exposing (Value)
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Task exposing (Task)
-import Util exposing ((=>))
+import Util exposing ((=>), defaultHttpErrorMsg)
+import Views.Answers as Answers
 
 
 type alias Model =
     { settings : Settings
+    , answers : List ( Api.Answer, Api.Story )
     }
 
 
@@ -27,15 +29,31 @@ type Msg
     | SaveSettingsResponse (Result Http.Error Api.NoContent)
 
 
-init : Session -> Task PageLoadError Model
-init session =
+init : Session -> Task PageLoadError ( Model, Session )
+init origSession =
     let
+        handleLoadError e =
+            pageLoadError e (defaultHttpErrorMsg e)
+
         settings =
-            session.user
+            origSession.user
                 |> Maybe.map .settings
                 |> Maybe.withDefault defaultSettings
+
+        zipWithStory session a =
+            Maybe.map ((,) a) (findStoryById session.cache a.storyId)
+
+        mkModel sesh =
+            sesh.cache.answers
+                |> Dict.values
+                |> List.filterMap (zipWithStory sesh)
+                |> Model settings
+                |> \model -> ( model, sesh )
     in
-        Task.succeed (Model settings)
+        Session.loadUserAnswers origSession
+            |> Task.andThen (\newSession -> Session.loadStories newSession)
+            |> Task.map mkModel
+            |> Task.mapError handleLoadError
 
 
 update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
@@ -84,8 +102,16 @@ updateSessionSettings session newSettings =
 
 
 view : Model -> Html Msg
-view { settings } =
+view { settings, answers } =
     div [ class "page container" ]
+        [ viewSettings settings
+        , Answers.viewWithStories answers
+        ]
+
+
+viewSettings : Settings -> Html Msg
+viewSettings settings =
+    div []
         [ h3 [] [ text "Story display settings" ]
         , div [ toStyle settings ]
             [ p [] [ text "You may wish to change the way your stories are displayed." ]

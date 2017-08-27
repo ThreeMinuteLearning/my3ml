@@ -176,7 +176,7 @@ type PageLoaded
     | ClassesLoaded (Result PageLoadError ( Classes.Model, Session ))
     | ClassLoaded (Result PageLoadError ( Class.Model, Session ))
     | EditorLoaded (Result PageLoadError ( Editor.Model, Session ))
-    | AccountLoaded (Result PageLoadError Account.Model)
+    | AccountLoaded (Result PageLoadError ( Account.Model, Session ))
     | LeaderBoardLoaded (Result PageLoadError LeaderBoard.Model)
 
 
@@ -360,9 +360,7 @@ pageLoaded msg model =
                         { model | pageState = Loaded (LeaderBoard subModel) } => Cmd.none
 
             AccountLoaded r ->
-                handlePageLoadError r <|
-                    \subModel ->
-                        { model | pageState = Loaded (Account subModel) } => Cmd.none
+                pageLoadedWithNewSession r Account
 
             TeachersLoaded r ->
                 handlePageLoadError r <|
