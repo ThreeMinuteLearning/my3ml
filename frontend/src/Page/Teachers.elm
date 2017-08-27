@@ -11,7 +11,7 @@ import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
-import Util exposing ((=>))
+import Util exposing ((=>), defaultHttpErrorMsg)
 import Views.TeacherToolbar as TeacherToolbar
 
 
@@ -34,7 +34,7 @@ init : Session -> Task PageLoadError Model
 init session =
     let
         handleLoadError e =
-            pageLoadError e "Unable to load teacher data."
+            pageLoadError e ("Unable to load teacher data. " ++ defaultHttpErrorMsg e ++ ".")
 
         createModel =
             Debug.log "Creating model" <|

@@ -18,7 +18,7 @@ import Regex
 import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
-import Util exposing ((=>), viewIf, dialog)
+import Util exposing ((=>), viewIf, dialog, defaultHttpErrorMsg)
 import Views.ClassSelect as ClassSelect
 import Views.NewAccounts as NewAccounts
 import Views.StudentTable as StudentTable
@@ -53,7 +53,7 @@ init : Session -> Task PageLoadError ( Model, Session )
 init session =
     let
         handleLoadError e =
-            pageLoadError e "Unable to load student data."
+            pageLoadError e ("Unable to load student data. " ++ defaultHttpErrorMsg e ++ ".")
 
         createModel session =
             Model StudentTable.init Dict.empty [] Nothing ( "", Nothing )

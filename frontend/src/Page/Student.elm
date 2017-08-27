@@ -48,7 +48,7 @@ init : Session -> String -> Task PageLoadError ( Model, Session )
 init session_ slug =
     let
         handleLoadError e =
-            pageLoadError e "Unable to load data for page."
+            pageLoadError e (defaultHttpErrorMsg e)
 
         loadStudent =
             Api.getSchoolStudentsByStudentId (authorization session_) slug

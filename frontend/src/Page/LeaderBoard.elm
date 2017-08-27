@@ -7,7 +7,7 @@ import Html.Attributes exposing (..)
 import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Task exposing (Task)
-import Util exposing ((=>))
+import Util exposing ((=>), defaultHttpErrorMsg)
 
 
 type alias Model =
@@ -18,7 +18,7 @@ init : Session -> Task PageLoadError Model
 init session =
     let
         handleLoadError e =
-            pageLoadError e "Unable to load data for page."
+            pageLoadError e (defaultHttpErrorMsg e)
     in
         Api.getSchoolLeaderboard (authorization session)
             |> Http.toTask

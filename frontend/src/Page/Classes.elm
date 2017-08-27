@@ -11,7 +11,7 @@ import Page.Errored exposing (PageLoadError, pageLoadError)
 import Route
 import Table
 import Task exposing (Task)
-import Util exposing ((=>), dialog)
+import Util exposing ((=>), dialog, defaultHttpErrorMsg)
 import Views.TeacherToolbar as TeacherToolbar
 
 
@@ -32,7 +32,7 @@ init : Session -> Task PageLoadError ( Model, Session )
 init session =
     let
         handleLoadError e =
-            pageLoadError e "Unable to load classes."
+            pageLoadError e ("Unable to load classes. " ++ defaultHttpErrorMsg e ++ ".")
 
         createModel session =
             Model (Table.initialSort "Class Name") Nothing
