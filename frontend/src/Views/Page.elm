@@ -90,7 +90,7 @@ standardNavLinks : ActivePage -> List (Html msg)
 standardNavLinks page =
     [ navbarLink (page == FindStory) Route.FindStory [ text "Find a story" ]
     , navbarLink (page == Account) Route.Account [ text "My3ml" ]
-    , navbarLink (page == LeaderBoard) Route.LeaderBoard [ text "Leader Board" ]
+    , navbarLink (page == LeaderBoard) Route.LeaderBoard [ text "Leaderboard" ]
     , navbarLink False Route.Logout [ text "Sign out" ]
     ]
 
