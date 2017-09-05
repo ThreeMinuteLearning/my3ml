@@ -5,22 +5,22 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 
 
-view : List Api.Answer -> Html msg
-view answers =
+view : Api.Story -> List Api.Answer -> Html msg
+view story answers =
     div [ class "hidden-print" ]
-        ([ h3 [] [ text "Story Answers" ] ]
-            ++ (List.map viewAnswer answers)
+        ((h3 [] [ text "Story answers" ])
+            :: (List.map (viewAnswer story) answers)
         )
 
 
-viewAnswer : Api.Answer -> Html msg
-viewAnswer answer =
+viewAnswer : Api.Story -> Api.Answer -> Html msg
+viewAnswer story answer =
     div [ class "row" ]
         [ div [ class "col-md-9" ]
             [ p [] [ text answer.connect ]
             , p [] [ text answer.question ]
             , p [] [ text answer.summarise ]
-            , p [] [ text answer.clarify ]
+            , p [] (clarifyText story answer)
             ]
         ]
 
@@ -28,7 +28,7 @@ viewAnswer answer =
 viewWithStories : List ( Api.Answer, Api.Story ) -> Html msg
 viewWithStories answers =
     div []
-        ([ h3 [] [ text "Story Answers" ] ]
+        ([ h3 [] [ text "Story answers" ] ]
             ++ (List.map viewStoryAnswer answers)
         )
 
@@ -41,6 +41,11 @@ viewStoryAnswer ( answer, story ) =
             , p [] [ text answer.connect ]
             , p [] [ text answer.question ]
             , p [] [ text answer.summarise ]
-            , p [] [ text answer.clarify ]
+            , p [] (clarifyText story answer)
             ]
         ]
+
+
+clarifyText : Api.Story -> Api.Answer -> List (Html msg)
+clarifyText story answer =
+    [ em [] [ text story.clarifyWord ], text ": ", text answer.clarify ]

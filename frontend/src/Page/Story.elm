@@ -102,7 +102,7 @@ view session m =
             |> Words.view session.cache.dict
         , viewIf (Session.isStudent session) (viewAnswersForm m)
         , viewIf (Session.isTeacher session) (viewPrintAnswerSections m.story)
-        , viewIf (m.answersForm == Nothing && not (List.isEmpty m.answers)) (Answers.view m.answers)
+        , viewIf (m.answersForm == Nothing && not (List.isEmpty m.answers)) (Answers.view m.story m.answers)
         ]
 
 
