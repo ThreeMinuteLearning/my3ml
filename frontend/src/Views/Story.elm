@@ -26,9 +26,14 @@ view settings story picWidth onPicLoad =
             ]
         , Markdown.toHtml [ id "storycontent", toStyle settings ] (storyContent story)
         , div [ id "storyfooter", class "hidden-print" ]
-            [ p [] [ text (String.join ", " story.tags), br [] [], text ("Level: " ++ toString story.level) ]
+            [ p [] [ text (String.join ", " (tagList story)), br [] [], text ("Level: " ++ toString story.level) ]
             ]
         ]
+
+
+tagList : Story -> List String
+tagList story =
+    story.tags ++ Maybe.withDefault [] (Maybe.map List.singleton story.curriculum) ++ [ story.qualification ]
 
 
 picStyle : Int -> List (Html.Attribute msg)
