@@ -5,18 +5,30 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Api.Server
     ( server
     , Config (..)
     , HandlerT
     ) where
-
+import           Control.Error
 import           Control.Monad (unless)
 import           Control.Monad.Except (MonadError, throwError)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Logger
 import           Control.Monad.Reader
+import           Crypto.Cipher.AES
+import           Crypto.Cipher.Types
+import           Crypto.KDF.Argon2 (Options(..), defaultOptions, hash)
+import           Crypto.Error
+import           Crypto.Random (getRandomBytes)
+import qualified Data.Aeson as JSON
+import qualified Data.ByteArray as BA
+import           Data.ByteArray (ScrubbedBytes)
+import           Data.ByteArray.Encoding
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
 import           Data.Maybe (isNothing)
 import           Data.Monoid ((<>), Sum(..))
 import           Data.List (scanl', last, uncons)
@@ -25,11 +37,15 @@ import qualified Data.Text as T
 import           Data.Text.Encoding (encodeUtf8, decodeUtf8)
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
+import           Jose.Jwt hiding (encode, decode)
+import           Jose.Jwa
 import           Jose.Jwk
+import qualified Jose.Jwe as Jwe
+import           Jose.Internal.Crypto (keyWrap, keyUnwrap)
 import           Prelude hiding (id)
-import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, Handler, NoContent(..), err400, err401, err403, err409, err404, errBody)
+import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, Handler, NoContent(..), err400, err401, err403, err409, err404, err500, errBody)
 
-import           Api.Auth (AccessScope(..), mkAccessToken, scopeSubjectId)
+import           Api.Auth (AccessScope(..), TenantKey(..), mkAccessToken, scopeSubjectId)
 import           Api.Types hiding (AccessToken)
 import           DB (DB)
 import qualified DB
@@ -56,36 +72,90 @@ server = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> t
 newUUID :: HandlerT db Text
 newUUID = liftIO (toText <$> nextRandom)
 
+deriveKey :: BA.ByteArrayAccess b2 => B.ByteString -> b2 -> ScrubbedBytes
+deriveKey salt password = pbeKeyBytes :: ScrubbedBytes
+  where
+    CryptoPassed pbeKeyBytes = hash kdfOptions password salt 32
+    kdfOptions = defaultOptions { iterations = 3, parallelism = 1, memory = 4096}
+
+encryptSchoolKey :: ScrubbedBytes -> ScrubbedBytes -> B.ByteString
+encryptSchoolKey pbeKey schoolKey = convertToBase Base64URLUnpadded pbeSchoolKey
+  where
+    Right pbeSchoolKey = keyWrap A256KW pbeKey schoolKey :: Either JwtError B.ByteString
+
+decryptSchoolKey :: ScrubbedBytes -> B.ByteString -> ScrubbedBytes
+decryptSchoolKey pbeKey esk = sk
+  where
+    Right rawBytes = convertFromBase Base64URLUnpadded esk :: Either String B.ByteString
+    Right sk = keyUnwrap pbeKey A256KW rawBytes
+
+encryptRsaKey :: (BA.ByteArrayAccess bin, MonadIO m) => Jwk -> bin -> m B.ByteString
+encryptRsaKey kPr pbeKey = do
+    Right (Jwt eKpr) <- liftIO $ Jwe.jwkEncode A256KW A256GCM (SymmetricJwk (BA.convert pbeKey) Nothing Nothing Nothing) (Claims (BL.toStrict (JSON.encode kPr)))
+    return eKpr
+
+decryptSchoolKeyWithRsaKey :: ScrubbedBytes -> B.ByteString -> B.ByteString -> IO ScrubbedBytes
+decryptSchoolKeyWithRsaKey pbeKey rsaKeyJwt schoolKey = do
+    Right (Jwe (_, jwk)) <- Jwe.jwkDecode (SymmetricJwk (BA.convert pbeKey) Nothing Nothing Nothing) rsaKeyJwt
+    let Right rsaJwk = JSON.eitherDecodeStrict jwk
+    Right (Jwe (_, sk)) <- Jwe.jwkDecode rsaJwk schoolKey
+    return (BA.convert sk)
+
+encryptSchoolKeyWithRsaKey :: ScrubbedBytes -> Jwk -> IO B.ByteString
+encryptSchoolKeyWithRsaKey schoolKey pubKey = do
+    Right (Jwt eKpr) <- Jwe.jwkEncode RSA_OAEP A256GCM pubKey (Claims $ BA.convert schoolKey)
+    return eKpr
+
 loginServer :: DB db => ApiServer LoginApi db
 loginServer authReq = do
     logInfoN $ "Login request from: " <> uName
     user <- runDB $ DB.getAccountByUsername uName
+    let submittedPassword = encodeUtf8 (password (authReq :: LoginRequest))
     case user of
         Nothing -> logInfoN ("User not found: " <> uName) >> throwError err401
-        Just a -> do
-            unless (validatePassword (encodeUtf8 (password (authReq :: LoginRequest))) (encodeUtf8 (password (a :: Account))))
+        Just a@Account {..} -> do
+            unless (validatePassword submittedPassword (encodeUtf8 password))
                 (throwError err401)
             -- new account which hasn't been enabled yet
-            unless (active a) (throwError err403)
-            (accessToken, nm) <- createToken a
+            unless active (throwError err403)
+            let firstLogin = isNothing lastLogin
+            keys <- getUserKeys id firstLogin role submittedPassword
+            (accessToken, nm) <- createToken a (fmap snd keys)
+            let keyUpdate = fmap (uncurry encryptSchoolKey) keys
+            runDB $ DB.loginSuccess id keyUpdate
 
-            return $ Login (id (a :: Account)) uName nm (role (a :: Account)) (level (a :: Account)) (settings (a :: Account)) accessToken
+            return $ Login id uName nm role level settings accessToken
   where
+    -- getUserKeys :: Monad m => SubjectId -> Bool -> UserType -> B.ByteString -> m (Maybe (ScrubbedBytes, ScrubbedBytes))
+    getUserKeys id firstLogin role submittedPassword = runMaybeT $ do
+        unless (role == teacher || role == schoolAdmin) nothing
+        keys <- runDB $ DB.getUserKeys id
+        ks <- hoistMaybe keys
+        let pbeKey = deriveKey (salt ks) submittedPassword
+        esk <- hoistMaybe (schoolKey ks)
+        sk <- if firstLogin && role == teacher
+              then lift . liftIO $ decryptSchoolKeyWithRsaKey pbeKey (encodeUtf8 (privKey ks)) esk
+              else pure $ decryptSchoolKey pbeKey esk
+
+        just (pbeKey, sk)
+
     uName = T.toLower $ username (authReq :: LoginRequest)
 
-    getTeacher subId isAdmin = do
-        teachr <- runDB $ DB.getTeacherBySubjectId subId
-        return (TeacherScope subId (schoolId (teachr :: Teacher)) isAdmin, name (teachr :: Teacher))
+    getTeacher subId isAdmin userKey = case userKey of
+        Nothing -> logErrorN "Teacher account with no tenant key" >> throwError err500
+        Just sk -> do
+            Teacher {..} <- runDB $ DB.getTeacherBySubjectId subId
+            return (TeacherScope subId schoolId (TenantKey sk) isAdmin, name)
 
-    createToken acct = do
+    createToken acct userKey = do
         let subId = id (acct :: Account)
         (scope, nm) <- case userType (role (acct :: Account)) of
             "Student" -> do
                  stdnt <- runDB $ DB.getStudentBySubjectId subId
                  return (StudentScope subId (schoolId (stdnt :: Student)), name (stdnt :: Student))
-            "Teacher" -> getTeacher subId False
+            "Teacher" -> getTeacher subId False userKey
 
-            "SchoolAdmin" -> getTeacher subId True
+            "SchoolAdmin" -> getTeacher subId True userKey
             "Editor" -> return (EditorScope subId, "Anonymous")
         jwk <- fmap tokenKey ask
         token_ <- mkAccessToken jwk scope
@@ -101,9 +171,48 @@ accountServer token_ =
         runDB $ DB.updateAccountSettings (userId, newSettings)
         return NoContent
 
-    registerNewAccount r@Registration {..} = do
-        logInfoN $ "New registration for user: " <> email
-        existing <- runDB $ DB.getAccountByUsername email
+    registerNewAccount r = do
+        existing <- runDB $ DB.getAccountByUsername (email r)
+        unless (isNothing existing) $ throwError err409
+        salt <- liftIO (getRandomBytes 32)
+        let submittedPassword = encodeUtf8 (password (r :: Registration))
+            pbeKey = deriveKey salt submittedPassword
+        hashedPassword <- fmap decodeUtf8 $ liftIO $ hashPassword passwordOptions submittedPassword
+        (kPub, kPr) <- liftIO $ generateRsaKeyPair 256 (KeyId "rsa") Enc Nothing
+        ekPr <- encryptRsaKey kPr pbeKey
+        schoolKey <- case code r of
+            Just _ -> return Nothing
+            Nothing -> do
+                bytes <- liftIO (getRandomBytes 32)
+                return $ Just (encryptSchoolKey pbeKey bytes)
+
+        let userKeys = UserKeys salt kPub (decodeUtf8 ekPr) schoolKey
+        result <- runDB $ DB.registerNewAccount (r { password = hashedPassword } ) userKeys
+        case result of
+            Just _ -> return NoContent
+            Nothing -> throwError err403
+
+    newRegistrationCode t = case t of
+        TeacherScope _ schoolId_ _ True ->
+            runDB $ DB.createRegistrationCode schoolId_
+        _ -> throwError err403
+
+    passwordOptions = defaultOptions { iterations = 3, parallelism = 1, memory = 4096}
+
+storyServer :: DB db => ApiServer StoriesApi db
+storyServer token_ =
+    getStories :<|> specificStoryServer :<|> createStory
+  where
+    notFound = err404 { errBody = "Story with this ID was not found" }
+
+    specificStoryServer storyId_ = getStory storyId_ :<|> updateStory storyId_
+
+    getStories =
+        case token_ of
+            Nothing -> fmap sampleStories ask
+            _ -> runDB DB.getStories
+
+    getStory storyId_ = do
         story <- runDB (DB.getStory storyId_)
         case story of
             Nothing -> throwError notFound
@@ -121,7 +230,7 @@ accountServer token_ =
 
 trailsServer :: DB db => ApiServer TrailsApi db
 trailsServer Nothing = throwAll err401
-trailsServer (Just (TeacherScope _ sid _)) =
+trailsServer (Just (TeacherScope _ sid _ _)) =
     getTrailsForSchool sid :<|> createTrail
 trailsServer (Just (StudentScope _ sid)) =
     getTrailsForSchool sid :<|> throwAll err403
@@ -147,7 +256,7 @@ schoolsServer _ = throwAll err403
 schoolServer :: DB db => ApiServer SchoolApi db
 schoolServer scope = case scope of
     Nothing -> throwAll err401
-    Just scp@(TeacherScope _ sid _) -> specificSchoolServer scp sid
+    Just scp@(TeacherScope _ sid _ _) -> specificSchoolServer scp sid
     Just scp@(StudentScope _ sid) ->
         throwAll err403
         :<|> throwAll err403
@@ -191,16 +300,18 @@ classesServer subId sid = runDB (DB.getClasses sid) :<|> specificClassServer :<|
 
 
 studentsServer :: DB db => AccessScope -> SchoolId -> ApiServer StudentsApi db
-studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStudentServer :<|> createStudents
+studentsServer scp@(TeacherScope _ _ (TenantKey key) _) schoolId_ = getStudents :<|> specificStudentServer :<|> createStudents
   where
     specificStudentServer studId = getStudent studId :<|> updateStudent studId :<|> changePassword studId :<|> changeUsername studId :<|> studentAdmin studId scp
 
-    studentAdmin _ (TeacherScope _ _ False) = throwAll err403
+    studentAdmin _ (TeacherScope _ _ _ False) = throwAll err403
     studentAdmin studId _ = deleteStudent studId :<|> undelete studId
+
+    getStudents = map decryptStudent <$> runDB (DB.getStudents schoolId_)
 
     getStudent studId = do
         s <- runDB $ DB.getStudent schoolId_ studId
-        maybe (throwError err404) return s
+        maybe (throwError err404) return (fmap decryptStudent s)
 
     changePassword studId password_ = do
         logInfoN $ "Setting password for student: " <> unSubjectId studId
@@ -220,9 +331,15 @@ studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStu
                 unless (id (u :: Account) == studId) (throwError err409)
         return NoContent
 
-    updateStudent _ student_ = runDB $ DB.updateStudent student_ schoolId_
+    updateStudent _ s@Student{..} = do
+        logInfoN $ "Updating student: " <> unSubjectId id
+        eStudent <- encryptStudent s
+        dbStudent <- runDB $ DB.updateStudent eStudent schoolId_
+        return $ decryptStudent dbStudent
 
-    deleteStudent studId = runDB $ DB.deleteStudent studId schoolId_
+    deleteStudent studId = do
+        s <- runDB $ DB.deleteStudent studId schoolId_
+        return $ decryptStudent s
 
     undelete studId = do
         runDB $ DB.undeleteStudent studId schoolId_
@@ -249,25 +366,61 @@ studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStu
         logInfoN $ "Generated username is: " <> uname
         pass <- generatePassword 15
         hashedPassword <- encodePassword pass
+        eName <- liftIO $ encrypt nm
 
-        stdnt <- runDB $ DB.createStudent (nm, level_, schoolId_) (uname, hashedPassword)
-        return (stdnt, (uname, pass))
+        stdnt <- runDB $ DB.createStudent (eName, level_, schoolId_) (uname, hashedPassword)
+        -- Name will be encrypted, so just substitute the orignal name here
+        return (stdnt { name = nm } :: Student, (uname, pass))
 
     encodePassword p = fmap decodeUtf8 $ liftIO $ hashPassword passwordOptions (encodeUtf8 p)
 
     passwordOptions = defaultOptions { iterations = 3, parallelism = 1, memory = 4096}
 
+    encryptStudent s@Student{..} = do
+        eName <- liftIO $ encrypt name
+        return $ (s :: Student) { name = eName }
+
+    decryptStudent s@Student{..} = (s :: Student) { name = decrypt name }
+
+    encrypt :: Text -> IO Text
+    encrypt bytes = do
+        iv :: B.ByteString <- getRandomBytes 16
+        let ct = doCtr iv (encodeUtf8 bytes)
+        return $ decodeUtf8 $ convertToBase Base64URLUnpadded (BA.concat [iv, ct] :: B.ByteString)
+
+    decrypt :: Text -> Text
+    decrypt txt =
+        case convertFromBase Base64URLUnpadded (encodeUtf8 txt) of
+            Right bytes ->
+                let (iv, ct) = BA.splitAt 16 bytes
+                in  decodeUtf8 $ doCtr iv ct
+            Left _ -> txt
+
+    doCtr :: B.ByteString -> B.ByteString -> B.ByteString
+    doCtr ivBytes b =
+        let CryptoPassed c = cipherInit key
+            Just iv = makeIV ivBytes :: Maybe (IV AES256)
+        in  ctrCombine c iv b
+
+studentsServer _ _ = throwAll err403
+
 teachersServer :: DB db => AccessScope -> SchoolId -> ApiServer TeachersApi db
-teachersServer (TeacherScope _ _ True) schoolId_ = runDB (DB.getTeachers schoolId_) :<|> activateAccount
+teachersServer (TeacherScope _ _ (TenantKey sk) True) schoolId_ = runDB (DB.getTeachers schoolId_) :<|> activateAccount
   where
-    activateAccount accountId = runDB (DB.activateAccount (schoolId_, accountId)) >> return accountId
+    activateAccount accountId = do
+        keys <- runDB (DB.getUserKeys accountId)
+        case keys of
+            Nothing -> logErrorN ("Activating account with no keys: " <> unSubjectId accountId) >> throwError err500
+            Just ks -> do
+                esk <- liftIO $ encryptSchoolKeyWithRsaKey sk (pubKey ks)
+                runDB (DB.activateAccount (schoolId_, accountId) esk)
+
+                return accountId
 teachersServer _ _ = throwAll err403
-
-
 
 answersServer :: DB db => AccessScope -> ApiServer AnswersApi db
 answersServer scope = case scope of
-    TeacherScope _ schoolId_ _ -> getAnswers schoolId_ :<|> throwAll err403
+    TeacherScope _ schoolId_ _ _ -> getAnswers schoolId_ :<|> throwAll err403
     StudentScope subId schoolId_ -> getStudentAnswers subId schoolId_  :<|> createAnswer schoolId_ subId
     _ -> throwAll err403
   where

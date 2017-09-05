@@ -5,6 +5,7 @@ module DB where
 import           Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import           Control.Monad.IO.Class (liftIO, MonadIO)
 import           Data.Aeson (Value)
+import           Data.ByteString (ByteString)
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Data.Maybe (fromMaybe)
@@ -16,11 +17,15 @@ import           Prelude hiding (id)
 import Api.Types
 
 class DB db where
-    registerNewAccount :: MonadIO m => Registration -> db -> m (Maybe ())
+    registerNewAccount :: MonadIO m => Registration -> UserKeys -> db -> m (Maybe ())
 
     createRegistrationCode :: MonadIO m => SchoolId -> db -> m Text
 
-    activateAccount :: MonadIO m => (SchoolId, SubjectId) -> db -> m ()
+    getUserKeys :: MonadIO m => SubjectId -> db -> m (Maybe UserKeys)
+
+    activateAccount :: MonadIO m => (SchoolId, SubjectId) -> ByteString -> db -> m ()
+
+    loginSuccess :: MonadIO m => SubjectId -> Maybe ByteString -> db -> m ()
 
     getAccountByUsername :: MonadIO m => Text -> db -> m (Maybe Account)
 

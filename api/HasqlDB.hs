@@ -44,22 +44,25 @@ mkDB connStr = H <$> acquire (10, 120, BC.pack connStr)
 newtype HasqlDB = H Pool
 
 instance DB HasqlDB where
-    registerNewAccount Registration {..} db = runSession db $
+    registerNewAccount Registration {..} userKeys db = runSession db $
         case code of
             Nothing -> do
                 begin
                 schoolId_ <- S.query (schoolName, Nothing) insertSchool
                 subId <- S.query (email, password, schoolAdmin, False) insertAccount
+                S.query (subId, userKeys) insertUserKeys
                 S.query (subId, teacherName, schoolId_) insertTeacher
                 commit
                 return (Just ())
             Just cd -> do
                 begin
                 schoolId_ <- S.query (T.concat (T.split ('-' ==) cd)) getRegistrationCode
+
                 case schoolId_ of
                     Nothing -> S.sql "rollback" >> return Nothing
-                    Just sid ->  do
+                    Just sid -> do
                         subId <- S.query (email, password, teacher, False) insertAccount
+                        S.query (subId, userKeys) insertUserKeys
                         S.query (subId, teacherName, sid) insertTeacher
                         commit
                         return (Just ())
@@ -69,7 +72,21 @@ instance DB HasqlDB where
         runQuery insertRegistrationCode (code, schoolId_) db
         return $ T.intercalate "-" (T.chunksOf 4 code)
 
-    activateAccount = runQuery activateTeacherAccount
+    getUserKeys = runQuery selectUserKeys
+
+    activateAccount t@(_, accountId) encryptedSchoolKey db = runSession db $ do
+        begin
+        S.query t activateTeacherAccount
+        S.query (accountId, TE.decodeUtf8 encryptedSchoolKey) updateSchoolKey
+        commit
+
+    loginSuccess subjectId_ keyUpdate db = runSession db $ do
+        begin
+        S.query subjectId_ updateLastLogin
+        case keyUpdate of
+            Nothing -> return ()
+            Just sk -> S.query (subjectId_, TE.decodeUtf8 sk) updateSchoolKey
+        commit
 
     getAccountByUsername = runQuery selectAccountByUsername
 
@@ -319,7 +336,7 @@ activateTeacherAccount = Q.statement sql encode D.unit False
 selectAccountByUsername :: Query Text (Maybe Account)
 selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
   where
-    sql = "SELECT login.id, username, password, user_type :: text, level, active, settings \
+    sql = "SELECT login.id, username, password, user_type :: text, level, active, last_login, settings \
           \ FROM login \
           \ LEFT JOIN student \
           \ ON login.id = student.id \
@@ -332,13 +349,17 @@ selectAccountByUsername = Q.statement sql evText (D.maybeRow decode) True
         <*> userTypeValue
         <*> (maybe 10 fromIntegral <$> D.nullableValue D.int2)
         <*> D.value D.bool
+        <*> D.nullableValue D.timestamptz
         <*> D.nullableValue D.jsonb
 
 insertAccount :: Query (Text, Text, UserType, Bool) UUID.UUID
-insertAccount = Q.statement sql encode (D.singleRow (D.value D.uuid))True
+insertAccount = Q.statement sql encode (D.singleRow (D.value D.uuid)) True
   where
     sql = "INSERT INTO login (username, password, user_type, active) VALUES (lower($1), $2, $3 :: user_type, $4) RETURNING id"
     encode = contrazip4 evText evText evUserType (E.value E.bool)
+
+updateLastLogin :: Query SubjectId ()
+updateLastLogin = Q.statement "UPDATE login SET last_login=now() WHERE id=$1 :: uuid" evSubjectId D.unit True
 
 updateStudentPassword :: Query (SchoolId, SubjectId, Text) ()
 updateStudentPassword = Q.statement sql encode D.unit True
@@ -357,6 +378,41 @@ updateStudentUsername = Q.statement sql encode D.unit True
     encode = contramap (\(sid, _, _) -> sid) evText
         <> contramap (\(_, sid, _) -> sid) evSubjectId
         <> contramap (\(_, _, nm) -> nm) evText
+
+
+selectUserKeys :: Query SubjectId (Maybe UserKeys)
+selectUserKeys = Q.statement sql evSubjectId (D.maybeRow userKeysRow) True
+  where
+    sql = "SELECT salt, pub_key, priv_key, school_key FROM user_keys WHERE user_id=$1 :: uuid"
+    decodePublicKey v = case JSON.fromJSON v of
+        JSON.Success jwk -> jwk
+
+    userKeysRow = UserKeys
+        <$> D.value D.bytea
+        <*> (decodePublicKey <$> D.value D.jsonb)
+        <*> dvText
+        <*> (fmap TE.encodeUtf8 <$> D.nullableValue D.text)
+
+insertUserKeys :: Query (UUID.UUID, UserKeys) ()
+insertUserKeys = Q.statement sql encode D.unit False
+  where
+    sql = "INSERT INTO user_keys (user_id, salt, pub_key, priv_key, school_key) \
+          \ VALUES ($1, $2, $3, $4, $5)"
+    encode = contramap fst (E.value E.uuid)
+        <> contramap snd userKeysEncoder
+
+userKeysEncoder :: E.Params UserKeys
+userKeysEncoder = contramap salt (E.value E.bytea)
+    <> contramap (JSON.toJSON . pubKey) (E.value E.jsonb)
+    <> contramap privKey evText
+    <> contramap (fmap TE.decodeUtf8 . schoolKey) (E.nullableValue E.text)
+
+updateSchoolKey :: Query (SubjectId, Text) ()
+updateSchoolKey = Q.statement sql encode D.unit False
+  where
+    sql = "UPDATE user_keys SET school_key=$2 WHERE user_id=$1 :: uuid"
+    encode = contramap fst evSubjectId
+        <> contramap snd evText
 
 -- Stories
 
@@ -503,7 +559,7 @@ insertStudent = Q.statement sql encode D.unit True
 updateStudent_ :: Query (Student, SchoolId) ()
 updateStudent_ = Q.statement sql encode D.unit True
   where
-    sql = "UPDATE student SET name=$1, description=$2, level=$3, hidden=$4 \
+    sql = "UPDATE student SET level=$3, hidden=$4 \
           \ WHERE id=$5 :: uuid AND school_id=$6 :: uuid"
     encode = contramap ((name :: Student -> Text) . fst) evText
         <> contramap ((description :: Student -> Maybe Text) . fst) (E.nullableValue E.text)

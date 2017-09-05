@@ -12,7 +12,9 @@ module Api.Types where
 import           Data.Aeson
 import           Data.Time.Clock (UTCTime)
 import qualified Data.Map.Strict as Map
+import           Data.ByteString (ByteString)
 import           Data.Text (Text)
+import           Jose.Jwk (Jwk)
 import           GHC.Generics (Generic)
 import           Prelude hiding (id)
 import           Servant ((:<|>), (:>), AuthProtect, Capture, QueryParam, ReqBody, Delete, Post, PostNoContent, NoContent, Get, JSON, Proxy(..))
@@ -109,7 +111,15 @@ data Account = Account
     , role :: UserType
     , level :: Int
     , active :: Bool
+    , lastLogin :: Maybe UTCTime
     , settings :: Maybe Value
+    }
+
+data UserKeys = UserKeys
+    { salt :: ByteString
+    , pubKey :: Jwk
+    , privKey :: Text
+    , schoolKey :: Maybe ByteString
     }
 
 data Login = Login
@@ -152,7 +162,7 @@ type AccessToken = Text
 
 -- Change this to an ADT when elm-export support lands
 newtype UserType = UserType {userType :: Text }
-    deriving (Show, Generic, ToJSON, FromJSON)
+    deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 student, teacher, schoolAdmin, editor, admin :: UserType
 student = UserType "Student"

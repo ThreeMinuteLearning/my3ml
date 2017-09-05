@@ -3,6 +3,7 @@ CREATE TYPE user_type AS ENUM ('Student', 'Teacher', 'SchoolAdmin', 'Editor', 'A
 CREATE TYPE dict_entry AS (word text, index smallint);
 
 CREATE EXTENSION "uuid-ossp";
+CREATE EXTENSION "pgcrypto";
 
 CREATE TABLE login
     ( id uuid DEFAULT uuid_generate_v4() PRIMARY KEY
@@ -13,7 +14,16 @@ CREATE TABLE login
     , active boolean NOT NULL DEFAULT false
     , settings jsonb
     , otp_key text
+    , last_login timestamptz
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+CREATE TABLE user_keys
+    ( user_id uuid PRIMARY KEY REFERENCES login(id) ON DELETE CASCADE
+    , salt bytea NOT NULL
+    , pub_key jsonb NOT NULL
+    , priv_key text NOT NULL
+    , school_key text
     );
 
 CREATE TABLE story
@@ -33,6 +43,7 @@ CREATE TABLE story
 CREATE TABLE school
     ( id uuid DEFAULT uuid_generate_v4() PRIMARY KEY
     , name text NOT NULL CHECK (length(name) > 0)
+    , school_key text NOT NULL
     , description text
     );
 
