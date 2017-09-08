@@ -61,7 +61,7 @@ viewForm =
     Html.form [ onSubmit SubmitForm ]
         [ Form.input
             [ class "form-control-lg"
-            , placeholder "Username"
+            , placeholder "Username or email"
             , tabindex 1
             , onInput SetUsername
             ]
@@ -162,6 +162,6 @@ type alias Error =
 validate : Model -> List Error
 validate =
     Validate.all
-        [ .username >> ifBlank (Email => "email can't be blank.")
-        , .password >> ifBlank (Password => "password can't be blank.")
+        [ .username >> ifBlank (Email => "You must enter a username")
+        , .password >> ifBlank (Password => "You must enter a password")
         ]
