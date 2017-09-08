@@ -1,29 +1,37 @@
-module Page.FindStory exposing (Model, Msg, init, view, update)
+module Page.FindStory exposing (Model, Msg, init, view, subscriptions, update)
 
 import Api
 import Bootstrap
 import Data.Session as Session exposing (Session)
+import Data.Settings exposing (Settings, defaultSettings)
 import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onInput, onClick)
+import List.Zipper as Zipper exposing (Zipper)
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Regex
-import Route
 import Table
 import Task exposing (Task)
-import Views.RobotPanel as RobotPanel
+import Util exposing ((=>), onClickPreventDefault)
+import Views.Story as StoryView
 
 
 type alias Model =
     { storyFilter : String
+    , stories : List Api.Story
     , tableState : Table.State
+    , browser : Maybe (Zipper Api.Story)
+    , storyView : StoryView.State
+    , selectedStories : List Api.Story
     }
 
 
 type Msg
     = StoryFilterInput String
+    | StoryViewMsg StoryView.Msg
     | SetTableState Table.State
+    | BrowseFrom Int
 
 
 initialModel : Session -> Model
@@ -38,7 +46,7 @@ initialModel session =
         stories =
             session.cache.stories
     in
-        Model "" (Table.initialSort sortColumn)
+        Model "" stories (Table.initialSort sortColumn) Nothing StoryView.init []
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -52,40 +60,86 @@ init session =
             |> Task.mapError handleLoadError
 
 
+subscriptions : Model -> Sub Msg
+subscriptions m =
+    case m.browser of
+        Nothing ->
+            Sub.none
+
+        Just _ ->
+            Sub.map StoryViewMsg StoryView.subscriptions
+
+
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
-update session msg model =
+update { cache } msg model =
     case msg of
         StoryFilterInput f ->
-            { model | storyFilter = f } ! []
+            { model | storyFilter = f, stories = filterStories model.storyFilter cache.stories } ! []
 
         SetTableState t ->
             { model | tableState = t } ! []
 
+        BrowseFrom storyId ->
+            { model | browser = zipperFrom storyId model.stories } ! []
+
+        StoryViewMsg svm ->
+            let
+                ( newStoryView, cmd ) =
+                    StoryView.update svm model.storyView
+            in
+                { model | storyView = newStoryView } => Cmd.map StoryViewMsg cmd
+
+
+zipperFrom : Int -> List Api.Story -> Maybe (Zipper Api.Story)
+zipperFrom storyId stories =
+    Zipper.fromList stories
+        |> Maybe.andThen (Zipper.find (\s -> s.id == storyId))
+
 
 view : Session -> Model -> Html Msg
-view { cache } m =
-    let
-        stories =
-            filterStories m.storyFilter cache.stories
-    in
-        div [ class "container page" ]
-            [ RobotPanel.view
-            , div [ class "form-group" ]
-                [ input
-                    [ type_ "text"
-                    , value m.storyFilter
-                    , onInput StoryFilterInput
-                    , placeholder "Search text"
-                    , id "storyfilter"
-                    ]
-                    []
-                , label [ style [ ( "margin-left", "5px" ) ], for "storyfilter" ]
-                    [ text (" " ++ toString (List.length stories) ++ " matching stories")
-                    ]
+view session m =
+    div [ class "container page" ]
+        [ case m.browser of
+            Nothing ->
+                viewStoriesTable m
+
+            Just b ->
+                viewBrowser (settingsFromSession session) (Zipper.current b) m.storyView
+        ]
+
+
+settingsFromSession : Session -> Settings
+settingsFromSession session =
+    session.user
+        |> Maybe.map .settings
+        |> Maybe.withDefault defaultSettings
+
+
+viewBrowser : Settings -> Api.Story -> StoryView.State -> Html Msg
+viewBrowser settings story storyView =
+    div []
+        [ Html.map StoryViewMsg <| StoryView.view settings story storyView ]
+
+
+viewStoriesTable : Model -> Html Msg
+viewStoriesTable m =
+    div []
+        [ div [ class "form-group" ]
+            [ input
+                [ type_ "text"
+                , value m.storyFilter
+                , onInput StoryFilterInput
+                , placeholder "Search text"
+                , id "storyfilter"
                 ]
-            , div [ class "table-responsive" ]
-                [ Table.view tableConfig m.tableState stories ]
+                []
+            , label [ style [ ( "margin-left", "5px" ) ], for "storyfilter" ]
+                [ text (" " ++ toString (List.length m.stories) ++ " matching stories")
+                ]
             ]
+        , div [ class "table-responsive" ]
+            [ Table.view tableConfig m.tableState m.stories ]
+        ]
 
 
 filterStories : String -> List Api.Story -> List Api.Story
@@ -133,7 +187,7 @@ tableConfig =
 
         viewStoryLink s =
             Table.HtmlDetails []
-                [ Html.a [ Html.Attributes.href (Route.routeToString (Route.Story s.id)) ] [ text s.title ]
+                [ Html.a [ href "#", onClickPreventDefault (BrowseFrom s.id) ] [ text s.title ]
                 ]
     in
         Table.customConfig

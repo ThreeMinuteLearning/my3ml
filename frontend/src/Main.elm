@@ -480,6 +480,9 @@ pageSubscriptions page =
         Editor subModel ->
             Sub.map EditorMsg (Editor.subscriptions subModel)
 
+        FindStory subModel ->
+            Sub.map FindStoryMsg (FindStory.subscriptions subModel)
+
         _ ->
             Sub.none
 

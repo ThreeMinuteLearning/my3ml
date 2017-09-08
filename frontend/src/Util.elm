@@ -1,4 +1,4 @@
-module Util exposing ((=>), pair, onClickStopPropagation, viewIf, appendErrors, dialog, printButton, defaultHttpErrorMsg)
+module Util exposing ((=>), pair, onClickStopPropagation, onClickPreventDefault, viewIf, appendErrors, dialog, printButton, defaultHttpErrorMsg)
 
 import Dialog
 import Html exposing (..)
@@ -39,6 +39,13 @@ viewIf condition content =
         content
     else
         Html.text ""
+
+
+onClickPreventDefault : msg -> Attribute msg
+onClickPreventDefault msg =
+    onWithOptions "click"
+        { defaultOptions | preventDefault = True }
+        (Decode.succeed msg)
 
 
 onClickStopPropagation : msg -> Attribute msg
