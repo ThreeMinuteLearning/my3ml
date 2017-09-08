@@ -1,4 +1,4 @@
-module Views.Story exposing (view)
+module Views.Story exposing (State, Msg, init, view, subscriptions, update)
 
 {-| The single story view
 -}
@@ -10,17 +10,48 @@ import Html.Attributes exposing (..)
 import Html.Events
 import Json.Decode as JD
 import Markdown
+import Ports
 import Regex
+import Util exposing ((=>))
 
 
-view : Settings -> Story -> Int -> (String -> msg) -> Html msg
-view settings story picWidth onPicLoad =
+type alias State =
+    Int
+
+
+type Msg
+    = GetImgWidth String
+    | ImageWidth Float
+
+
+init : State
+init =
+    0
+
+
+subscriptions : Sub Msg
+subscriptions =
+    Ports.imgWidth ImageWidth
+
+
+update : Msg -> State -> ( State, Cmd Msg )
+update msg picWidth =
+    case msg of
+        GetImgWidth s ->
+            ( picWidth, Ports.getImgWidth s )
+
+        ImageWidth w ->
+            round w => Cmd.none
+
+
+view : Settings -> Story -> State -> Html Msg
+view settings story picWidth =
     div [ class "u-fade-in" ]
         [ h3 [ class "storytitle" ] [ text story.title ]
         , div ((id "storypic") :: picStyle picWidth)
             [ img
                 (imgStyle picWidth
-                    ++ [ onLoadGetWidth onPicLoad, src ("pix/" ++ story.img) ]
+                    ++ [ onLoadGetWidth GetImgWidth, src ("pix/" ++ story.img) ]
                 )
                 []
             ]

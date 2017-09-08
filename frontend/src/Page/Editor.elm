@@ -9,19 +9,18 @@ import Html.Events exposing (onInput, onClick)
 import Http
 import Multiselect
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
-import Ports
 import Set
 import Task exposing (Task)
 import Tuple exposing (second)
 import Util exposing ((=>), defaultHttpErrorMsg)
 import Views.Form as Form
-import Views.Story as Story
+import Views.Story as StoryView
 
 
 type alias Model =
     { errors : List String
     , story : Api.Story
-    , picWidth : Int
+    , storyView : StoryView.State
     , sqaTags : List String
     , tagsMultiselect : Multiselect.Model
     }
@@ -29,8 +28,7 @@ type alias Model =
 
 type Msg
     = ContentInput String
-    | GetImgWidth String
-    | ImageWidth Float
+    | StoryViewMsg StoryView.Msg
     | Save
     | SaveResponse (Result Http.Error Api.Story)
     | MSMsg Multiselect.Msg
@@ -48,7 +46,7 @@ init originalSession slug =
                     Task.succeed
                         ( Model []
                             story
-                            0
+                            StoryView.init
                             (makeSqaTags session.cache.stories)
                             (initMultiselect session.cache.stories story.tags)
                         , session
@@ -87,11 +85,12 @@ initMultiselect stories selection =
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
 update session msg ({ story } as model) =
     case msg of
-        GetImgWidth s ->
-            model => Ports.getImgWidth s
-
-        ImageWidth w ->
-            { model | picWidth = round w } => Cmd.none
+        StoryViewMsg svm ->
+            let
+                ( newStoryView, cmd ) =
+                    StoryView.update svm model.storyView
+            in
+                { model | storyView = newStoryView } => Cmd.map StoryViewMsg cmd
 
         ContentInput newContent ->
             { model | story = { story | content = newContent } }
@@ -127,7 +126,7 @@ update session msg ({ story } as model) =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Ports.imgWidth ImageWidth
+        [ Sub.map StoryViewMsg StoryView.subscriptions
         , Sub.map MSMsg <| Multiselect.subscriptions model.tagsMultiselect
         ]
 
@@ -147,7 +146,7 @@ view model =
                     []
                 ]
             , div [ class "col-md-5" ]
-                [ Story.view defaultSettings model.story model.picWidth GetImgWidth ]
+                [ Html.map StoryViewMsg <| StoryView.view defaultSettings model.story model.storyView ]
             ]
         , div [ class "row" ]
             [ div [ class "col-xs-1" ] []

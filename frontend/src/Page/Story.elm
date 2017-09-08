@@ -14,22 +14,21 @@ import Task exposing (Task)
 import Util exposing ((=>), viewIf, defaultHttpErrorMsg, printButton)
 import Views.Answers as Answers
 import Views.RobotPanel as RobotPanel
-import Views.Story as Story
+import Views.Story as StoryView
 import Views.Words as Words
 
 
 type alias Model =
-    { picWidth : Int
-    , dictLookup : Maybe Api.DictEntry
+    { dictLookup : Maybe Api.DictEntry
     , story : Api.Story
+    , storyView : StoryView.State
     , answers : List Api.Answer
     , answersForm : Maybe AnswersForm.Model
     }
 
 
 type Msg
-    = GetImgWidth String
-    | ImageWidth Float
+    = StoryViewMsg StoryView.Msg
     | PrintWindow
     | DictLookup ( String, Int )
     | ClearAnswers
@@ -60,7 +59,7 @@ init originalSession slug =
                     lookupAnswers session story
                         |> Task.map
                             (\answers ->
-                                ( Model 0 Nothing story answers (mkAnswersForm story answers), session )
+                                ( Model Nothing story StoryView.init answers (mkAnswersForm story answers), session )
                             )
 
                 Nothing ->
@@ -96,7 +95,7 @@ init originalSession slug =
 
 subscriptions : Sub Msg
 subscriptions =
-    Sub.batch [ Ports.imgWidth ImageWidth, Ports.dictLookup DictLookup ]
+    Sub.batch [ Sub.map StoryViewMsg StoryView.subscriptions, Ports.dictLookup DictLookup ]
 
 
 view : Session -> Model -> Html Msg
@@ -104,7 +103,7 @@ view session m =
     div [ class "container page" ]
         [ RobotPanel.view
         , viewIf (Session.isTeacher session) (printButton PrintWindow "Print this story")
-        , Story.view (settingsFromSession session) m.story m.picWidth GetImgWidth
+        , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) m.story m.storyView
         , m.dictLookup
             |> Maybe.map List.singleton
             |> Maybe.withDefault []
@@ -142,11 +141,12 @@ viewPrintAnswerSections story =
 update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
 update session msg model =
     case msg of
-        GetImgWidth s ->
-            model => Ports.getImgWidth s => session
-
-        ImageWidth w ->
-            { model | picWidth = round w } => Cmd.none => session
+        StoryViewMsg svm ->
+            let
+                ( newStoryView, cmd ) =
+                    StoryView.update svm model.storyView
+            in
+                { model | storyView = newStoryView } => Cmd.map StoryViewMsg cmd => session
 
         DictLookup ( w, i ) ->
             { model | dictLookup = Just (Api.DictEntry w i) } => Cmd.none => session
