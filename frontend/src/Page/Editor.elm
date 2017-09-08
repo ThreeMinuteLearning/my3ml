@@ -40,7 +40,7 @@ init : Session -> Int -> Task PageLoadError ( Model, Session )
 init originalSession slug =
     let
         handleLoadError e =
-            pageLoadError e "Story is currently unavailable."
+            pageLoadError e ("Story is currently unavailable. " ++ defaultHttpErrorMsg e)
 
         lookupStoryAndCreateModel session =
             case findStoryById session.cache slug of

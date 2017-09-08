@@ -11,7 +11,7 @@ import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Ports
 import Task exposing (Task)
-import Util exposing ((=>), viewIf, printButton)
+import Util exposing ((=>), viewIf, defaultHttpErrorMsg, printButton)
 import Views.Answers as Answers
 import Views.RobotPanel as RobotPanel
 import Views.Story as Story
@@ -40,7 +40,7 @@ init : Session -> Int -> Task PageLoadError ( Model, Session )
 init originalSession slug =
     let
         handleLoadError e =
-            pageLoadError e "Story is currently unavailable."
+            pageLoadError e ("Story is currently unavailable. " ++ defaultHttpErrorMsg e)
 
         user =
             originalSession.user
@@ -64,7 +64,16 @@ init originalSession slug =
                             )
 
                 Nothing ->
-                    Task.fail (PageLoadError "Sorry. That story couldn't be found.")
+                    Task.fail
+                        << PageLoadError
+                    <|
+                        "Sorry. That story couldn't be found."
+                            ++ case user of
+                                Just _ ->
+                                    ""
+
+                                Nothing ->
+                                    " You probably need to sign in to see it."
 
         lookupAnswers session story =
             case Maybe.map .role user of
