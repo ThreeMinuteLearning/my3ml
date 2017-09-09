@@ -16,6 +16,7 @@ import Views.Answers as Answers
 import Views.RobotPanel as RobotPanel
 import Views.Story as StoryView
 import Views.Words as Words
+import Window
 
 
 type alias Model =
@@ -56,11 +57,12 @@ init originalSession slug =
         lookupStoryAndCreateModel session =
             case findStoryById session.cache slug of
                 Just story ->
-                    lookupAnswers session story
-                        |> Task.map
-                            (\answers ->
-                                ( Model Nothing story StoryView.init answers (mkAnswersForm story answers), session )
-                            )
+                    Task.map2
+                        (\answers size ->
+                            ( Model Nothing story (StoryView.init size) answers (mkAnswersForm story answers), session )
+                        )
+                        (lookupAnswers session story)
+                        Window.size
 
                 Nothing ->
                     Task.fail

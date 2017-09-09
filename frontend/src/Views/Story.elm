@@ -13,44 +13,49 @@ import Markdown
 import Ports
 import Regex
 import Util exposing ((=>))
+import Window as Window
 
 
 type alias State =
-    Int
+    ( Int, Int )
 
 
 type Msg
     = GetImgWidth String
     | ImageWidth Float
+    | Resize Window.Size
 
 
-init : State
-init =
-    0
+init : Window.Size -> State
+init size =
+    ( 0, size.width )
 
 
 subscriptions : Sub Msg
 subscriptions =
-    Ports.imgWidth ImageWidth
+    Sub.batch [ Ports.imgWidth ImageWidth, Window.resizes Resize ]
 
 
 update : Msg -> State -> ( State, Cmd Msg )
-update msg picWidth =
+update msg ( picWidth, windowWidth ) =
     case msg of
         GetImgWidth s ->
-            ( picWidth, Ports.getImgWidth s )
+            ( ( picWidth, windowWidth ), Ports.getImgWidth s )
 
         ImageWidth w ->
-            round w => Cmd.none
+            ( round w, windowWidth ) => Cmd.none
+
+        Resize s ->
+            ( picWidth, s.width ) => Cmd.none
 
 
 view : Settings -> Story -> State -> Html Msg
-view settings story picWidth =
+view settings story state =
     div [ class "u-fade-in" ]
         [ h3 [ class "storytitle" ] [ text story.title ]
-        , div ((id "storypic") :: picStyle picWidth)
+        , div ((id "storypic") :: picStyle state)
             [ img
-                (imgStyle picWidth
+                (imgStyle state
                     ++ [ onLoadGetWidth GetImgWidth, src ("pix/" ++ story.img) ]
                 )
                 []
@@ -67,17 +72,22 @@ tagList story =
     story.tags ++ Maybe.withDefault [] (Maybe.map List.singleton story.curriculum) ++ [ story.qualification ]
 
 
-picStyle : Int -> List (Html.Attribute msg)
-picStyle width =
-    if width > 0 && width < 600 then
+thresholdWidth : Int -> Int
+thresholdWidth windowWidth =
+    Basics.min (round (toFloat windowWidth / 1.5)) 600
+
+
+picStyle : State -> List (Html.Attribute msg)
+picStyle ( picWidth, windowWidth ) =
+    if picWidth > 0 && picWidth < thresholdWidth windowWidth then
         [ class "rightimage" ]
     else
         []
 
 
-imgStyle : Int -> List (Html.Attribute msg)
-imgStyle width =
-    if width > 600 then
+imgStyle : State -> List (Html.Attribute msg)
+imgStyle ( picWidth, windowWidth ) =
+    if picWidth > thresholdWidth windowWidth then
         [ style [ ( "width", "100%" ) ] ]
     else
         []

@@ -7,19 +7,21 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 import Http
+import List.InfiniteZipper as Zipper exposing (InfiniteZipper)
 import Multiselect
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Set
 import Task exposing (Task)
 import Tuple exposing (second)
-import Util exposing ((=>), defaultHttpErrorMsg)
+import Util exposing ((=>), defaultHttpErrorMsg, onClickPreventDefault)
 import Views.Form as Form
 import Views.Story as StoryView
+import Window
 
 
 type alias Model =
     { errors : List String
-    , story : Api.Story
+    , stories : InfiniteZipper Api.Story
     , storyView : StoryView.State
     , sqaTags : List String
     , tagsMultiselect : Multiselect.Model
@@ -32,6 +34,8 @@ type Msg
     | Save
     | SaveResponse (Result Http.Error Api.Story)
     | MSMsg Multiselect.Msg
+    | Next
+    | Previous
 
 
 init : Session -> Int -> Task PageLoadError ( Model, Session )
@@ -41,16 +45,18 @@ init originalSession slug =
             pageLoadError e ("Story is currently unavailable. " ++ defaultHttpErrorMsg e)
 
         lookupStoryAndCreateModel session =
-            case findStoryById session.cache slug of
-                Just story ->
-                    Task.succeed
-                        ( Model []
-                            story
-                            StoryView.init
-                            (makeSqaTags session.cache.stories)
-                            (initMultiselect session.cache.stories story.tags)
-                        , session
+            case makeZipper session.cache.stories slug of
+                Just zipper ->
+                    Task.map
+                        (\size ->
+                            (Model []
+                                zipper
+                                (StoryView.init size)
+                                (makeSqaTags session.cache.stories)
+                                (initMultiselect session.cache.stories)
+                            )
                         )
+                        Window.size
 
                 Nothing ->
                     Task.fail (PageLoadError "Sorry. That story couldn't be found.")
@@ -58,7 +64,18 @@ init originalSession slug =
         Session.loadDictionary originalSession
             |> Task.andThen (\newSession -> Session.loadStories newSession)
             |> Task.mapError handleLoadError
-            |> Task.andThen lookupStoryAndCreateModel
+            |> Task.andThen
+                (\newSession ->
+                    lookupStoryAndCreateModel newSession
+                        |> Task.map (updateZipper identity)
+                        |> Task.map (\m -> ( m, newSession ))
+                )
+
+
+makeZipper : List Api.Story -> Int -> Maybe (InfiniteZipper Api.Story)
+makeZipper stories storyId =
+    Zipper.fromList stories
+        |> Maybe.andThen (Zipper.findFirst (\s -> s.id == storyId))
 
 
 makeSqaTags : List Api.Story -> List String
@@ -66,8 +83,8 @@ makeSqaTags =
     List.map .qualification >> Set.fromList >> Set.toList
 
 
-initMultiselect : List Api.Story -> List String -> Multiselect.Model
-initMultiselect stories selection =
+initMultiselect : List Api.Story -> Multiselect.Model
+initMultiselect stories =
     let
         tags =
             stories
@@ -75,15 +92,12 @@ initMultiselect stories selection =
                 |> Set.fromList
                 |> Set.toList
                 |> \ts -> List.map2 (,) ts ts
-
-        ms =
-            Multiselect.initModel tags "Tags"
     in
-        { ms | selected = List.map2 (,) selection selection }
+        Multiselect.initModel tags "Tags"
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
-update session msg ({ story } as model) =
+update session msg model =
     case msg of
         StoryViewMsg svm ->
             let
@@ -93,17 +107,17 @@ update session msg ({ story } as model) =
                 { model | storyView = newStoryView } => Cmd.map StoryViewMsg cmd
 
         ContentInput newContent ->
-            { model | story = { story | content = newContent } }
+            { model | stories = Zipper.mapCurrent (\s -> { s | content = newContent }) model.stories }
                 => Cmd.none
 
         Save ->
             model
-                => (Api.postStoriesByStoryId (authorization session) model.story.id story
+                => (Api.postStoriesByStoryId (authorization session) (.id <| Zipper.current model.stories) (Zipper.current model.stories)
                         |> Http.send SaveResponse
                    )
 
         SaveResponse (Ok story) ->
-            { model | errors = [], story = story } => Cmd.none
+            { model | errors = [], stories = Zipper.mapCurrent (\_ -> story) model.stories } => Cmd.none
 
         SaveResponse (Err e) ->
             { model | errors = [ defaultHttpErrorMsg e ] }
@@ -117,10 +131,34 @@ update session msg ({ story } as model) =
                 selected =
                     List.map second (Multiselect.getSelectedValues subModel)
 
-                newStory =
-                    { story | tags = selected }
+                newZipper =
+                    Zipper.mapCurrent (\s -> { s | tags = selected }) model.stories
             in
-                { model | tagsMultiselect = subModel, story = newStory } ! [ Cmd.map MSMsg subCmd ]
+                { model | tagsMultiselect = subModel, stories = newZipper } ! [ Cmd.map MSMsg subCmd ]
+
+        Next ->
+            updateZipper Zipper.next model => Cmd.none
+
+        Previous ->
+            updateZipper Zipper.previous model => Cmd.none
+
+
+updateZipper : (InfiniteZipper Api.Story -> InfiniteZipper Api.Story) -> Model -> Model
+updateZipper f model =
+    let
+        newStories =
+            f model.stories
+
+        story =
+            Zipper.current newStories
+
+        ms =
+            model.tagsMultiselect
+
+        selection =
+            List.map2 (,) story.tags story.tags
+    in
+        { model | stories = newStories, tagsMultiselect = { ms | selected = selection } }
 
 
 subscriptions : Model -> Sub Msg
@@ -134,11 +172,15 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     div [ id "editor", class "container page" ]
-        [ div [ class "row panes" ]
+        [ div [ class "row" ]
+            [ a [ href "#", onClickPreventDefault Previous ] [ text "prev" ]
+            , a [ class "pull-right", href "#", onClickPreventDefault Next ] [ text "next" ]
+            ]
+        , div [ class "row panes" ]
             [ div [ class "col-xs-1" ] []
             , div [ class "col-md-5 contentinput" ]
                 [ textarea
-                    [ value model.story.content
+                    [ value (.content (Zipper.current model.stories))
                     , class "form-control"
                     , onInput ContentInput
                     , rows 30
@@ -146,7 +188,7 @@ view model =
                     []
                 ]
             , div [ class "col-md-5" ]
-                [ Html.map StoryViewMsg <| StoryView.view defaultSettings model.story model.storyView ]
+                [ Html.map StoryViewMsg <| StoryView.view defaultSettings (Zipper.current model.stories) model.storyView ]
             ]
         , div [ class "row" ]
             [ div [ class "col-xs-1" ] []

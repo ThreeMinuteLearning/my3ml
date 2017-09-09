@@ -8,20 +8,21 @@ import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
-import List.Zipper as Zipper exposing (Zipper)
+import List.InfiniteZipper as Zipper exposing (InfiniteZipper)
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Regex
 import Table
 import Task exposing (Task)
 import Util exposing ((=>), onClickPreventDefault)
 import Views.Story as StoryView
+import Window
 
 
 type alias Model =
     { storyFilter : String
     , stories : List Api.Story
     , tableState : Table.State
-    , browser : Maybe (Zipper Api.Story)
+    , browser : Maybe (InfiniteZipper Api.Story)
     , storyView : StoryView.State
     , selectedStories : List Api.Story
     }
@@ -32,10 +33,12 @@ type Msg
     | StoryViewMsg StoryView.Msg
     | SetTableState Table.State
     | BrowseFrom Int
+    | Next
+    | Previous
 
 
-initialModel : Session -> Model
-initialModel session =
+initialModel : Session -> Window.Size -> ( Model, Session )
+initialModel session size =
     let
         sortColumn =
             if Session.isStudent session then
@@ -46,7 +49,7 @@ initialModel session =
         stories =
             session.cache.stories
     in
-        Model "" stories (Table.initialSort sortColumn) Nothing StoryView.init []
+        Model "" stories (Table.initialSort sortColumn) Nothing (StoryView.init size) [] => session
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -55,8 +58,7 @@ init session =
         handleLoadError e =
             pageLoadError e "There was a problem loading the stories."
     in
-        Session.loadStories session
-            |> Task.map (\newSession -> ( initialModel newSession, newSession ))
+        Task.map2 initialModel (Session.loadStories session) Window.size
             |> Task.mapError handleLoadError
 
 
@@ -89,11 +91,17 @@ update { cache } msg model =
             in
                 { model | storyView = newStoryView } => Cmd.map StoryViewMsg cmd
 
+        Next ->
+            { model | browser = model.browser |> Maybe.map Zipper.next } => Cmd.none
 
-zipperFrom : Int -> List Api.Story -> Maybe (Zipper Api.Story)
+        Previous ->
+            { model | browser = model.browser |> Maybe.map Zipper.previous } => Cmd.none
+
+
+zipperFrom : Int -> List Api.Story -> Maybe (InfiniteZipper Api.Story)
 zipperFrom storyId stories =
     Zipper.fromList stories
-        |> Maybe.andThen (Zipper.find (\s -> s.id == storyId))
+        |> Maybe.andThen (Zipper.findFirst (\s -> s.id == storyId))
 
 
 view : Session -> Model -> Html Msg
@@ -118,7 +126,17 @@ settingsFromSession session =
 viewBrowser : Settings -> Api.Story -> StoryView.State -> Html Msg
 viewBrowser settings story storyView =
     div []
-        [ Html.map StoryViewMsg <| StoryView.view settings story storyView ]
+        [ viewBrowserToolbar
+        , Html.map StoryViewMsg <| StoryView.view settings story storyView
+        ]
+
+
+viewBrowserToolbar : Html Msg
+viewBrowserToolbar =
+    div []
+        [ a [ href "#", onClickPreventDefault Previous ] [ text "prev" ]
+        , a [ class "pull-right", href "#", onClickPreventDefault Next ] [ text "next" ]
+        ]
 
 
 viewStoriesTable : Model -> Html Msg
