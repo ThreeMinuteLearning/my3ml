@@ -172,13 +172,23 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     div [ id "editor", class "container page" ]
-        [ div [ class "row" ]
-            [ a [ href "#", onClickPreventDefault Previous ] [ text "prev" ]
-            , a [ class "pull-right", href "#", onClickPreventDefault Next ] [ text "next" ]
+        [ nav [ class "row" ]
+            [ ul [ class "pager" ]
+                [ li [ class "previous" ] [ a [ href "#", onClickPreventDefault Previous ] [ text "Prev" ] ]
+                , li [ class "next" ] [ a [ class "pull-right", href "#", onClickPreventDefault Next ] [ text "Next" ] ]
+                ]
+            ]
+        , div [ class "row" ]
+            [ Form.viewErrorMsgs model.errors
+            , div [ class "col-md-6" ]
+                [ Html.map MSMsg <| Multiselect.view model.tagsMultiselect
+                ]
+            , div [ class "col-md-6" ]
+                [ button [ class "btn btn-default", onClick Save ] [ text "Save Changes" ]
+                ]
             ]
         , div [ class "row panes" ]
-            [ div [ class "col-xs-1" ] []
-            , div [ class "col-md-5 contentinput" ]
+            [ div [ class "col-md-6 contentinput" ]
                 [ textarea
                     [ value (.content (Zipper.current model.stories))
                     , class "form-control"
@@ -187,20 +197,7 @@ view model =
                     ]
                     []
                 ]
-            , div [ class "col-md-5" ]
+            , div [ class "col-md-6" ]
                 [ Html.map StoryViewMsg <| StoryView.view defaultSettings (Zipper.current model.stories) model.storyView ]
-            ]
-        , div [ class "row" ]
-            [ div [ class "col-xs-1" ] []
-            , div [ class "col-md-10" ]
-                [ Html.map MSMsg <| Multiselect.view model.tagsMultiselect
-                ]
-            ]
-        , div [ class "row" ]
-            [ div [ class "col-xs-1" ] []
-            , div [ class "col-md-5" ]
-                [ Form.viewErrorMsgs model.errors
-                , button [ class "btn btn-default", onClick Save ] [ text "Save Changes" ]
-                ]
             ]
         ]
