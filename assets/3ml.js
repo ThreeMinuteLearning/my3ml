@@ -24,6 +24,21 @@ app.ports.checkPassword.subscribe(function(password) {
     app.ports.passwordChecked.send(report);
 });
 
+app.ports.isLastEltVisible.subscribe(function(id) {
+    window.requestAnimationFrame(function() {
+        var parent = document.getElementById(id);
+        var lastElt = parent.childNodes[parent.childNodes.length - 1];
+        var visible = isEltVisible(lastElt);
+        app.ports.lastEltVisible.send(visible);
+    });
+});
+
+window.onscroll = function () {
+    var appElt = document.getElementById("app");
+    var visible = isEltVisible(appElt);
+    app.ports.scroll.send(visible);
+};
+
 var getWidth = function (selector, count, callback) {
     var node = document.querySelector(selector);
 
@@ -98,4 +113,10 @@ var renderStoryContent = function (elt, words) {
         }
     };
     go();
+};
+
+function isEltVisible (elt) {
+    var rect = elt.getBoundingClientRect();
+
+    return (rect.bottom <= (window.innerHeight || document.documentElement.clientHeight));
 };

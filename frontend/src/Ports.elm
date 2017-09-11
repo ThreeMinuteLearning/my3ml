@@ -26,3 +26,12 @@ port checkPassword : String -> Cmd msg
 
 
 port passwordChecked : (Json.Value -> msg) -> Sub msg
+
+
+port isLastEltVisible : String -> Cmd msg
+
+
+port lastEltVisible : (Bool -> msg) -> Sub msg
+
+
+port scroll : (Bool -> msg) -> Sub msg

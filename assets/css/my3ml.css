@@ -3,6 +3,10 @@ html, body {
     font-size: 16px;
 }
 
+#app {
+    margin-bottom: 5px;
+}
+
 .container {
     max-width: 990px;
     height: 100%;

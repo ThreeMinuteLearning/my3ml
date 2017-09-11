@@ -10,6 +10,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 import List.InfiniteZipper as Zipper exposing (InfiniteZipper)
 import Page.Errored exposing (PageLoadError, pageLoadError)
+import Ports
 import Regex
 import Table
 import Task exposing (Task)
@@ -26,6 +27,7 @@ type alias Model =
     , browser : Maybe (InfiniteZipper Api.Story)
     , storyView : StoryView.State
     , viewType : ViewType
+    , windowSize : Window.Size
     , selectedStories : List Api.Story
     }
 
@@ -37,10 +39,12 @@ type Msg
     | BrowseFrom Int
     | Next
     | Previous
+    | Scroll Bool
+    | Resize Window.Size
 
 
 type ViewType
-    = Tiles
+    = Tiles Int
     | Table
 
 
@@ -58,11 +62,11 @@ initialModel session size =
 
         viewType =
             if Session.isStudent session then
-                Tiles
+                Tiles (StoryTiles.tilesPerPage size)
             else
                 Table
     in
-        Model "" stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType [] => session
+        Model "" stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType size [] => session
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -79,7 +83,12 @@ subscriptions : Model -> Sub Msg
 subscriptions m =
     case m.browser of
         Nothing ->
-            Sub.none
+            case m.viewType of
+                Tiles _ ->
+                    Sub.batch [ Window.resizes Resize, Ports.scroll Scroll, Ports.lastEltVisible Scroll ]
+
+                _ ->
+                    Sub.none
 
         Just _ ->
             Sub.map StoryViewMsg StoryView.subscriptions
@@ -110,6 +119,29 @@ update { cache } msg model =
         Previous ->
             { model | browser = model.browser |> Maybe.map Zipper.previous } => Cmd.none
 
+        Scroll atBottom ->
+            if atBottom then
+                loadMore model
+            else
+                ( model, Cmd.none )
+
+        Resize s ->
+            { model | windowSize = s } => Cmd.none
+
+
+loadMore : Model -> ( Model, Cmd msg )
+loadMore m =
+    case m.viewType of
+        Tiles n ->
+            if n >= List.length m.stories then
+                ( m, Cmd.none )
+            else
+                { m | viewType = Tiles (n + (2 * (StoryTiles.tilesPerRow m.windowSize))) }
+                    => Ports.isLastEltVisible ("storytiles")
+
+        _ ->
+            ( m, Cmd.none )
+
 
 zipperFrom : Int -> List Api.Story -> Maybe (InfiniteZipper Api.Story)
 zipperFrom storyId stories =
@@ -125,8 +157,8 @@ view session m =
                 div []
                     [ viewStoriesFilter m
                     , case m.viewType of
-                        Tiles ->
-                            StoryTiles.view m.stories
+                        Tiles n ->
+                            StoryTiles.view (List.take n m.stories)
 
                         Table ->
                             viewStoriesTable m
