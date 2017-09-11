@@ -2,7 +2,7 @@ module Page.FindStory exposing (Model, Msg, init, view, subscriptions, update)
 
 import Api
 import Bootstrap
-import Data.Session as Session exposing (Session)
+import Data.Session as Session exposing (Session, isEditor)
 import Data.Settings exposing (Settings, defaultSettings)
 import Exts.List exposing (firstMatch)
 import Html exposing (..)
@@ -12,9 +12,10 @@ import List.InfiniteZipper as Zipper exposing (InfiniteZipper)
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
 import Regex
+import Route
 import Table
 import Task exposing (Task)
-import Util exposing ((=>), onClickPreventDefault)
+import Util exposing ((=>), onClickPreventDefault, viewIf)
 import Views.Story as StoryView
 import Views.StoryTiles as StoryTiles
 import Window
@@ -41,6 +42,7 @@ type Msg
     | Previous
     | Scroll Bool
     | Resize Window.Size
+    | CloseBrowser
 
 
 type ViewType
@@ -128,6 +130,9 @@ update { cache } msg model =
         Resize s ->
             { model | windowSize = s } => Cmd.none
 
+        CloseBrowser ->
+            { model | browser = Nothing } => Cmd.none
+
 
 loadMore : Model -> ( Model, Cmd msg )
 loadMore m =
@@ -165,7 +170,10 @@ view session m =
                     ]
 
             Just b ->
-                viewBrowser (settingsFromSession session) (Zipper.current b) m.storyView
+                div []
+                    [ viewBrowserToolbar session (Zipper.current b)
+                    , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) (Zipper.current b) m.storyView
+                    ]
         ]
 
 
@@ -176,19 +184,15 @@ settingsFromSession session =
         |> Maybe.withDefault defaultSettings
 
 
-viewBrowser : Settings -> Api.Story -> StoryView.State -> Html Msg
-viewBrowser settings story storyView =
-    div []
-        [ viewBrowserToolbar
-        , Html.map StoryViewMsg <| StoryView.view settings story storyView
-        ]
-
-
-viewBrowserToolbar : Html Msg
-viewBrowserToolbar =
-    div []
-        [ a [ href "#", onClickPreventDefault Previous ] [ text "prev" ]
-        , a [ class "pull-right", href "#", onClickPreventDefault Next ] [ text "next" ]
+viewBrowserToolbar : Session -> Api.Story -> Html Msg
+viewBrowserToolbar session s =
+    nav []
+        [ ul [ class "pager" ]
+            [ li [ class "previous" ] [ a [ href "#", onClickPreventDefault Previous ] [ text "Prev" ] ]
+            , viewIf (isEditor session) <| li [] [ a [ href (Route.routeToString (Route.Editor s.id)) ] [ text "Edit" ] ]
+            , li [] [ a [ href "#", onClickPreventDefault CloseBrowser ] [ text "Back to stories" ] ]
+            , li [ class "next" ] [ a [ class "pull-right", href "#", onClickPreventDefault Next ] [ text "Next" ] ]
+            ]
         ]
 
 

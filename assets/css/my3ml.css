@@ -23,6 +23,10 @@ html, body {
     margin-right:4px;
 }
 
+.pager {
+    margin: 0;
+}
+
 #editor.container {
     max-width: 1500px;
 }
