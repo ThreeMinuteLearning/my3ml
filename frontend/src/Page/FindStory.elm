@@ -15,6 +15,7 @@ import Table
 import Task exposing (Task)
 import Util exposing ((=>), onClickPreventDefault)
 import Views.Story as StoryView
+import Views.StoryTiles as StoryTiles
 import Window
 
 
@@ -24,6 +25,7 @@ type alias Model =
     , tableState : Table.State
     , browser : Maybe (InfiniteZipper Api.Story)
     , storyView : StoryView.State
+    , viewType : ViewType
     , selectedStories : List Api.Story
     }
 
@@ -37,6 +39,11 @@ type Msg
     | Previous
 
 
+type ViewType
+    = Tiles
+    | Table
+
+
 initialModel : Session -> Window.Size -> ( Model, Session )
 initialModel session size =
     let
@@ -48,8 +55,14 @@ initialModel session size =
 
         stories =
             session.cache.stories
+
+        viewType =
+            if Session.isStudent session then
+                Tiles
+            else
+                Table
     in
-        Model "" stories (Table.initialSort sortColumn) Nothing (StoryView.init size) [] => session
+        Model "" stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType [] => session
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -109,7 +122,15 @@ view session m =
     div [ class "container page" ]
         [ case m.browser of
             Nothing ->
-                viewStoriesTable m
+                div []
+                    [ viewStoriesFilter m
+                    , case m.viewType of
+                        Tiles ->
+                            StoryTiles.view m.stories
+
+                        Table ->
+                            viewStoriesTable m
+                    ]
 
             Just b ->
                 viewBrowser (settingsFromSession session) (Zipper.current b) m.storyView
@@ -139,25 +160,27 @@ viewBrowserToolbar =
         ]
 
 
+viewStoriesFilter : Model -> Html Msg
+viewStoriesFilter m =
+    div [ class "form-group" ]
+        [ input
+            [ type_ "text"
+            , value m.storyFilter
+            , onInput StoryFilterInput
+            , placeholder "Search text"
+            , id "storyfilter"
+            ]
+            []
+        , label [ style [ ( "margin-left", "5px" ) ], for "storyfilter" ]
+            [ text (" " ++ toString (List.length m.stories) ++ " matching stories")
+            ]
+        ]
+
+
 viewStoriesTable : Model -> Html Msg
 viewStoriesTable m =
-    div []
-        [ div [ class "form-group" ]
-            [ input
-                [ type_ "text"
-                , value m.storyFilter
-                , onInput StoryFilterInput
-                , placeholder "Search text"
-                , id "storyfilter"
-                ]
-                []
-            , label [ style [ ( "margin-left", "5px" ) ], for "storyfilter" ]
-                [ text (" " ++ toString (List.length m.stories) ++ " matching stories")
-                ]
-            ]
-        , div [ class "table-responsive" ]
-            [ Table.view tableConfig m.tableState m.stories ]
-        ]
+    div [ class "table-responsive" ]
+        [ Table.view tableConfig m.tableState m.stories ]
 
 
 filterStories : String -> List Api.Story -> List Api.Story
