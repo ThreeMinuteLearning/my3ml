@@ -9,14 +9,14 @@
 
 module Api.Types where
 
-import           Data.Aeson (Value, FromJSON, ToJSON)
+import           Data.Aeson
 import           Data.Time.Clock (UTCTime)
 import qualified Data.Map.Strict as Map
 import           Data.Text (Text)
-import           Elm (ElmType)
 import           GHC.Generics (Generic)
 import           Prelude hiding (id)
-import           Servant ((:<|>), (:>), AuthProtect, Capture, QueryParam, ReqBody, Delete, Post, PostNoContent, NoContent, Get, JSON)
+import           Servant ((:<|>), (:>), AuthProtect, Capture, QueryParam, ReqBody, Delete, Post, PostNoContent, NoContent, Get, JSON, Proxy(..))
+import           Web.HttpApiData
 
 data Story = Story
     { id :: StoryId
@@ -29,12 +29,12 @@ data Story = Story
     , content :: Text
     , words :: [DictEntry]
     , clarifyWord :: Text
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 data DictEntry = DictEntry
     { word :: Text
     , index :: Int
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 type StoryId = Int
 
@@ -46,7 +46,7 @@ data School = School
     { id :: SchoolId
     , name :: Text
     , description :: Maybe Text
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 type SchoolId = Text
 
@@ -57,7 +57,7 @@ data Class = Class
     , schoolId :: SchoolId
     , createdBy :: SubjectId
     , students :: [SubjectId]
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 type ClassId = Text
 
@@ -68,14 +68,14 @@ data Answer = Answer
     , question :: Text
     , summarise :: Text
     , clarify :: Text
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 data Teacher = Teacher
     { id :: SubjectId
     , name :: Text
     , bio :: Maybe Text
     , schoolId :: SchoolId
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 data Student = Student
     { id :: SubjectId
@@ -85,12 +85,12 @@ data Student = Student
     , schoolId :: SchoolId
     , hidden :: Bool
     , deleted :: Maybe UTCTime
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 data LoginRequest = LoginRequest
     { username :: Text
     , password :: Text
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 data StoryTrail = StoryTrail
     { id :: TrailId
@@ -98,7 +98,7 @@ data StoryTrail = StoryTrail
 --    , createdBy :: SubjectId
     , schoolId :: SchoolId
     , stories :: [StoryId]
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 type TrailId = Text
 
@@ -120,14 +120,14 @@ data Login = Login
     , level :: Int
     , settings :: Maybe Value
     , token :: AccessToken
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 data LeaderBoardEntry = LeaderBoardEntry
     { position :: Int
     , name :: Text
     , studentId :: SubjectId
     , score :: Int
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 data Registration = Registration
     { email :: Text
@@ -135,15 +135,24 @@ data Registration = Registration
     , schoolName :: Text
     , teacherName :: Text
     , password :: Text
-    } deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
-type SubjectId = Text
+newtype SubjectId = SubjectId { unSubjectId :: Text} deriving (Show, Eq, Generic)
+
+instance FromHttpApiData SubjectId where
+    parseUrlPiece = Right . SubjectId
+
+instance ToJSON SubjectId where
+    toJSON = String . unSubjectId
+
+instance FromJSON SubjectId where
+    parseJSON = withText "SubjectId" (pure . SubjectId)
 
 type AccessToken = Text
 
 -- Change this to an ADT when elm-export support lands
 newtype UserType = UserType {userType :: Text }
-    deriving (Show, Generic, ElmType, ToJSON, FromJSON)
+    deriving (Show, Generic, ToJSON, FromJSON)
 
 student, teacher, schoolAdmin, editor, admin :: UserType
 student = UserType "Student"
@@ -207,7 +216,7 @@ type ClassesApi =
         :<|> Capture "classId" ClassId :>
              (    Get '[JSON] Class
              :<|> Delete '[JSON] NoContent
-             :<|> "members" :> ReqBody '[JSON] [ClassId] :> QueryParam "delete" Bool :> Post '[JSON] Class
+             :<|> "members" :> ReqBody '[JSON] [SubjectId] :> QueryParam "delete" Bool :> Post '[JSON] Class
              )
         :<|> ReqBody '[JSON] (Text, Text) :> Post '[JSON] Class
         )

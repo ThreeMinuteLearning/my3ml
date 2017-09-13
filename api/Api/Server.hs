@@ -227,14 +227,14 @@ studentsServer scp schoolId_ = runDB (DB.getStudents schoolId_) :<|> specificStu
         maybe (throwError err404) return s
 
     changePassword studId password_ = do
-        logInfoN $ "Setting password for student: " <> studId
+        logInfoN $ "Setting password for student: " <> unSubjectId studId
         when (T.length password_ < 8) (throwError err400)
         hashedPassword <- encodePassword password_
         runDB $ DB.setStudentPassword schoolId_ studId hashedPassword
         return NoContent
 
     changeUsername studId username_ = do
-        logInfoN $ "Setting username for student: " <> studId <> " to " <> username_
+        logInfoN $ "Setting username for student: " <> unSubjectId studId <> " to " <> username_
         when (T.length username_ < 3) (throwError err400)
 
         user <- runDB $ DB.getAccountByUsername username_

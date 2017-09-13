@@ -31,10 +31,10 @@ library
                      , contravariant >= 1.4
                      , contravariant-extras >= 0.3
                      , cryptonite
-                     , elm-export
                      , errors
                      , hasql >= 0.19
                      , hasql-pool
+                     , http-api-data >= 0.3.7.1
                      , jose-jwt
                      , monad-logger
                      , memory > 0.14

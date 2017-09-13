@@ -1,10 +1,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Main where
 
@@ -12,7 +14,7 @@ import           Control.Monad (join)
 import           Data.Monoid ((<>))
 import           Data.Proxy (Proxy (Proxy))
 import           Data.Text (Text)
-import           Elm (Spec (Spec), specsToDir, toElmTypeSource, toElmDecoderSource, toElmEncoderSource)
+import           Elm
 import           GHC.TypeLits (KnownSymbol)
 import           Servant.Elm (ElmOptions (..), defElmImports, defElmOptions, generateElmForAPIWith, UrlPrefix (Static))
 import           Servant.Foreign hiding (Static)
@@ -58,6 +60,7 @@ specs =
         <> sourceFor (Proxy :: Proxy LoginRequest)
         <> sourceFor (Proxy :: Proxy LeaderBoardEntry)
         <> sourceFor (Proxy :: Proxy Registration)
+--        <> sourceFor (Proxy :: Proxy SubjectId)
 
     sourceFor t = [ (toElmTypeSource t, [toElmDecoderSource t, toElmEncoderSource t]) ]
 
@@ -73,6 +76,23 @@ instance (KnownSymbol sym, HasForeignType lang ftype Text, HasForeign lang ftype
             { _argName = PathSegment "Authorization"
             , _argType = typeFor lang (Proxy :: Proxy ftype) (Proxy :: Proxy Text)
             }
+
+deriving instance ElmType Story
+deriving instance ElmType DictEntry
+deriving instance ElmType School
+deriving instance ElmType Answer
+deriving instance ElmType Class
+deriving instance ElmType Login
+deriving instance ElmType UserType
+deriving instance ElmType Student
+deriving instance ElmType Teacher
+deriving instance ElmType StoryTrail
+deriving instance ElmType LoginRequest
+deriving instance ElmType LeaderBoardEntry
+deriving instance ElmType Registration
+
+instance ElmType SubjectId where
+    toElmType _ = toElmType (Proxy :: Proxy Text)
 
 main :: IO ()
 main = specsToDir specs "frontend/src"
