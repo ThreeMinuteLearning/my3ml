@@ -67,43 +67,39 @@ mobileToggleButton =
 
 viewSignIn : ActivePage -> Maybe User -> List (Html msg)
 viewSignIn page user =
-    case user of
-        Nothing ->
-            [ navbarLink (page == Login) Route.Login [ text "Sign in" ]
-            , navbarLink (page == Register) Route.Register [ text "Sign up" ]
-            ]
+    let
+        findStory =
+            navbarLink (page == FindStory) Route.FindStory [ text "Find a story" ]
 
-        Just user ->
-            case user.role of
-                Session.Student ->
-                    standardNavLinks page
+        my3ml =
+            navbarLink (page == Account) Route.Account [ text "My3ml" ]
 
-                Session.Editor ->
-                    standardNavLinks page
+        leaderboard =
+            navbarLink (page == LeaderBoard) Route.LeaderBoard [ text "Leaderboard" ]
 
-                Session.Teacher _ ->
-                    (navbarLink (page == Teacher) (Route.Teacher Route.Students) [ text "Teacher" ])
-                        :: standardNavLinks page
+        logout =
+            navbarLink False Route.Logout [ text "Sign out" ]
+    in
+        case user of
+            Nothing ->
+                [ navbarLink (page == Login) Route.Login [ text "Sign in" ]
+                , navbarLink (page == Register) Route.Register [ text "Sign up" ]
+                ]
 
+            Just user ->
+                case user.role of
+                    Session.Student ->
+                        [ findStory, my3ml, leaderboard, logout ]
 
-standardNavLinks : ActivePage -> List (Html msg)
-standardNavLinks page =
-    [ navbarLink (page == FindStory) Route.FindStory [ text "Find a story" ]
-    , navbarLink (page == Account) Route.Account [ text "My3ml" ]
-    , navbarLink (page == LeaderBoard) Route.LeaderBoard [ text "Leaderboard" ]
-    , navbarLink False Route.Logout [ text "Sign out" ]
-    ]
+                    Session.Editor ->
+                        [ findStory, my3ml, logout ]
+
+                    Session.Teacher _ ->
+                        (navbarLink (page == Teacher) (Route.Teacher Route.Students) [ text "Teacher" ])
+                            :: [ findStory, my3ml, leaderboard, logout ]
 
 
 navbarLink : Bool -> Route -> List (Html msg) -> Html msg
 navbarLink isActive route linkContent =
     li [ classList [ ( "nav-item", True ), ( "active", isActive ) ] ]
         [ a [ class "nav-link", Route.href route ] linkContent ]
-
-
-
-{-
-   bodyId : String
-   bodyId =
-       "page-body"
--}
