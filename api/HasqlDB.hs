@@ -493,7 +493,7 @@ studentRow = Student
 insertStudent :: Query (Student, SubjectId) ()
 insertStudent = Q.statement sql encode D.unit True
   where
-    sql = "INSERT INTO student (id :: uuid, name, description, level, school_id) VALUES ($1, $2, $3, $4, $5 :: uuid)"
+    sql = "INSERT INTO student (id, name, description, level, school_id) VALUES ($1 :: uuid, $2, $3, $4, $5 :: uuid)"
     encode = contramap snd evSubjectId
         <> contramap ((name :: Student -> Text) . fst) evText
         <> contramap ((description :: Student -> Maybe Text) . fst) (E.nullableValue E.text)
