@@ -33,11 +33,13 @@ import           Api.Types hiding (AccessToken)
 import           DB (DB)
 import qualified DB
 import           Password
+import qualified Rollbar
 
 data Config db = Config
     { database :: db
     , tokenKey :: Jwk
     , sampleStories :: [Story]
+    , rollbarSettings :: Maybe Rollbar.Settings
     }
 
 type HandlerT db = LoggingT (ReaderT (Config db) Handler)
