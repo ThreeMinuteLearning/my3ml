@@ -1,8 +1,8 @@
 .PHONY: all
 all: backend frontend
 
-.PHONY: backend
-backend:
+PHONY: backend
+backend: backend/Version.hs
 	stack build
 
 .PHONY: frontend
@@ -29,6 +29,15 @@ assets/app.css: assets/css/**
 
 frontend/src/Api.elm: code-generator/*.hs api/*.hs api/**/*.hs
 	mkdir -p $(@D) && stack exec code-generator
+
+VERSION_FILE=backend/Version.hs
+
+backend/Version.hs: .git/refs/heads/master
+	echo "{-# LANGUAGE OverloadedStrings #-}" > $(VERSION_FILE)
+	echo "module Version where" >> $(VERSION_FILE)
+	echo "import Data.Text (Text)" >> $(VERSION_FILE)
+	git rev-parse HEAD | awk ' BEGIN {print ""}{print "revision = \"" $$0 "\" :: Text"} END {}' >> $(VERSION_FILE)
+	git describe --always | awk ' BEGIN {print ""}{print "version = \"" $$0 "\" :: Text"} END {}' >> $(VERSION_FILE)
 
 .PHONY: serve
 serve:

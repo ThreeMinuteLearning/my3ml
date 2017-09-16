@@ -53,6 +53,7 @@ library
 executable backend
   hs-source-dirs:      backend
   main-is:             Main.hs
+  other-modules:       Version
   ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , aeson
@@ -70,6 +71,7 @@ executable backend
                      , random
                      , servant-server >= 0.9
                      , stm >= 2.4.4
+                     , text
                      , uuid
                      , wai >= 3.2
                      , wai-extra
