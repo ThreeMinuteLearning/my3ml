@@ -8,12 +8,10 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onSubmit, onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, decodeValue, decodeString, field, string)
-import Json.Decode.Pipeline as Pipeline exposing (decode, optional)
-import Json.Encode exposing (encode)
 import Ports
 import Route
 import Util exposing ((=>), defaultHttpErrorMsg, viewIf)
-import Validate exposing (Validator, ifBlank, ifNothing)
+import Validate exposing (Validator, ifBlank, ifNothing, ifInvalidEmail)
 import Views.Form as Form
 
 
@@ -169,7 +167,7 @@ view model =
                 , if model.registrationType == Nothing then
                     viewRegistrationOptions
                   else if model.completed then
-                    p [] [ text "Registration complete. Someone will be in touch when your account has been activated." ]
+                    p [] [ text "Registration complete. Someone will be in touch when your account has been activated. Your can then sign in using your email and password. " ]
                   else
                     viewForm model
                 ]
@@ -321,7 +319,7 @@ validate : Model -> List Error
 validate =
     Validate.all
         [ .schoolName >> ifBlank (SchoolName => "school name can't be blank.")
-        , .email >> ifBlank (Email => "email can't be blank.")
+        , .email >> ifInvalidEmail (Email => "please enter a valid.")
         , .teacherName >> ifBlank (TeacherName => "name can't be blank.")
         , validatePassword
         ]
