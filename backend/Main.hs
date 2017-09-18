@@ -16,13 +16,13 @@ import           Data.Array.IO
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import           Data.Maybe (fromMaybe)
+import           Data.Monoid ((<>))
 import           Data.List (sortOn)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           Jose.Jwa
 import           Jose.Jwk
 import           Network.Wai.Handler.Warp (run)
-import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import           Prelude hiding (id)
 import           Servant
 import           System.Environment (getEnvironment)
@@ -85,6 +85,7 @@ main = do
         pgdb = fromMaybe "postgresql://threeml:threeml@localhost/my3ml" $ lookup "PGDB" env
         assets = fromMaybe "assets" $ lookup "ASSETS" env
         rollbarToken = lookup "ROLLBAR_TOKEN" env
+    T.putStrLn $ "3ml server version " <> Version.version
     putStrLn $ "Serving on port " ++ show port ++ "..."
     db <- mkDB pgdb
     starterStories <- getStarterStories db
@@ -92,7 +93,7 @@ main = do
         my3mlServer = server cfg assets
         app = serveWithContext siteApi (authServerContext jwk) my3mlServer
 
-    run port $ logStdoutDev app
+    run port app
 
   where
     mkRollbarSettings token = Rollbar.Settings

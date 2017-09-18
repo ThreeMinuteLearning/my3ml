@@ -4,6 +4,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Api.Server
     ( server
@@ -100,36 +101,9 @@ accountServer token_ =
         runDB $ DB.updateAccountSettings (userId, newSettings)
         return NoContent
 
-    registerNewAccount registration = do
-        existing <- runDB $ DB.getAccountByUsername (email registration)
-        unless (isNothing existing) $ throwError err409
-        hashedPassword <- fmap decodeUtf8 $ liftIO $ hashPassword passwordOptions (encodeUtf8 (password (registration :: Registration)))
-        result <- runDB $ DB.registerNewAccount (registration { password = hashedPassword } )
-        case result of
-            Just _ -> return NoContent
-            Nothing -> throwError err403
-
-    newRegistrationCode t = case t of
-        TeacherScope _ schoolId_ True ->
-            runDB $ DB.createRegistrationCode schoolId_
-        _ -> throwError err403
-
-    passwordOptions = defaultOptions { iterations = 3, parallelism = 1, memory = 4096}
-
-storyServer :: DB db => ApiServer StoriesApi db
-storyServer token_ =
-    getStories :<|> specificStoryServer :<|> createStory
-  where
-    notFound = err404 { errBody = "Story with this ID was not found" }
-
-    specificStoryServer storyId_ = getStory storyId_ :<|> updateStory storyId_
-
-    getStories =
-        case token_ of
-            Nothing -> fmap sampleStories ask
-            _ -> runDB DB.getStories
-
-    getStory storyId_ = do
+    registerNewAccount r@Registration {..} = do
+        logInfoN $ "New registration for user: " <> email
+        existing <- runDB $ DB.getAccountByUsername email
         story <- runDB (DB.getStory storyId_)
         case story of
             Nothing -> throwError notFound
