@@ -17,7 +17,7 @@ import           Data.Text (Text)
 import           Jose.Jwk (Jwk)
 import           GHC.Generics (Generic)
 import           Prelude hiding (id)
-import           Servant ((:<|>), (:>), AuthProtect, Capture, QueryParam, ReqBody, Delete, Post, PostNoContent, NoContent, Get, JSON, Proxy(..))
+import           Servant ((:<|>), (:>), AuthProtect, Capture, QueryParam, ReqBody, Delete, Post, PostNoContent, NoContent, Get, JSON)
 import           Web.HttpApiData
 
 data Story = Story
@@ -48,7 +48,7 @@ data School = School
     { id :: SchoolId
     , name :: Text
     , description :: Maybe Text
-    } deriving (Show, Generic, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON)
 
 type SchoolId = Text
 
@@ -92,7 +92,7 @@ data Student = Student
 data LoginRequest = LoginRequest
     { username :: Text
     , password :: Text
-    } deriving (Show, Generic, ToJSON, FromJSON)
+    } deriving (Show, Generic, FromJSON)
 
 data StoryTrail = StoryTrail
     { id :: TrailId
@@ -130,7 +130,7 @@ data Login = Login
     , level :: Int
     , settings :: Maybe Value
     , token :: AccessToken
-    } deriving (Show, Generic, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON)
 
 data LeaderBoardEntry = LeaderBoardEntry
     { position :: Int
@@ -145,7 +145,7 @@ data Registration = Registration
     , schoolName :: Text
     , teacherName :: Text
     , password :: Text
-    } deriving (Show, Generic, ToJSON, FromJSON)
+    } deriving (Show, Generic, FromJSON)
 
 newtype SubjectId = SubjectId { unSubjectId :: Text} deriving (Show, Eq, Generic)
 
