@@ -9,8 +9,9 @@ module Main where
 
 import           Control.Monad.Logger
 import           Control.Monad.Reader
-import           Control.Monad.Catch (catchAll, SomeException)
+import           Control.Monad.Catch (catchAll, catchJust, SomeException)
 import           Crypto.Random (getRandomBytes)
+import qualified Crypto.PubKey.RSA as RSA
 import qualified Data.Aeson as A
 import           Data.Array.IO
 import qualified Data.ByteString as B
@@ -27,6 +28,7 @@ import           Prelude hiding (id)
 import           Servant
 import           System.Environment (getEnvironment)
 import           System.Directory (doesFileExist)
+import           System.IO.Error
 import           System.Random (randomRIO)
 import qualified Rollbar
 
@@ -62,36 +64,52 @@ server config assets = enter transform Api.server :<|> serveDirectoryFileServer 
 defaultKeyFile :: FilePath
 defaultKeyFile = "token_key.json"
 
-getKey :: FilePath -> IO Jwk
-getKey file = do
-    exists <- doesFileExist file
-    jwks   <- if exists
-                  then A.decodeStrict <$> B.readFile file
-                  else return Nothing
-    case jwks of
-        Just (JwkSet (k:_)) -> return k
+defaultRootKeyFile :: FilePath
+defaultRootKeyFile = "root_key.json"
+
+getTokenKey :: FilePath -> IO Jwk
+getTokenKey file = do
+    jwk <- getKey file
+    case jwk of
+        Just k -> return k
         _ -> do
             k  <- getRandomBytes 16
-            let jwk = SymmetricJwk k Nothing Nothing (Just (Encrypted A128KW))
-            BL.writeFile file (A.encode (JwkSet [jwk]))
-            return jwk
+            let jwk_ = SymmetricJwk k Nothing Nothing (Just (Encrypted A128KW))
+            BL.writeFile file (A.encode (JwkSet [jwk_]))
+            return jwk_
 
+getKey :: FilePath -> IO (Maybe Jwk)
+getKey file = do
+    fileContents <- readFileMaybe
+    case fileContents of
+        Nothing -> return Nothing
+        Just bytes -> case A.decodeStrict bytes of
+            Just (JwkSet [k]) -> return $ Just k
+            Nothing -> error $ "Failed to decode " <> file
+            _ -> error $ "File " <> file <> " was expected to contain only one JWK"
+  where
+    readFileMaybe = catchJust
+        (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing)
+        (Just <$> B.readFile file)
+        (const $ return Nothing)
 
 main :: IO ()
 main = do
     env <- getEnvironment
-    jwk <- getKey defaultKeyFile
+    tokenKey_ <- getTokenKey defaultKeyFile
+    rootKey_ <- getKey defaultRootKeyFile
     let port = maybe 8000 read $ lookup "PORT" env
         pgdb = fromMaybe "postgresql://threeml:threeml@localhost/my3ml" $ lookup "PGDB" env
         assets = fromMaybe "assets" $ lookup "ASSETS" env
         rollbarToken = lookup "ROLLBAR_TOKEN" env
     T.putStrLn $ "3ml server version " <> Version.version
+    T.putStrLn $ "Root key is " <> maybe "unset" (const "set")rootKey_
     putStrLn $ "Serving on port " ++ show port ++ "..."
     db <- mkDB pgdb
     starterStories <- getStarterStories db
-    let cfg = Config db jwk starterStories (fmap mkRollbarSettings rollbarToken)
+    let cfg = Config db tokenKey_ starterStories (fmap mkRollbarSettings rollbarToken) rootKey_
         my3mlServer = server cfg assets
-        app = serveWithContext siteApi (authServerContext jwk) my3mlServer
+        app = serveWithContext siteApi (authServerContext tokenKey_) my3mlServer
 
     run port app
 

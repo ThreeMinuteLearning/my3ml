@@ -44,11 +44,12 @@ mkDB connStr = H <$> acquire (10, 120, BC.pack connStr)
 newtype HasqlDB = H Pool
 
 instance DB HasqlDB where
-    registerNewAccount Registration {..} userKeys db = runSession db $
+    registerNewAccount Registration {..} userKeys schoolKey db = runSession db $
         case code of
             Nothing -> do
                 begin
-                schoolId_ <- S.query (schoolName, Nothing) insertSchool
+                schoolId_ <- S.query (schoolName, TE.decodeUtf8 <$> schoolKey, Nothing) insertSchool
+
                 subId <- S.query (email, password, schoolAdmin, False) insertAccount
                 S.query (subId, userKeys) insertUserKeys
                 S.query (subId, teacherName, schoolId_) insertTeacher
@@ -474,12 +475,13 @@ storyEncoder = contramap (fromIntegral . (id :: Story -> StoryId)) (E.value E.in
 
 -- School
 
-insertSchool :: Query (Text, Maybe Text) UUID.UUID
+insertSchool :: Query (Text, Maybe Text, Maybe Text) UUID.UUID
 insertSchool = Q.statement sql encode (D.singleRow (D.value D.uuid)) False
   where
-    sql = "INSERT INTO school (name, description) values ($1, $2) RETURNING id"
-    encode = contramap fst evText
-        <> contramap snd (E.nullableValue E.text)
+    sql = "INSERT INTO school (name, school_key, description) values ($1, $2, $3) RETURNING id"
+    encode = contrazip3 evText
+        (E.nullableValue E.text)
+        (E.nullableValue E.text)
 
 -- Teachers
 

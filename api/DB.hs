@@ -17,7 +17,7 @@ import           Prelude hiding (id)
 import Api.Types
 
 class DB db where
-    registerNewAccount :: MonadIO m => Registration -> UserKeys -> db -> m (Maybe ())
+    registerNewAccount :: MonadIO m => Registration -> UserKeys -> Maybe ByteString -> db -> m (Maybe ())
 
     createRegistrationCode :: MonadIO m => SchoolId -> db -> m Text
 

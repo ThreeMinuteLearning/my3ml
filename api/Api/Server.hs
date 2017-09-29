@@ -57,6 +57,7 @@ data Config db = Config
     , tokenKey :: Jwk
     , sampleStories :: [Story]
     , rollbarSettings :: Maybe Rollbar.Settings
+    , rootKey :: Maybe Jwk
     }
 
 type HandlerT db = LoggingT (ReaderT (Config db) Handler)
@@ -180,17 +181,25 @@ accountServer token_ =
         hashedPassword <- fmap decodeUtf8 $ liftIO $ hashPassword passwordOptions submittedPassword
         (kPub, kPr) <- liftIO $ generateRsaKeyPair 256 (KeyId "rsa") Enc Nothing
         ekPr <- encryptRsaKey kPr pbeKey
-        schoolKey <- case code r of
+        schoolKeys <- case code r of
             Just _ -> return Nothing
-            Nothing -> do
-                bytes <- liftIO (getRandomBytes 32)
-                return $ Just (encryptSchoolKey pbeKey bytes)
+            Nothing -> Just <$> newSchoolKey pbeKey
 
-        let userKeys = UserKeys salt kPub (decodeUtf8 ekPr) schoolKey
-        result <- runDB $ DB.registerNewAccount (r { password = hashedPassword } ) userKeys
+        let userKeys = UserKeys salt kPub (decodeUtf8 ekPr) (fst <$> schoolKeys)
+        result <- runDB $ DB.registerNewAccount (r { password = hashedPassword } ) userKeys (join (fmap snd schoolKeys))
         case result of
             Just _ -> return NoContent
             Nothing -> throwError err403
+
+    newSchoolKey :: ScrubbedBytes -> HandlerT db (B.ByteString, Maybe B.ByteString)
+    newSchoolKey pbeKey = do
+        bytes <- liftIO (getRandomBytes 32)
+        rootKey_ <- fmap rootKey ask
+        backupKey <- case rootKey_ of
+            Nothing -> return Nothing
+            Just k -> fmap Just $ liftIO $ encryptSchoolKeyWithRsaKey bytes k
+        return (encryptSchoolKey pbeKey bytes, backupKey)
+
 
     newRegistrationCode t = case t of
         TeacherScope _ schoolId_ _ True ->
