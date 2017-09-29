@@ -1,7 +1,7 @@
 .PHONY: all
 all: backend frontend
 
-PHONY: backend
+.PHONY: backend
 backend: backend/Version.hs
 	stack build
 
@@ -32,7 +32,7 @@ frontend/src/Api.elm: code-generator/*.hs api/*.hs api/**/*.hs
 
 VERSION_FILE=backend/Version.hs
 
-backend/Version.hs: .git/refs/heads/master
+backend/Version.hs: .git/refs/heads/*
 	echo "{-# LANGUAGE OverloadedStrings #-}" > $(VERSION_FILE)
 	echo "module Version where" >> $(VERSION_FILE)
 	echo "import Data.Text (Text)" >> $(VERSION_FILE)
