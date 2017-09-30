@@ -124,7 +124,7 @@ CREATE TABLE registration_code
 CREATE MATERIALIZED VIEW leaderboard
 AS
     SELECT row_number() OVER (ORDER BY a.score DESC) AS position
-         , s.name
+         , l.username as name
          , s.id as student_id
          , s.school_id
          , a.score
@@ -134,7 +134,9 @@ AS
                GROUP BY student_id
            ) a
       ON a.student_id = s.id
-      WHERE not s.hidden
+      JOIN login l
+      ON l.id = s.id
+      WHERE NOT s.hidden
       ORDER BY a.score DESC
 WITH NO DATA;
 
