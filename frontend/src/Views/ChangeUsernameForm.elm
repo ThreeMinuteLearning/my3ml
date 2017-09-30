@@ -130,6 +130,7 @@ view model =
             Html.button [ class "btn btn-primary pull-xs-right", tabindex 2 ] [ text "Save new username" ]
     in
         div []
-            [ Form.viewErrorMsgs model.errors
+            [ p [] [ text "Please avoid using personal names (or variations of them) as usernames." ]
+            , Form.viewErrorMsgs model.errors
             , viewForm
             ]
