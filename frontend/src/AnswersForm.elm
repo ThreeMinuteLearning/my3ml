@@ -61,10 +61,10 @@ update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Maybe Api.Answer )
 update session msg model =
     case msg of
         SubmitForm ->
-            case validate model of
+            case validate (trim model) of
                 [] ->
                     { model | errors = [] }
-                        => submitAnswers session model
+                        => submitAnswers session (trim model)
                         => Nothing
 
                 errors ->
@@ -116,6 +116,11 @@ update session msg model =
             { model | errors = model.errors ++ [ (Form => "Server error while trying to submit answers") ] }
                 => Cmd.none
                 => Nothing
+
+
+trim : Model -> Model
+trim m =
+    { m | connection = String.trim m.connection, question = String.trim m.question, summary = String.trim m.summary, clarification = String.trim m.clarification }
 
 
 clarificationOptions : Dict String ClarifyMethod
