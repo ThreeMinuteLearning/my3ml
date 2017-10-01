@@ -44,7 +44,8 @@ view print dismiss accounts =
                         , heading
                         ]
                     , div [ class "panel-body" ]
-                        [ printButton print "Print list of new accounts"
+                        [ p [ class "hidden-print" ] [ printButton print "Print list of new accounts. ", text "Please make sure you save this list or print it off before leaving this page, or the information will be lost." ]
+                        , p [ class "hidden-print" ] [ text "Passwords and usernames are automatically generated. You can change them later, but try not to use real names or other personal information." ]
                         , accountsTable
                         ]
                     ]
