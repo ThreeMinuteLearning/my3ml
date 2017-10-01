@@ -43,8 +43,9 @@ CREATE TABLE story
 CREATE TABLE school
     ( id uuid DEFAULT uuid_generate_v4() PRIMARY KEY
     , name text NOT NULL CHECK (length(name) > 0)
-    , school_key text
     , description text
+    , school_key text
+    , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
 CREATE TABLE class
