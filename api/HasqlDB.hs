@@ -209,9 +209,11 @@ instance DB HasqlDB where
       in
         runSession db (S.query () query)
 
-    generateUsername prefix db = do
-        let query = Q.statement "SELECT replace(username, $1, '') FROM login WHERE username LIKE $1 || '%'" evText (D.rowsList (D.value D.text)) True
-        suffixes <- map (fromMaybe (0 :: Int) . readMaybe . T.unpack) <$> runSession db (S.query prefix query)
+    generateUsername db = do
+        let q1 = Q.statement "SELECT name FROM famous_name ORDER BY random() LIMIT 1" E.unit (D.singleRow (D.value D.text)) True
+            q2 = Q.statement "SELECT replace(username, $1, '') FROM login WHERE username LIKE $1 || '%'" evText (D.rowsList (D.value D.text)) True
+        prefix <- runSession db (S.query () q1)
+        suffixes <- map (fromMaybe (0 :: Int) . readMaybe . T.unpack) <$> runSession db (S.query prefix q2)
         let newName = case suffixes of
               [] -> prefix
               _ -> T.pack $ T.unpack prefix ++ show (maximum suffixes + 1)

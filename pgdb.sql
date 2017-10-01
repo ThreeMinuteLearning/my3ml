@@ -121,6 +121,10 @@ CREATE TABLE registration_code
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+CREATE TABLE famous_name
+    ( name text PRIMARY KEY
+    );
+
 CREATE MATERIALIZED VIEW leaderboard
 AS
     SELECT row_number() OVER (ORDER BY a.score DESC) AS position

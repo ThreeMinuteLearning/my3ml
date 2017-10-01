@@ -91,7 +91,7 @@ class DB db where
 
     generateWords :: MonadIO m => db -> m [Text]
 
-    generateUsername :: MonadIO m => Text -> db -> m Text
+    generateUsername :: MonadIO m => db -> m Text
 
     getLeaderBoard :: MonadIO m => SchoolId -> db -> m [LeaderBoardEntry]
 

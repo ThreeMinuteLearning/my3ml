@@ -371,7 +371,7 @@ studentsServer scp@(TeacherScope _ _ (TenantKey key) _) schoolId_ = getStudents 
 
     createStudent level_ nm = do
         logInfoN $ "Creating new student account for: " <> nm
-        uname <- runDB $ DB.generateUsername (T.toLower (clean nm))
+        uname <- runDB DB.generateUsername
         logInfoN $ "Generated username is: " <> uname
         pass <- generatePassword 15
         hashedPassword <- encodePassword pass
