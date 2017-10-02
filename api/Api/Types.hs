@@ -31,6 +31,7 @@ data Story = Story
     , content :: Text
     , words :: [DictEntry]
     , clarifyWord :: Text
+    , enabled :: Bool
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 data DictEntry = DictEntry

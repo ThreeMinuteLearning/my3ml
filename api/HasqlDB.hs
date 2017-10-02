@@ -91,7 +91,7 @@ instance DB HasqlDB where
 
     getAccountByUsername = runQuery selectAccountByUsername
 
-    getStories = runQuery selectAllStories ()
+    getStories includeDisabled = runQuery (selectAllStories includeDisabled) ()
 
     getStory = runQuery selectStoryById
 
@@ -420,11 +420,15 @@ updateSchoolKey = Q.statement sql encode D.unit False
 -- Stories
 
 selectStorySql :: ByteString
-selectStorySql = "SELECT id, title, img_url, level, qualification, curriculum, tags, content, words, clarify_word FROM story"
+selectStorySql = "SELECT id, title, img_url, level, qualification, curriculum, tags, content, words, clarify_word, enabled FROM story WHERE not archived"
 
-selectAllStories :: Query () [Story]
-selectAllStories =
-    Q.statement selectStorySql mempty (D.rowsList storyRow) True
+selectAllStories :: Bool -> Query () [Story]
+selectAllStories includeDisabled =
+    Q.statement sql mempty (D.rowsList storyRow) True
+  where
+    sql
+      | includeDisabled = selectStorySql
+      | otherwise = selectStorySql <> " AND enabled"
 
 selectStoryById :: Query StoryId (Maybe Story)
 selectStoryById =
@@ -445,6 +449,7 @@ storyRow = Story
     <*> dvText
     <*> dArray dictEntryValue
     <*> dvText
+    <*> D.value D.bool
 --    <*> D.value D.timestamptz
 
 insertStory :: Query Story StoryId

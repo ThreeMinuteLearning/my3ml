@@ -185,6 +185,15 @@ view model =
                 ]
             , div [ class "col-md-6" ]
                 [ button [ class "btn btn-default", onClick Save ] [ text "Save Changes" ]
+                , text " "
+                , button [ class "btn" ]
+                    [ text
+                        (if .enabled (Zipper.current model.stories) then
+                            "Enabled"
+                         else
+                            "Disabled"
+                        )
+                    ]
                 ]
             ]
         , div [ class "row panes" ]

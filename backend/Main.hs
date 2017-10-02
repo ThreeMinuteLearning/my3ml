@@ -11,7 +11,6 @@ import           Control.Monad.Logger
 import           Control.Monad.Reader
 import           Control.Monad.Catch (catchAll, catchJust, SomeException)
 import           Crypto.Random (getRandomBytes)
-import qualified Crypto.PubKey.RSA as RSA
 import qualified Data.Aeson as A
 import           Data.Array.IO
 import qualified Data.ByteString as B
@@ -27,7 +26,6 @@ import           Network.Wai.Handler.Warp (run)
 import           Prelude hiding (id)
 import           Servant
 import           System.Environment (getEnvironment)
-import           System.Directory (doesFileExist)
 import           System.IO.Error
 import           System.Random (randomRIO)
 import qualified Rollbar
@@ -122,7 +120,7 @@ main = do
         }
 
     getStarterStories db = do
-        stories <- take 100 . reverse . sortOn (id :: Story -> StoryId) <$> getStories db
+        stories <- take 100 . reverse . sortOn (id :: Story -> StoryId) <$> getStories False db
         take 24 <$> shuffle stories
 
 shuffle :: [a] -> IO [a]

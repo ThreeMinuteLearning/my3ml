@@ -219,7 +219,8 @@ storyServer token_ =
     getStories =
         case token_ of
             Nothing -> fmap sampleStories ask
-            _ -> runDB DB.getStories
+            Just (EditorScope _) -> runDB (DB.getStories True)
+            _ -> runDB (DB.getStories False)
 
     getStory storyId_ = do
         story <- runDB (DB.getStory storyId_)

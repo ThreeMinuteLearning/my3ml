@@ -29,7 +29,7 @@ class DB db where
 
     getAccountByUsername :: MonadIO m => Text -> db -> m (Maybe Account)
 
-    getStories :: MonadIO m => db -> m [Story]
+    getStories :: MonadIO m => Bool -> db -> m [Story]
 
     getStory :: MonadIO m => StoryId -> db -> m (Maybe Story)
 
@@ -128,7 +128,7 @@ newUUID :: MonadIO m => m Text
 newUUID = liftIO (toText <$> nextRandom)
 
 instance DB AtomicDB where
-    getStories db =  Map.elems <$> withDB db stories
+    getStories _ db =  Map.elems <$> withDB db stories
 
     getStory sid db = Map.lookup sid <$> withDB db stories
 

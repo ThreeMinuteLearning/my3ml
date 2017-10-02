@@ -37,6 +37,8 @@ CREATE TABLE story
     , content text NOT NULL CHECK (length(content) > 0)
     , words dict_entry[] NOT NULL
     , clarify_word text NOT NULL CHECK (length(clarify_word) > 0)
+    , enabled boolean DEFAULT false
+    , archived boolean DEFAULT false
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 

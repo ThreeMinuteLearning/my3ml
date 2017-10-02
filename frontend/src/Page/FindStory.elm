@@ -23,6 +23,7 @@ import Window
 
 type alias Model =
     { storyFilter : String
+    , showDisabledStoriesOnly : Bool
     , stories : List Api.Story
     , tableState : Table.State
     , browser : Maybe (InfiniteZipper Api.Story)
@@ -43,6 +44,7 @@ type Msg
     | Scroll Bool
     | Resize Window.Size
     | CloseBrowser
+    | ToggleShowDisabledOnly
 
 
 type ViewType
@@ -68,7 +70,7 @@ initialModel session size =
             else
                 Table
     in
-        Model "" stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType size [] => session
+        Model "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType size [] => session
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -100,7 +102,7 @@ update : Session -> Msg -> Model -> ( Model, Cmd Msg )
 update { cache } msg model =
     case msg of
         StoryFilterInput f ->
-            { model | storyFilter = f, stories = filterStories model.storyFilter cache.stories } ! []
+            { model | storyFilter = f, stories = filterStories f cache.stories } ! []
 
         SetTableState t ->
             { model | tableState = t } ! []
@@ -133,6 +135,19 @@ update { cache } msg model =
         CloseBrowser ->
             { model | browser = Nothing } => Cmd.none
 
+        ToggleShowDisabledOnly ->
+            let
+                flag =
+                    not model.showDisabledStoriesOnly
+
+                newStories =
+                    if flag then
+                        List.filter (\s -> not s.enabled) model.stories
+                    else
+                        filterStories model.storyFilter cache.stories
+            in
+                { model | showDisabledStoriesOnly = flag, stories = newStories } => Cmd.none
+
 
 loadMore : Model -> ( Model, Cmd msg )
 loadMore m =
@@ -160,7 +175,7 @@ view session m =
         [ case m.browser of
             Nothing ->
                 div []
-                    [ viewStoriesFilter m
+                    [ viewStoriesFilter session m
                     , case m.viewType of
                         Tiles n ->
                             StoryTiles.view (List.take n m.stories)
@@ -196,8 +211,8 @@ viewBrowserToolbar session s =
         ]
 
 
-viewStoriesFilter : Model -> Html Msg
-viewStoriesFilter m =
+viewStoriesFilter : Session -> Model -> Html Msg
+viewStoriesFilter session m =
     div [ class "form-group" ]
         [ input
             [ type_ "text"
@@ -208,9 +223,22 @@ viewStoriesFilter m =
             ]
             []
         , label [ style [ ( "margin-left", "5px" ) ], for "storyfilter" ]
-            [ text (" " ++ toString (List.length m.stories) ++ " matching stories")
+            [ text (" " ++ toString (List.length m.stories) ++ " matching stories ")
             ]
+        , viewIf (isEditor session) (viewToggleDisabledStoriesOnly m)
         ]
+
+
+viewToggleDisabledStoriesOnly : Model -> Html Msg
+viewToggleDisabledStoriesOnly m =
+    let
+        txt =
+            if m.showDisabledStoriesOnly then
+                "Show all stories"
+            else
+                "Hide enabled stories"
+    in
+        a [ href "#", onClickPreventDefault ToggleShowDisabledOnly ] [ text txt ]
 
 
 viewStoriesTable : Model -> Html Msg
