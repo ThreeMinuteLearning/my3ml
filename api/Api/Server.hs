@@ -42,7 +42,7 @@ import           Jose.Jwa
 import           Jose.Jwk
 import qualified Jose.Jwe as Jwe
 import           Jose.Internal.Crypto (keyWrap, keyUnwrap)
-import           Prelude hiding (id)
+import           Prelude hiding (id, words)
 import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, Handler, NoContent(..), err400, err401, err403, err409, err404, err500, errBody)
 
 import           Api.Auth (AccessScope(..), TenantKey(..), mkAccessToken, scopeSubjectId)
@@ -228,12 +228,14 @@ storyServer token_ =
             Nothing -> throwError notFound
             Just s -> return s
 
-    updateStory storyId_ story =
+    updateStory storyId_ story@Story{..} = do
+        logInfoN $ "Updating story: " <> (T.pack . show) storyId_ <> " " <> title
         case token_ of
             Just (EditorScope _) -> runDB (DB.updateStory (story { id = storyId_} ))
             _ -> throwError err403
 
-    createStory story = do
+    createStory story@Story{..} = do
+        logInfoN $ "Creating new story: " <> title
         newId <- runDB (DB.createStory story)
         return (story { id = newId } :: Story)
 
@@ -348,10 +350,12 @@ studentsServer scp@(TeacherScope _ _ (TenantKey key) _) schoolId_ = getStudents 
         return $ decryptStudent dbStudent
 
     deleteStudent studId = do
+        logInfoN $ "Deleting student: " <> unSubjectId studId
         s <- runDB $ DB.deleteStudent studId schoolId_
         return $ decryptStudent s
 
     undelete studId = do
+        logInfoN $ "Un-deleting student: " <> unSubjectId studId
         runDB $ DB.undeleteStudent studId schoolId_
         return NoContent
 
@@ -418,6 +422,7 @@ teachersServer :: DB db => AccessScope -> SchoolId -> ApiServer TeachersApi db
 teachersServer (TeacherScope _ _ (TenantKey sk) True) schoolId_ = runDB (DB.getTeachers schoolId_) :<|> activateAccount
   where
     activateAccount accountId = do
+        logInfoN $ "Activating account: " <> unSubjectId accountId
         keys <- runDB (DB.getUserKeys accountId)
         case keys of
             Nothing -> logErrorN ("Activating account with no keys: " <> unSubjectId accountId) >> throwError err500
