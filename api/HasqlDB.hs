@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ImplicitParams #-}
 module HasqlDB where
 
 import           Control.Applicative (liftA2)
@@ -25,6 +26,8 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.UUID as UUID
+import           GHC.Stack (prettySrcLoc)
+import           GHC.Stack.Types (HasCallStack, CallStack, getCallStack)
 import           Hasql.Query (Query)
 import           Hasql.Pool (Pool, UsageError(..), use, acquire)
 import qualified Hasql.Query as Q
@@ -113,7 +116,7 @@ instance DB HasqlDB where
 
     deleteTrail trailId_ db = do
         nRows <- runQuery deleteTrailById trailId_ db
-        when (nRows == 0) $ liftIO $ throwString "Trail not found to delete"
+        when (nRows == 0) $ liftIO $ throwDBException "Trail not found to delete"
 
     getClasses = runQuery selectClassesBySchool
 
@@ -134,11 +137,11 @@ instance DB HasqlDB where
         case result of
             Right () -> return (Just ())
             Left (SessionError (S.ResultError (S.ServerError "23505" _ _ _))) -> return Nothing
-            Left e -> liftIO $ throwString (show e)
+            Left e -> liftIO $ throwDBException (show e)
 
     deleteClass classId_ schoolId_ db = do
         nRows <- runQuery deleteClassById (classId_, schoolId_) db
-        when (nRows == 0) $ liftIO $ throwString "Class not found to delete"
+        when (nRows == 0) $ liftIO $ throwDBException "Class not found to delete"
 
     getStudents = runQuery selectStudentsBySchool
 
@@ -232,7 +235,7 @@ generateCode = do
 
 updatedFromMaybe :: MonadIO m => Maybe a -> m a
 updatedFromMaybe (Just a) = return a
-updatedFromMaybe Nothing = liftIO $ throwString "Couldn't find entity after updating. Shouldn't happen."
+updatedFromMaybe Nothing = liftIO $ throwDBException "Couldn't find entity after updating. Shouldn't happen."
 
 
 
@@ -241,17 +244,31 @@ dictWord ((w, meaning):ws) = (w, meaning : map snd ws)
 dictWord [] = ("", []) -- shouldn't happen
 
 
-runQuery :: MonadIO m => Query p a -> p -> HasqlDB -> m a
+runQuery :: (MonadIO m, HasCallStack) => Query p a -> p -> HasqlDB -> m a
 runQuery q p db = runSession db (S.query p q)
 
-runSession :: MonadIO m => HasqlDB -> S.Session a -> m a
+
+data DBException = DBException String CallStack
+
+instance Show DBException where
+    show (DBException s cs) = concat
+        $ "DBException: " : s : ", Called from: " : map go (getCallStack cs)
+      where
+        go (x, y) = concat [ " ", x, " (", prettySrcLoc y, ")\n" ]
+
+instance Exception DBException
+
+throwDBException :: (MonadThrow m, HasCallStack) => String -> m a
+throwDBException msg = throwM (DBException msg ?callStack)
+
+runSession :: (MonadIO m, HasCallStack) => HasqlDB -> S.Session a -> m a
 runSession (H pool) s = liftIO $ do
     result <- use pool (rollbackOnError s)
     case result of
-        Left e -> liftIO $ throwString (show e)
+        Left e -> liftIO $ throwDBException (show e)
         Right r -> return r
 
-runSessionEither :: MonadIO m => HasqlDB -> S.Session a -> m (Either UsageError a)
+runSessionEither :: (MonadIO m, HasCallStack) => HasqlDB -> S.Session a -> m (Either UsageError a)
 runSessionEither (H pool) s = liftIO $ use pool (rollbackOnError s)
 
 rollbackOnError :: S.Session a -> S.Session a
