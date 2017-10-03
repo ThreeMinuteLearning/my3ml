@@ -432,7 +432,7 @@ selectAllStories includeDisabled =
 
 selectStoryById :: Query StoryId (Maybe Story)
 selectStoryById =
-    Q.statement (selectStorySql <> " WHERE id = $1") evStoryId (D.maybeRow storyRow) True
+    Q.statement (selectStorySql <> " AND id = $1") evStoryId (D.maybeRow storyRow) True
   where
     evStoryId =
       contramap fromIntegral (E.value E.int4)
