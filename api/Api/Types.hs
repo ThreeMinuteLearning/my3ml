@@ -252,7 +252,7 @@ type TeachersApi =
         (    Get '[JSON] [(Teacher, Bool)]
         :<|> Capture "teacherId" SubjectId :>
             (
-             "activate" :> PostNoContent '[JSON] SubjectId
+             "activate" :> Post '[JSON] SubjectId
             )
         )
 

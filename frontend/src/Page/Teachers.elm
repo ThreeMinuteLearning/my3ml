@@ -37,8 +37,7 @@ init session =
             pageLoadError e ("Unable to load teacher data. " ++ defaultHttpErrorMsg e ++ ".")
 
         createModel =
-            Debug.log "Creating model" <|
-                Model (Table.initialSort "Name") Nothing
+            Model (Table.initialSort "Name") Nothing
     in
         Api.getSchoolTeachers (authorization session)
             |> Http.toTask
@@ -59,7 +58,7 @@ update session msg model =
                    )
 
         ActivateAccountResponse (Ok accId) ->
-            model => Cmd.none
+            { model | teachers = List.map (markActivated accId) model.teachers } => Cmd.none
 
         ActivateAccountResponse (Err e) ->
             model => Cmd.none
@@ -75,6 +74,14 @@ update session msg model =
 
         GenerateRegistrationCodeResponse (Err _) ->
             model => Cmd.none
+
+
+markActivated : String -> ( Api.Teacher, Bool ) -> ( Api.Teacher, Bool )
+markActivated accId teacher =
+    if .id (first teacher) == accId then
+        ( first teacher, True )
+    else
+        teacher
 
 
 view : Session -> Model -> Html Msg
@@ -137,5 +144,5 @@ viewActivationButton ( teacher, isActive ) =
         Table.HtmlDetails [] []
     else
         Table.HtmlDetails []
-            [ button [ type_ "button", onClick (ActivateAccount teacher.id) ] [ text "Activate account" ]
+            [ button [ class "btn btn-default", type_ "button", onClick (ActivateAccount teacher.id) ] [ text "Activate account" ]
             ]
