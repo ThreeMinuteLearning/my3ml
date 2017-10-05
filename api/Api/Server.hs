@@ -116,15 +116,15 @@ loginServer authReq = do
         Nothing -> logInfoN ("User not found: " <> uName) >> throwError err401
         Just a@Account {..} -> do
             unless (validatePassword submittedPassword (encodeUtf8 password))
-                (throwError err401)
+                (logInfoN ("Wrong password for user " <> uName) >> throwError err401)
             -- new account which hasn't been enabled yet
-            unless active (throwError err403)
+            unless active (logInfoN ("Account " <> uName <> " has not been activated yet") >> throwError err403)
             let firstLogin = isNothing lastLogin
             keys <- getUserKeys id firstLogin role submittedPassword
             (accessToken, nm) <- createToken a (fmap snd keys)
             let keyUpdate = fmap (uncurry encryptSchoolKey) keys
             runDB $ DB.loginSuccess id keyUpdate
-
+            logInfoN ("User successfuly authenticated: " <> uName)
             return $ Login id uName nm role level settings accessToken
   where
     -- getUserKeys :: Monad m => SubjectId -> Bool -> UserType -> B.ByteString -> m (Maybe (ScrubbedBytes, ScrubbedBytes))
