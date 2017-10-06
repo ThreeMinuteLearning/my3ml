@@ -10,8 +10,9 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
+import Regex
 import Util exposing ((=>))
-import Validate exposing (Validator, ifBlank, ifNothing)
+import Validate exposing (Validator, ifBlank, ifNothing, ifInvalid)
 import Views.Form as Form
 
 
@@ -163,12 +164,43 @@ fieldError field errors =
 validate : Model -> List Error
 validate =
     Validate.all
-        [ .connection >> ifBlank (Connection => "Please fill in your connection with the story")
-        , .question >> ifBlank (Question => "Please enter a question about the story")
-        , .summary >> ifBlank (Summary => "Please write your summary sentence for the story")
-        , .clarification >> ifBlank (Clarification => "Please fill in the meaning of the word")
-        , .clarificationMethod >> ifNothing (ClarificationMethod => "Please select the clarification method you used")
+        [ .connection >> ifBlank ( Connection, "Please fill in your connection with the story" )
+        , .connection >> ifNotSentence ( Connection, "Please write a sentence for your connection with the story" )
+        , .question >> ifBlank ( Question, "Please enter a question about the story" )
+        , .question >> ifNotSentence ( Question, "Please write a sentence for your question" )
+        , .summary >> ifBlank ( Summary, "Please write your summary sentence for the story" )
+        , .summary >> ifNotSentence ( Summary, "Please the summary as a sentence" )
+        , .clarification >> ifBlank ( Clarification, "Please fill in the meaning of the word" )
+        , .clarification >> ifNotSentence ( Clarification, "Please write a sentence for the meaning of the word" )
+        , .clarificationMethod >> ifNothing ( ClarificationMethod, "Please select the clarification method you used" )
+        , naughtyWordsCheck
         ]
+
+
+ifNotSentence : Error -> Validator Error String
+ifNotSentence =
+    let
+        notSentence =
+            Regex.regex "^\\s*\\S+\\s*$"
+    in
+        ifInvalid (Regex.contains notSentence)
+
+
+naughtyWordsCheck : Model -> List Error
+naughtyWordsCheck m =
+    let
+        naughtyWord =
+            Regex.regex "fuc*k+|bastard|bugger\\b|\\bshite*\\b"
+                |> Regex.caseInsensitive
+
+        hasNaughtyWord =
+            List.map (Regex.contains naughtyWord) [ m.connection, m.question, m.summary, m.clarification ]
+                |> List.foldl (||) False
+    in
+        if hasNaughtyWord then
+            [ ( Form, "Sorry, that's not allowed" ) ]
+        else
+            []
 
 
 view : Model -> Html Msg
