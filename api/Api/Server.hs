@@ -173,6 +173,7 @@ accountServer token_ =
         return NoContent
 
     registerNewAccount r = do
+        logInfoN $ "New registration for: " <> email r
         existing <- runDB $ DB.getAccountByUsername (email r)
         unless (isNothing existing) $ throwError err409
         salt <- liftIO (getRandomBytes 32)
