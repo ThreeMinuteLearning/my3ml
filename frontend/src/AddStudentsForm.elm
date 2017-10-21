@@ -8,6 +8,7 @@ import Html exposing (..)
 import Html.Attributes exposing (class, id, selected)
 import Html.Events exposing (onInput, onSubmit)
 import Http
+import Regex
 import Util exposing ((=>), defaultHttpErrorMsg)
 import Validate exposing (Validator, ifBlank, ifInvalid)
 import Views.Form as Form
@@ -18,7 +19,7 @@ type alias Model =
     { errors : List Error
     , level : Int
     , class : Maybe String
-    , names : List String
+    , names : String
     }
 
 
@@ -27,7 +28,7 @@ init =
     { errors = []
     , level = 3
     , class = Nothing
-    , names = List.repeat 10 ""
+    , names = ""
     }
 
 
@@ -35,7 +36,7 @@ type Msg
     = SubmitForm
     | SetClass (Maybe String)
     | SetLevel Int
-    | SetName Int String
+    | SetNames String
     | AddStudentsResponse (Result Http.Error (List NewAccount))
 
 
@@ -48,12 +49,12 @@ update session msg model =
     case msg of
         SubmitForm ->
             case validate model of
-                [] ->
+                Ok names ->
                     { model | errors = [] }
-                        => sendNewAccountsRequest session model
+                        => sendNewAccountsRequest session model.level names
                         => Nothing
 
-                errors ->
+                Err errors ->
                     { model | errors = errors }
                         => Cmd.none
                         => Nothing
@@ -68,8 +69,8 @@ update session msg model =
                 => Cmd.none
                 => Nothing
 
-        SetName index name ->
-            { model | names = setNameAtIndex index name model.names }
+        SetNames names ->
+            { model | names = names }
                 => Cmd.none
                 => Nothing
 
@@ -77,55 +78,44 @@ update session msg model =
             ( model, Cmd.none ) => Just newAccounts
 
         AddStudentsResponse (Err e) ->
-            { model | errors = model.errors ++ [ (Form => "Couldn't save the new accounts: " ++ defaultHttpErrorMsg e) ] }
+            { model | errors = model.errors ++ [ ("Couldn't save the new accounts: " ++ defaultHttpErrorMsg e) ] }
                 => Cmd.none
                 => Nothing
 
 
-setNameAtIndex : Int -> String -> List String -> List String
-setNameAtIndex index name =
-    List.indexedMap
-        (\i n ->
-            if i == index then
-                name
-            else
-                n
-        )
-
-
-sendNewAccountsRequest : Session -> Model -> Cmd Msg
-sendNewAccountsRequest session model =
-    List.filter (not << String.isEmpty) model.names
-        |> (,) model.level
-        |> Api.postSchoolStudents (authorization session)
+sendNewAccountsRequest : Session -> Int -> List String -> Cmd Msg
+sendNewAccountsRequest session level names =
+    Api.postSchoolStudents (authorization session) ( level, names )
         |> Http.send AddStudentsResponse
 
 
-type Field
-    = Form
-    | Name Int
-
-
 type alias Error =
-    ( Field, String )
+    String
 
 
-fieldError : Field -> List Error -> Maybe Error
-fieldError field errors =
-    firstMatch (\e -> Tuple.first e == field) errors
-
-
-validate : Model -> List Error
+validate : Model -> Result (List Error) (List String)
 validate model =
     let
-        validateName index =
-            if index == 0 then
-                ifInvalid (not << validName) (Name 0 => "You must enter at least one valid name")
+        parsedNames =
+            Regex.split Regex.All (Regex.regex "[,\\r\\n]+") model.names
+                |> List.map String.trim
+
+        validateName n =
+            if not (validName n) then
+                [ n ++ " is not a valid name" ]
             else
-                ifInvalid (\n -> not (String.isEmpty n || validName n)) (Name index => "Invalid name")
+                []
+
+        errors =
+            List.map validateName parsedNames
+                |> List.concat
     in
-        List.indexedMap validateName model.names
-            |> List.concat
+        case errors of
+            [] ->
+                Ok parsedNames
+
+            _ ->
+                Err errors
 
 
 validName : String -> Bool
@@ -137,13 +127,17 @@ validName name =
 view : Model -> Html Msg
 view model =
     let
-        nameInput index =
-            div [ class (errorClass (fieldError (Name index) model.errors)) ]
-                [ Form.input [ onInput (SetName index) ] []
+        namesInput =
+            div
+                [ class
+                    (if List.isEmpty model.errors then
+                        ""
+                     else
+                        "has-error"
+                    )
                 ]
-
-        nameFields =
-            List.map nameInput (List.range 0 9)
+                [ Form.textarea [ onInput SetNames ] []
+                ]
 
         submitButton =
             Html.button [ class "btn btn-primary pull-xs-right" ] [ text "Create Accounts" ]
@@ -152,10 +146,10 @@ view model =
             Html.form
                 [ onSubmit SubmitForm ]
                 [ Html.fieldset []
-                    (List.append nameFields [ SelectLevel.view SetLevel model.level, submitButton ])
+                    ([ namesInput, SelectLevel.view SetLevel model.level, submitButton ])
                 ]
     in
         div []
-            [ Form.viewErrors model.errors
+            [ Form.viewErrorMsgs model.errors
             , viewForm
             ]

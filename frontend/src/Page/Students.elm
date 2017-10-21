@@ -177,7 +177,8 @@ view session model =
 subtools : Session -> List (Html Msg)
 subtools session =
     if Session.isSchoolAdmin session then
-        [ Bootstrap.btn ShowAddStudents [ text "Add Students" ] ]
+        [ Bootstrap.btn ShowAddStudents [ text "Add Students" ]
+        ]
     else
         []
 
@@ -279,7 +280,7 @@ addStudentsDialog form =
         DismissAddStudents
         (Just (h3 [] [ text "Add Students" ]))
         (div []
-            [ p [] [ text "Enter the names of up to ten students you want to add accounts for (one student per input field)." ]
+            [ p [] [ text "Enter the names of the students you want to add accounts for, separated by commas or on separate lines" ]
             , AddStudentsForm.view form
                 |> Html.map AddStudentsFormMsg
             ]
