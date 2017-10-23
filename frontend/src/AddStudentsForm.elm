@@ -5,7 +5,7 @@ import Bootstrap exposing (errorClass)
 import Data.Session exposing (Session, authorization)
 import Exts.List exposing (firstMatch)
 import Html exposing (..)
-import Html.Attributes exposing (class, id, selected)
+import Html.Attributes exposing (class, id, disabled, selected)
 import Html.Events exposing (onInput, onSubmit)
 import Http
 import Regex
@@ -20,6 +20,7 @@ type alias Model =
     , level : Int
     , class : Maybe String
     , names : String
+    , waitingForResponse : Bool
     }
 
 
@@ -29,6 +30,7 @@ init =
     , level = 3
     , class = Nothing
     , names = ""
+    , waitingForResponse = False
     }
 
 
@@ -50,7 +52,7 @@ update session msg model =
         SubmitForm ->
             case validate model of
                 Ok names ->
-                    { model | errors = [] }
+                    { model | errors = [], waitingForResponse = True }
                         => sendNewAccountsRequest session model.level names
                         => Nothing
 
@@ -75,10 +77,12 @@ update session msg model =
                 => Nothing
 
         AddStudentsResponse (Ok newAccounts) ->
-            ( model, Cmd.none ) => Just newAccounts
+            { model | waitingForResponse = False }
+                => Cmd.none
+                => Just newAccounts
 
         AddStudentsResponse (Err e) ->
-            { model | errors = model.errors ++ [ ("Couldn't save the new accounts: " ++ defaultHttpErrorMsg e) ] }
+            { model | errors = model.errors ++ [ ("Couldn't save the new accounts: " ++ defaultHttpErrorMsg e) ], waitingForResponse = False }
                 => Cmd.none
                 => Nothing
 
@@ -99,6 +103,7 @@ validate model =
         parsedNames =
             Regex.split Regex.All (Regex.regex "[,\\r\\n]+") model.names
                 |> List.map String.trim
+                |> List.filter (not << String.isEmpty)
 
         validateName n =
             if not (validName n) then
@@ -106,9 +111,21 @@ validate model =
             else
                 []
 
+        lengthCheck =
+            case List.length parsedNames of
+                0 ->
+                    [ "Please enter at least one name" ]
+
+                n ->
+                    if n < 101 then
+                        []
+                    else
+                        [ "You can only create 100 accounts at a atime" ]
+
         errors =
             List.map validateName parsedNames
                 |> List.concat
+                |> List.append lengthCheck
     in
         case errors of
             [] ->
@@ -121,7 +138,7 @@ validate model =
 validName : String -> Bool
 validName name =
     String.length (String.trim name)
-        |> \l -> l > 2 && l < 50
+        |> \l -> l >= 2 && l < 50
 
 
 view : Model -> Html Msg
@@ -140,7 +157,7 @@ view model =
                 ]
 
         submitButton =
-            Html.button [ class "btn btn-primary pull-xs-right" ] [ text "Create Accounts" ]
+            Html.button [ class "btn btn-primary pull-xs-right", disabled model.waitingForResponse ] [ text "Create Accounts" ]
 
         viewForm =
             Html.form

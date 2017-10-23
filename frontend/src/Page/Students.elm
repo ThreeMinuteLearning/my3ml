@@ -280,7 +280,7 @@ addStudentsDialog form =
         DismissAddStudents
         (Just (h3 [] [ text "Add Students" ]))
         (div []
-            [ p [] [ text "Enter the names of the students you want to add accounts for, separated by commas or on separate lines" ]
+            [ p [] [ text "Enter the names of the students you want to add accounts for, separated by commas or on separate lines. You can enter up to 100 names." ]
             , AddStudentsForm.view form
                 |> Html.map AddStudentsFormMsg
             ]
