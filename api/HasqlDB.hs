@@ -110,13 +110,13 @@ instance DB HasqlDB where
 
     getSchool = runQuery selectSchoolById
 
-    getTrails = runQuery selectTrailsBySchoolId
+    getAnthologies = runQuery selectAnthologiesBySchoolId
 
-    createTrail = runQuery insertTrail
+    createAnthology = runQuery insertAnthology
 
-    deleteTrail trailId_ db = do
-        nRows <- runQuery deleteTrailById trailId_ db
-        when (nRows == 0) $ liftIO $ throwDBException "Trail not found to delete"
+    deleteAnthology anthologyId_ db = do
+        nRows <- runQuery deleteAnthologyById anthologyId_ db
+        when (nRows == 0) $ liftIO $ throwDBException "Anthology not found to delete"
 
     getClasses = runQuery selectClassesBySchool
 
@@ -678,34 +678,34 @@ deleteClassById = Q.statement sql eTextPair D.rowsAffected True
 
 
 
--- Trails
+-- Anthologies
 
-selectTrailsBySchoolId :: Query SchoolId [StoryTrail]
-selectTrailsBySchoolId = Q.statement sql evText (D.rowsList trailRow) True
+selectAnthologiesBySchoolId :: Query SchoolId [Anthology]
+selectAnthologiesBySchoolId = Q.statement sql evText (D.rowsList anthologyRow) True
   where
-    sql = "SELECT id, name, school_id, stories FROM trail WHERE school_id = $1"
+    sql = "SELECT id, name, school_id, stories FROM anthology WHERE school_id = $1"
 
-trailRow :: D.Row StoryTrail
-trailRow = StoryTrail
+anthologyRow :: D.Row Anthology
+anthologyRow = Anthology
     <$> dvUUID
     <*> dvText
     <*> dvUUID
     <*> (map fromIntegral <$> dArray D.int4)
 
-insertTrail :: Query StoryTrail ()
-insertTrail = Q.statement sql encode D.unit True
+insertAnthology :: Query Anthology ()
+insertAnthology = Q.statement sql encode D.unit True
   where
-    sql = "INSERT INTO trail (id, name, school_id, stories) \
+    sql = "INSERT INTO anthology (id, name, school_id, stories) \
               \ VALUES ($1, $2, $3, $4)"
-    encode = contramap (id :: StoryTrail -> TrailId) evText
-        <> contramap (name :: StoryTrail -> Text) evText
-        <> contramap (schoolId :: StoryTrail -> Text) evText
-        <> contramap (map fromIntegral <$> (stories :: StoryTrail -> [StoryId])) (eArray E.int4)
+    encode = contramap (id :: Anthology -> AnthologyId) evText
+        <> contramap (name :: Anthology -> Text) evText
+        <> contramap (schoolId :: Anthology -> Text) evText
+        <> contramap (map fromIntegral <$> (stories :: Anthology -> [StoryId])) (eArray E.int4)
 
-deleteTrailById :: Query TrailId Int64
-deleteTrailById = Q.statement sql evText D.rowsAffected True
+deleteAnthologyById :: Query AnthologyId Int64
+deleteAnthologyById = Q.statement sql evText D.rowsAffected True
   where
-    sql = "DELETE FROM trail WHERE id = $1 :: uuid"
+    sql = "DELETE FROM anthology WHERE id = $1 :: uuid"
 
 
 -- Word dictionary

@@ -41,11 +41,11 @@ class DB db where
 
     getSchool :: MonadIO m => SchoolId -> db -> m (Maybe School)
 
-    getTrails :: MonadIO m => SchoolId -> db -> m [StoryTrail]
+    getAnthologies :: MonadIO m => SchoolId -> db -> m [Anthology]
 
-    createTrail :: MonadIO m => StoryTrail -> db -> m ()
+    createAnthology :: MonadIO m => Anthology -> db -> m ()
 
-    deleteTrail :: MonadIO m => TrailId -> db -> m ()
+    deleteAnthology :: MonadIO m => AnthologyId -> db -> m ()
 
     getClasses :: MonadIO m => SchoolId -> db -> m [Class]
 
@@ -101,7 +101,7 @@ data InMemoryDB = InMemoryDB
     { stories :: Map.Map StoryId Story
     , sampleStories :: [Story]
     , dictionary :: WordDictionary
-    , trails :: [StoryTrail]
+    , anthologies :: [Anthology]
     , schools :: [School]
     , classes :: [Class]
     , students :: [Student]
@@ -138,17 +138,17 @@ instance DB AtomicDB where
             in  d { stories = newStories }
         return 1
 
-    getTrails sid db = filter (\t -> schoolId (t :: StoryTrail) == sid) <$> withDB db trails
+    getAnthologies sid db = filter (\t -> schoolId (t :: Anthology) == sid) <$> withDB db anthologies
 
-    createTrail trail db =
+    createAnthology anthology db =
         updateDB db $ \d ->
-            let newTrails = trail : trails d
-            in  d { trails = newTrails }
+            let newAnthologies = anthology : anthologies d
+            in  d { anthologies = newAnthologies }
 
-    deleteTrail trid db =
+    deleteAnthology trid db =
         updateDB db $ \d ->
-            let newTrails = filter (\t -> id (t :: StoryTrail) /= trid) (trails d)
-            in  d { trails = newTrails }
+            let newAnthologies = filter (\t -> id (t :: Anthology) /= trid) (anthologies d)
+            in  d { anthologies = newAnthologies }
 
     getSchools db = withDB db schools
 

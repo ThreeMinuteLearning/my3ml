@@ -68,7 +68,7 @@ runDB :: MonadReader (Config b) m => (b -> m b1) -> m b1
 runDB f = ask >>= f . database
 
 server :: DB db => ApiServer Api db
-server = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> trailsServer :<|> loginServer :<|> accountServer
+server = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> anthologiesServer :<|> loginServer :<|> accountServer
 
 newUUID :: HandlerT db Text
 newUUID = liftIO (toText <$> nextRandom)
@@ -241,23 +241,23 @@ storyServer token_ =
         return (story { id = newId } :: Story)
 
 
-trailsServer :: DB db => ApiServer TrailsApi db
-trailsServer Nothing = throwAll err401
-trailsServer (Just (TeacherScope _ sid _ _)) =
-    getTrailsForSchool sid :<|> createTrail
-trailsServer (Just (StudentScope _ sid)) =
-    getTrailsForSchool sid :<|> throwAll err403
-trailsServer _ = throwAll err403
+anthologiesServer :: DB db => ApiServer AnthologiesApi db
+anthologiesServer Nothing = throwAll err401
+anthologiesServer (Just (TeacherScope _ sid _ _)) =
+    getAnthologiesForSchool sid :<|> createAnthology
+anthologiesServer (Just (StudentScope _ sid)) =
+    getAnthologiesForSchool sid :<|> throwAll err403
+anthologiesServer _ = throwAll err403
 
-getTrailsForSchool :: DB db => SchoolId -> HandlerT db [StoryTrail]
-getTrailsForSchool = runDB . DB.getTrails
+getAnthologiesForSchool :: DB db => SchoolId -> HandlerT db [Anthology]
+getAnthologiesForSchool = runDB . DB.getAnthologies
 
-createTrail :: DB db => StoryTrail -> HandlerT db StoryTrail
-createTrail trail = do
+createAnthology :: DB db => Anthology -> HandlerT db Anthology
+createAnthology anthology = do
     uuid <- liftIO (toText <$> nextRandom)
-    let trailWithId = trail { id = uuid } :: StoryTrail
-    _ <- runDB (DB.createTrail trailWithId)
-    return trailWithId
+    let anthologyWithId = anthology { id = uuid } :: Anthology
+    _ <- runDB (DB.createAnthology anthologyWithId)
+    return anthologyWithId
 
 
 schoolsServer :: DB db => ApiServer SchoolsApi db

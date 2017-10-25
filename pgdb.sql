@@ -89,7 +89,7 @@ CREATE TABLE student_class
     , FOREIGN KEY (class_id, school_id) REFERENCES class (id, school_id) ON DELETE CASCADE
     );
 
-CREATE TABLE trail
+CREATE TABLE anthology
     ( id uuid PRIMARY KEY
     , name text NOT NULL CHECK (length(name) > 0)
     , school_id uuid NOT NULL REFERENCES school

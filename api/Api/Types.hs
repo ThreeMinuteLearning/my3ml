@@ -95,15 +95,15 @@ data LoginRequest = LoginRequest
     , password :: Text
     } deriving (Show, Generic, FromJSON)
 
-data StoryTrail = StoryTrail
-    { id :: TrailId
+data Anthology = Anthology
+    { id :: AnthologyId
     , name :: Text
 --    , createdBy :: SubjectId
     , schoolId :: SchoolId
     , stories :: [StoryId]
     } deriving (Show, Generic, ToJSON, FromJSON)
 
-type TrailId = Text
+type AnthologyId = Text
 
 data Account = Account
     { id :: SubjectId
@@ -266,10 +266,10 @@ type LeaderBoardApi =
     "leaderboard" :> Get '[JSON] [LeaderBoardEntry]
 
 
-type TrailsApi =
-    "trails" :> AccessTokenAuth :>
-        (    Get '[JSON] [StoryTrail]
-        :<|> ReqBody '[JSON] StoryTrail :> Post '[JSON] StoryTrail
+type AnthologiesApi =
+    "anthologies" :> AccessTokenAuth :>
+        (    Get '[JSON] [Anthology]
+        :<|> ReqBody '[JSON] Anthology :> Post '[JSON] Anthology
         )
 
-type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> TrailsApi :<|> LoginApi :<|> AccountApi
+type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> AnthologiesApi :<|> LoginApi :<|> AccountApi

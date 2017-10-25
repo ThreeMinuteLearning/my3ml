@@ -57,7 +57,7 @@ specs =
         <> sourceFor (Proxy :: Proxy UserType)
         <> sourceFor (Proxy :: Proxy Student)
         <> sourceFor (Proxy :: Proxy Teacher)
-        <> sourceFor (Proxy :: Proxy StoryTrail)
+        <> sourceFor (Proxy :: Proxy Anthology)
         <> sourceFor (Proxy :: Proxy LoginRequest)
         <> sourceFor (Proxy :: Proxy LeaderBoardEntry)
         <> sourceFor (Proxy :: Proxy Registration)
@@ -87,7 +87,7 @@ deriving instance ElmType Login
 deriving instance ElmType UserType
 deriving instance ElmType Student
 deriving instance ElmType Teacher
-deriving instance ElmType StoryTrail
+deriving instance ElmType Anthology
 deriving instance ElmType LoginRequest
 deriving instance ElmType LeaderBoardEntry
 deriving instance ElmType Registration
