@@ -1,7 +1,7 @@
 module Page.FindStory exposing (Model, Msg, init, view, subscriptions, update)
 
 import Api
-import Bootstrap
+import Bootstrap exposing (closeBtn)
 import Data.Session as Session exposing (Session, isEditor)
 import Data.Settings exposing (Settings, defaultSettings)
 import Exts.List exposing (firstMatch)
@@ -15,7 +15,7 @@ import Regex
 import Route
 import Table
 import Task exposing (Task)
-import Util exposing ((=>), onClickPreventDefault, viewIf)
+import Util exposing ((=>), onClickPreventDefault, viewIf, viewUnless)
 import Views.Story as StoryView
 import Views.StoryTiles as StoryTiles
 import Window
@@ -45,6 +45,8 @@ type Msg
     | Resize Window.Size
     | CloseBrowser
     | ToggleShowDisabledOnly
+    | ClearSelectedStories
+    | SelectStory Api.Story
 
 
 type ViewType
@@ -148,6 +150,12 @@ update { cache } msg model =
             in
                 { model | showDisabledStoriesOnly = flag, stories = newStories } => Cmd.none
 
+        SelectStory s ->
+            { model | selectedStories = s :: model.selectedStories } => Cmd.none
+
+        ClearSelectedStories ->
+            { model | selectedStories = [] } => Cmd.none
+
 
 loadMore : Model -> ( Model, Cmd msg )
 loadMore m =
@@ -176,6 +184,7 @@ view session m =
             Nothing ->
                 div []
                     [ viewStoriesFilter session m
+                    , viewUnless (List.isEmpty m.selectedStories) (viewSelectedStories m)
                     , case m.viewType of
                         Tiles n ->
                             StoryTiles.view (List.take n m.stories)
@@ -186,7 +195,7 @@ view session m =
 
             Just b ->
                 div []
-                    [ viewBrowserToolbar session (Zipper.current b)
+                    [ viewBrowserToolbar session (Zipper.current b) (m.selectedStories)
                     , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) (Zipper.current b) m.storyView
                     ]
         ]
@@ -199,13 +208,14 @@ settingsFromSession session =
         |> Maybe.withDefault defaultSettings
 
 
-viewBrowserToolbar : Session -> Api.Story -> Html Msg
-viewBrowserToolbar session s =
+viewBrowserToolbar : Session -> Api.Story -> List Api.Story -> Html Msg
+viewBrowserToolbar session s selected =
     nav []
         [ ul [ class "pager" ]
             [ li [ class "previous" ] [ a [ href "#", onClickPreventDefault Previous ] [ text "Prev" ] ]
             , viewIf (isEditor session) <| li [] [ a [ href (Route.routeToString (Route.Editor s.id)) ] [ text "Edit" ] ]
             , li [] [ a [ href "#", onClickPreventDefault CloseBrowser ] [ text "Back to stories" ] ]
+            , viewUnless (List.member s selected) <| li [] [ a [ href "#", onClickPreventDefault (SelectStory s) ] [ text "Select story" ] ]
             , li [ class "next" ] [ a [ class "pull-right", href "#", onClickPreventDefault Next ] [ text "Next" ] ]
             ]
         ]
@@ -307,3 +317,26 @@ tableConfig =
                 ]
             , customizations = Bootstrap.tableCustomizations
             }
+
+
+viewSelectedStories : Model -> Html Msg
+viewSelectedStories m =
+    let
+        storyTable =
+            table [ class "table" ]
+                [ tbody [] (List.map storyRow m.selectedStories) ]
+
+        storyRow { title } =
+            tr []
+                [ td [] [ text title ]
+                ]
+    in
+        div [ class "panel panel-default" ]
+            [ div [ class "panel-heading" ]
+                [ div [ class "btn-group pull-right" ]
+                    [ closeBtn ClearSelectedStories ]
+                , h4 [ class "panel-title" ] [ text "Selected Stories" ]
+                ]
+            , div [ class "panel-body" ]
+                [ storyTable ]
+            ]
