@@ -244,7 +244,7 @@ storyServer token_ =
 anthologiesServer :: DB db => ApiServer AnthologiesApi db
 anthologiesServer Nothing = throwAll err401
 anthologiesServer (Just (TeacherScope _ sid _ _)) =
-    getAnthologiesForSchool sid :<|> createAnthology
+    getAnthologiesForSchool sid :<|> createAnthology (Just sid)
 anthologiesServer (Just (StudentScope _ sid)) =
     getAnthologiesForSchool sid :<|> throwAll err403
 anthologiesServer _ = throwAll err403
@@ -252,11 +252,11 @@ anthologiesServer _ = throwAll err403
 getAnthologiesForSchool :: DB db => SchoolId -> HandlerT db [Anthology]
 getAnthologiesForSchool = runDB . DB.getAnthologies
 
-createAnthology :: DB db => Anthology -> HandlerT db Anthology
-createAnthology anthology = do
+createAnthology :: DB db => Maybe SchoolId -> Anthology -> HandlerT db Anthology
+createAnthology sid anthology = do
     uuid <- liftIO (toText <$> nextRandom)
     let anthologyWithId = anthology { id = uuid } :: Anthology
-    _ <- runDB (DB.createAnthology anthologyWithId)
+    _ <- runDB (DB.createAnthology (anthologyWithId, sid))
     return anthologyWithId
 
 

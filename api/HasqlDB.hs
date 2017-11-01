@@ -683,24 +683,23 @@ deleteClassById = Q.statement sql eTextPair D.rowsAffected True
 selectAnthologiesBySchoolId :: Query SchoolId [Anthology]
 selectAnthologiesBySchoolId = Q.statement sql evText (D.rowsList anthologyRow) True
   where
-    sql = "SELECT id, name, school_id, stories FROM anthology WHERE school_id = $1"
+    sql = "SELECT id, name, stories FROM anthology WHERE school_id is null or school_id = $1 :: uuid"
 
 anthologyRow :: D.Row Anthology
 anthologyRow = Anthology
     <$> dvUUID
     <*> dvText
-    <*> dvUUID
     <*> (map fromIntegral <$> dArray D.int4)
 
-insertAnthology :: Query Anthology ()
+insertAnthology :: Query (Anthology, Maybe SchoolId) ()
 insertAnthology = Q.statement sql encode D.unit True
   where
     sql = "INSERT INTO anthology (id, name, school_id, stories) \
-              \ VALUES ($1, $2, $3, $4)"
-    encode = contramap (id :: Anthology -> AnthologyId) evText
-        <> contramap (name :: Anthology -> Text) evText
-        <> contramap (schoolId :: Anthology -> Text) evText
-        <> contramap (map fromIntegral <$> (stories :: Anthology -> [StoryId])) (eArray E.int4)
+              \ VALUES ($1 :: uuid, $2, $3 :: uuid, $4)"
+    encode = contramap ((id :: Anthology -> AnthologyId) . fst) evText
+        <> contramap ((name :: Anthology -> Text) . fst) evText
+        <> contramap snd (E.nullableValue E.text)
+        <> contramap (map fromIntegral <$> ((stories :: Anthology -> [StoryId]) . fst)) (eArray E.int4)
 
 deleteAnthologyById :: Query AnthologyId Int64
 deleteAnthologyById = Q.statement sql evText D.rowsAffected True

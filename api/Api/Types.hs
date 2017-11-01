@@ -99,7 +99,6 @@ data Anthology = Anthology
     { id :: AnthologyId
     , name :: Text
 --    , createdBy :: SubjectId
-    , schoolId :: SchoolId
     , stories :: [StoryId]
     } deriving (Show, Generic, ToJSON, FromJSON)
 

@@ -43,7 +43,7 @@ class DB db where
 
     getAnthologies :: MonadIO m => SchoolId -> db -> m [Anthology]
 
-    createAnthology :: MonadIO m => Anthology -> db -> m ()
+    createAnthology :: MonadIO m => (Anthology, Maybe SchoolId) -> db -> m ()
 
     deleteAnthology :: MonadIO m => AnthologyId -> db -> m ()
 
@@ -138,9 +138,9 @@ instance DB AtomicDB where
             in  d { stories = newStories }
         return 1
 
-    getAnthologies sid db = filter (\t -> schoolId (t :: Anthology) == sid) <$> withDB db anthologies
+    getAnthologies _ db = withDB db anthologies
 
-    createAnthology anthology db =
+    createAnthology (anthology, _) db =
         updateDB db $ \d ->
             let newAnthologies = anthology : anthologies d
             in  d { anthologies = newAnthologies }

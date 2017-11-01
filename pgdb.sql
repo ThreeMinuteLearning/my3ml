@@ -90,10 +90,10 @@ CREATE TABLE student_class
     );
 
 CREATE TABLE anthology
-    ( id uuid PRIMARY KEY
+    ( id uuid DEFAULT uuid_generate_v4() PRIMARY KEY
     , name text NOT NULL CHECK (length(name) > 0)
-    , school_id uuid NOT NULL REFERENCES school
-    , stories uuid[] NOT NULL
+    , school_id uuid REFERENCES school
+    , stories integer[] NOT NULL
     );
 
 CREATE TABLE dict

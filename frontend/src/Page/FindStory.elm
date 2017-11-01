@@ -2,12 +2,13 @@ module Page.FindStory exposing (Model, Msg, init, view, subscriptions, update)
 
 import Api
 import Bootstrap exposing (closeBtn)
-import Data.Session as Session exposing (Session, isEditor)
+import Data.Session as Session exposing (Session, Cache, authorization, findStoryById, isEditor)
 import Data.Settings exposing (Settings, defaultSettings)
 import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput, onClick)
+import Html.Events exposing (onInput, onClick, onSubmit)
+import Http
 import List.InfiniteZipper as Zipper exposing (InfiniteZipper)
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
@@ -15,14 +16,16 @@ import Regex
 import Route
 import Table
 import Task exposing (Task)
-import Util exposing ((=>), onClickPreventDefault, viewIf, viewUnless)
+import Views.Form as Form
+import Util exposing ((=>), onClickPreventDefault, viewIf, viewUnless, defaultHttpErrorMsg)
 import Views.Story as StoryView
 import Views.StoryTiles as StoryTiles
 import Window
 
 
 type alias Model =
-    { storyFilter : String
+    { errors : List Error
+    , storyFilter : String
     , showDisabledStoriesOnly : Bool
     , stories : List Api.Story
     , tableState : Table.State
@@ -31,7 +34,12 @@ type alias Model =
     , viewType : ViewType
     , windowSize : Window.Size
     , selectedStories : List Api.Story
+    , anthologyForm : Maybe AnthologyForm
     }
+
+
+type alias AnthologyForm =
+    String
 
 
 type Msg
@@ -47,11 +55,17 @@ type Msg
     | ToggleShowDisabledOnly
     | ClearSelectedStories
     | SelectStory Api.Story
+    | CreateAnthology
+    | SetAnthologyName String
+    | SetViewType ViewType
+    | SubmitAnthologyForm
+    | CreateAnthologyResponse (Result Http.Error Api.Anthology)
 
 
 type ViewType
     = Tiles Int
     | Table
+    | Anthologies
 
 
 initialModel : Session -> Window.Size -> ( Model, Session )
@@ -72,7 +86,8 @@ initialModel session size =
             else
                 Table
     in
-        Model "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType size [] => session
+        Model [] "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType size [] Nothing
+            => session
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -80,9 +95,13 @@ init session =
     let
         handleLoadError e =
             pageLoadError e "There was a problem loading the stories."
+
+        loadData =
+            Session.loadStories session
+                |> Task.andThen Session.loadAnthologies
+                |> Task.mapError handleLoadError
     in
-        Task.map2 initialModel (Session.loadStories session) Window.size
-            |> Task.mapError handleLoadError
+        Task.map2 initialModel loadData Window.size
 
 
 subscriptions : Model -> Sub Msg
@@ -101,10 +120,10 @@ subscriptions m =
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
-update { cache } msg model =
+update session msg model =
     case msg of
         StoryFilterInput f ->
-            { model | storyFilter = f, stories = filterStories f cache.stories } ! []
+            { model | storyFilter = f, stories = filterStories f session.cache.stories } ! []
 
         SetTableState t ->
             { model | tableState = t } ! []
@@ -146,7 +165,7 @@ update { cache } msg model =
                     if flag then
                         List.filter (\s -> not s.enabled) model.stories
                     else
-                        filterStories model.storyFilter cache.stories
+                        filterStories model.storyFilter session.cache.stories
             in
                 { model | showDisabledStoriesOnly = flag, stories = newStories } => Cmd.none
 
@@ -155,6 +174,57 @@ update { cache } msg model =
 
         ClearSelectedStories ->
             { model | selectedStories = [] } => Cmd.none
+
+        CreateAnthology ->
+            { model | anthologyForm = Just "" } => Cmd.none
+
+        SetAnthologyName n ->
+            case model.anthologyForm of
+                Just _ ->
+                    { model | anthologyForm = Just n } => Cmd.none
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        SubmitAnthologyForm ->
+            case model.anthologyForm of
+                Just f ->
+                    case validateAnthologyForm f of
+                        [] ->
+                            { model | errors = [], anthologyForm = Nothing }
+                                => (Api.postAnthologies (authorization session) (Api.Anthology "" f (List.map .id model.selectedStories))
+                                        |> Http.send CreateAnthologyResponse
+                                   )
+
+                        errors ->
+                            { model | errors = errors }
+                                => Cmd.none
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        CreateAnthologyResponse (Ok newAnthology) ->
+            { model | anthologyForm = Nothing }
+                => Cmd.none
+
+        CreateAnthologyResponse (Err e) ->
+            { model | errors = [ "Couldn't create the antholody: " ++ defaultHttpErrorMsg e ] }
+                => Cmd.none
+
+        SetViewType v ->
+            { model | viewType = v } => Cmd.none
+
+
+type alias Error =
+    String
+
+
+validateAnthologyForm : AnthologyForm -> List Error
+validateAnthologyForm f =
+    if String.length f <= 3 then
+        [ "The anthology name must be more than 3 characters long" ]
+    else
+        []
 
 
 loadMore : Model -> ( Model, Cmd msg )
@@ -184,6 +254,7 @@ view session m =
             Nothing ->
                 div []
                     [ viewStoriesFilter session m
+                    , Form.viewErrorMsgs m.errors
                     , viewUnless (List.isEmpty m.selectedStories) (viewSelectedStories m)
                     , case m.viewType of
                         Tiles n ->
@@ -191,6 +262,9 @@ view session m =
 
                         Table ->
                             viewStoriesTable m
+
+                        Anthologies ->
+                            viewAnthologies session.cache
                     ]
 
             Just b ->
@@ -236,7 +310,26 @@ viewStoriesFilter session m =
             [ text (" " ++ toString (List.length m.stories) ++ " matching stories ")
             ]
         , viewIf (isEditor session) (viewToggleDisabledStoriesOnly m)
+        , text "  "
+        , viewCycleDisplayButton m
         ]
+
+
+viewCycleDisplayButton : Model -> Html Msg
+viewCycleDisplayButton m =
+    let
+        ( nextViewType, displayTxt ) =
+            case m.viewType of
+                Table ->
+                    ( Anthologies, "View anthologies" )
+
+                Tiles _ ->
+                    ( Table, "View table" )
+
+                Anthologies ->
+                    ( Tiles (StoryTiles.tilesPerPage m.windowSize), "View tiles" )
+    in
+        button [ class "btn btn-default", onClick (SetViewType nextViewType) ] [ text displayTxt ]
 
 
 viewToggleDisabledStoriesOnly : Model -> Html Msg
@@ -296,13 +389,13 @@ tableConfig =
         storyTitleColumn =
             Table.veryCustomColumn
                 { name = "Title"
-                , viewData = viewStoryLink
+                , viewData = titleColumnData
                 , sorter = Table.increasingOrDecreasingBy .title
                 }
 
-        viewStoryLink s =
+        titleColumnData s =
             Table.HtmlDetails []
-                [ Html.a [ href "#", onClickPreventDefault (BrowseFrom s.id) ] [ text s.title ]
+                [ viewStoryLink s
                 ]
     in
         Table.customConfig
@@ -319,17 +412,33 @@ tableConfig =
             }
 
 
+viewStoryLink : Api.Story -> Html Msg
+viewStoryLink s =
+    Html.a [ href "#", onClickPreventDefault (BrowseFrom s.id) ] [ text s.title ]
+
+
 viewSelectedStories : Model -> Html Msg
 viewSelectedStories m =
     let
-        storyTable =
-            table [ class "table" ]
-                [ tbody [] (List.map storyRow m.selectedStories) ]
+        createAnthology =
+            case m.anthologyForm of
+                Nothing ->
+                    button [ class "btn btn-default", onClick CreateAnthology ] [ text "Create Anthology" ]
 
-        storyRow { title } =
-            tr []
-                [ td [] [ text title ]
-                ]
+                Just f ->
+                    Html.form [ onSubmit SubmitAnthologyForm ]
+                        [ Form.input
+                            [ class "form-control-lg"
+                            , placeholder "Anthology name"
+                            , tabindex 1
+                            , onInput SetAnthologyName
+                            ]
+                            []
+                        , submitButton
+                        ]
+
+        submitButton =
+            Html.button [ class "btn btn-primary pull-xs-right", tabindex 2 ] [ text "Save new username" ]
     in
         div [ class "panel panel-default" ]
             [ div [ class "panel-heading" ]
@@ -338,5 +447,38 @@ viewSelectedStories m =
                 , h4 [ class "panel-title" ] [ text "Selected Stories" ]
                 ]
             , div [ class "panel-body" ]
-                [ storyTable ]
+                [ viewStoryTable m.selectedStories
+                , createAnthology
+                ]
             ]
+
+
+viewStoryTable : List Api.Story -> Html Msg
+viewStoryTable stories =
+    let
+        storyRow s =
+            tr []
+                [ td [] [ viewStoryLink s ]
+                ]
+    in
+        table [ class "table" ]
+            [ tbody [] (List.map storyRow stories) ]
+
+
+viewAnthologies : Cache -> Html Msg
+viewAnthologies cache =
+    let
+        go =
+            List.map pickStories cache.anthologies
+
+        pickStories a =
+            ( a.name, List.filterMap (findStoryById cache) a.stories )
+
+        render ( title, astories ) =
+            div [ class "anthology" ]
+                [ h4 [] [ text title ]
+                , viewStoryTable astories
+                ]
+    in
+        div [ class "anthologies" ]
+            (List.map render go)

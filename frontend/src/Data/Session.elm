@@ -1,4 +1,4 @@
-module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isEditor, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadUserAnswers, loadClasses, findStoryById)
+module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isEditor, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadUserAnswers, loadClasses, loadAnthologies, findStoryById)
 
 import Api
 import Data.Settings as Settings exposing (Settings)
@@ -40,6 +40,7 @@ type alias Cache =
     , answers : Dict Int Api.Answer
     , students : List Api.Student
     , classes : List Api.Class
+    , anthologies : List Api.Anthology
     }
 
 
@@ -56,7 +57,7 @@ emptySession =
 
 emptyCache : Cache
 emptyCache =
-    Cache Dict.empty [] Dict.empty [] []
+    Cache Dict.empty [] Dict.empty [] [] []
 
 
 hasRole : Role -> Session -> Bool
@@ -95,7 +96,7 @@ authorization session =
 
 clearCache : Cache -> Cache
 clearCache c =
-    Cache c.dict [] Dict.empty [] []
+    Cache c.dict [] Dict.empty [] [] []
 
 
 stringToRole : String -> Role
@@ -164,6 +165,11 @@ loadStudents =
 loadClasses : Session -> Task Http.Error Session
 loadClasses =
     loadToCache (.classes >> List.isEmpty) Api.getSchoolClasses (\newClasses cache -> { cache | classes = newClasses })
+
+
+loadAnthologies : Session -> Task Http.Error Session
+loadAnthologies =
+    loadToCache (.anthologies >> List.isEmpty) Api.getAnthologies (\newAnthologies cache -> { cache | anthologies = newAnthologies })
 
 
 loadToCache : (Cache -> Bool) -> (String -> Http.Request a) -> (a -> Cache -> Cache) -> Session -> Task Http.Error Session
