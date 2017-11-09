@@ -1,9 +1,31 @@
-module Bootstrap exposing (errorClass, tableCustomizations, toolbar, btnGroup, btn, closeBtn)
+module Bootstrap exposing (errorClass, tableCustomizations, toolbar, btnGroup, btn, closeBtn, alert, Alert(..))
 
 import Html exposing (Html, button, div, span, text, tr)
 import Html.Attributes exposing (attribute, id, class, type_)
 import Html.Events exposing (onClick)
 import Table
+
+
+type Alert
+    = Success
+    | Danger
+
+
+alert : Alert -> String -> msg -> Html msg
+alert a txt dismiss =
+    let
+        alertClass =
+            case a of
+                Success ->
+                    "alert-success"
+
+                Danger ->
+                    "alert-danger"
+    in
+        div [ class ("alert alert-dismissable " ++ alertClass), role "alert" ]
+            [ closeBtn dismiss
+            , text txt
+            ]
 
 
 toolbar id_ =

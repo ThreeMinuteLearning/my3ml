@@ -25,8 +25,15 @@ import Views.StudentTable as StudentTable
 import Views.TeacherToolbar as TeacherToolbar
 
 
+type Notification
+    = Error String
+    | Msg String
+    | NoMsg
+
+
 type alias Model =
-    { tableState : Table.State
+    { notification : Notification
+    , tableState : Table.State
     , selectedStudents : Dict String Api.Student
     , studentAccountsCreated : List ( Api.Student, ( String, String ) )
     , addStudentsForm : Maybe AddStudentsForm.Model
@@ -47,6 +54,7 @@ type Msg
     | AddStudentsFormMsg AddStudentsForm.Msg
     | AddStudentsToClass (Maybe String)
     | ClassMembersResponse (Result Http.Error Api.Class)
+    | DismissNotification
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -56,7 +64,7 @@ init session =
             pageLoadError e ("Unable to load student data. " ++ defaultHttpErrorMsg e ++ ".")
 
         createModel session =
-            Model StudentTable.init Dict.empty [] Nothing ( "", Nothing )
+            Model NoMsg StudentTable.init Dict.empty [] Nothing ( "", Nothing )
                 => session
     in
         Session.loadStudents session
@@ -157,16 +165,29 @@ update session msg model =
                 newSession =
                     { session | cache = { cache | classes = newClasses } }
             in
-                model => Cmd.none => newSession
+                { model | notification = Msg "Class members updated" } => Cmd.none => newSession
 
-        ClassMembersResponse (Err _) ->
-            model => Cmd.none => session
+        ClassMembersResponse (Err e) ->
+            { model | notification = Error ("Could't update add class members: " ++ defaultHttpErrorMsg e) }
+                => Cmd.none
+                => session
+
+        DismissNotification ->
+            clearNotification model
+                => Cmd.none
+                => session
+
+
+clearNotification : Model -> Model
+clearNotification m =
+    { m | notification = NoMsg }
 
 
 view : Session -> Model -> Html Msg
 view session model =
     div [ class "container page" ]
         [ TeacherToolbar.view session (subtools session)
+        , viewNotification model.notification
         , row [ NewAccounts.view PrintWindow ClearNewAccounts model.studentAccountsCreated ]
         , viewStudentsFilter session.cache model
         , viewTable session.cache model
@@ -181,6 +202,19 @@ subtools session =
         ]
     else
         []
+
+
+viewNotification : Notification -> Html Msg
+viewNotification n =
+    case n of
+        NoMsg ->
+            text ""
+
+        Error msg ->
+            row [ Bootstrap.alert Bootstrap.Danger msg DismissNotification ]
+
+        Msg msg ->
+            row [ Bootstrap.alert Bootstrap.Success msg DismissNotification ]
 
 
 viewTable : Session.Cache -> Model -> Html Msg
