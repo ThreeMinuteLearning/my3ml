@@ -94,6 +94,9 @@ defaultHttpErrorMsg err =
                 409 ->
                     "The server detected some conflict. Please report an error"
 
+                403 ->
+                    "The server prevented access to a resource"
+
                 _ ->
                     "Sorry, there was an error processing the request"
 
