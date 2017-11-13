@@ -3,7 +3,8 @@ module Views.ClassSelect exposing (view)
 import Api
 import Html exposing (Html, text)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput)
+import Html.Events exposing (on, targetValue)
+import Json.Decode as Json
 
 
 view : List Api.Class -> Maybe String -> String -> (String -> msg) -> Html msg
@@ -27,5 +28,5 @@ view classes selection name onSelect =
                 ]
                 [ text (c.name ++ format c.description) ]
     in
-        Html.select [ class "form-control", onInput (\s -> onSelect s) ]
+        Html.select [ class "form-control", on "change" (Json.map onSelect targetValue) ]
             (emptyOption :: List.map classOption classes)
