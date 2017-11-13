@@ -114,8 +114,8 @@ instance DB HasqlDB where
 
     createAnthology = runQuery insertAnthology
 
-    deleteAnthology anthologyId_ db = do
-        nRows <- runQuery deleteAnthologyById anthologyId_ db
+    deleteAnthology anthologyId_ schoolId_ db = do
+        nRows <- runQuery deleteAnthologyById (anthologyId_, schoolId_) db
         when (nRows == 0) $ liftIO $ throwDBException "Anthology not found to delete"
 
     getClasses = runQuery selectClassesBySchool
@@ -680,32 +680,36 @@ deleteClassById = Q.statement sql eTextPair D.rowsAffected True
 
 -- Anthologies
 
-selectAnthologiesBySchoolId :: Query SchoolId [Anthology]
-selectAnthologiesBySchoolId = Q.statement sql evText (D.rowsList anthologyRow) True
+selectAnthologiesBySchoolId :: Query (Maybe SchoolId) [Anthology]
+selectAnthologiesBySchoolId = Q.statement sql (E.nullableValue E.text) (D.rowsList anthologyRow) True
   where
-    sql = "SELECT id, name, stories FROM anthology WHERE school_id is null or school_id = $1 :: uuid"
+    sql = "SELECT id, name, school_id :: text, stories FROM anthology WHERE school_id is null or school_id = $1 :: uuid"
 
 anthologyRow :: D.Row Anthology
 anthologyRow = Anthology
     <$> dvUUID
     <*> dvText
+    <*> (D.nullableValue D.text)
     <*> (map fromIntegral <$> dArray D.int4)
 
-insertAnthology :: Query (Anthology, Maybe SchoolId) ()
+insertAnthology :: Query Anthology ()
 insertAnthology = Q.statement sql encode D.unit True
   where
     sql = "INSERT INTO anthology (id, name, school_id, stories) \
               \ VALUES ($1 :: uuid, $2, $3 :: uuid, $4)"
-    encode = contramap ((id :: Anthology -> AnthologyId) . fst) evText
-        <> contramap ((name :: Anthology -> Text) . fst) evText
-        <> contramap snd (E.nullableValue E.text)
-        <> contramap (map fromIntegral <$> ((stories :: Anthology -> [StoryId]) . fst)) (eArray E.int4)
+    encode = contramap (id :: Anthology -> AnthologyId) evText
+        <> contramap (name :: Anthology -> Text) evText
+        <> contramap (schoolId :: Anthology -> Maybe SchoolId) (E.nullableValue E.text)
+        <> contramap (map fromIntegral <$> (stories :: Anthology -> [StoryId])) (eArray E.int4)
 
-deleteAnthologyById :: Query AnthologyId Int64
-deleteAnthologyById = Q.statement sql evText D.rowsAffected True
+deleteAnthologyById :: Query (AnthologyId, Maybe SchoolId) Int64
+deleteAnthologyById = Q.statement sql encode D.rowsAffected True
   where
-    sql = "DELETE FROM anthology WHERE id = $1 :: uuid"
-
+    sql = "DELETE FROM anthology \
+          \ WHERE id = $1 :: uuid \
+          \ AND ($2 is null or school_id = $2 :: uuid)"
+    encode = contramap fst evText
+        <> contramap snd (E.nullableValue E.text)
 
 -- Word dictionary
 

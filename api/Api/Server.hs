@@ -244,20 +244,27 @@ storyServer token_ =
 anthologiesServer :: DB db => ApiServer AnthologiesApi db
 anthologiesServer Nothing = throwAll err401
 anthologiesServer (Just (TeacherScope _ sid _ _)) =
-    getAnthologiesForSchool sid :<|> createAnthology (Just sid)
+    getAnthologiesForSchool (Just sid) :<|> createAnthology (Just sid) :<|> deleteAnthology (Just sid)
 anthologiesServer (Just (StudentScope _ sid)) =
-    getAnthologiesForSchool sid :<|> throwAll err403
+    getAnthologiesForSchool (Just sid) :<|> throwAll err403 :<|> throwAll err403
+anthologiesServer (Just (EditorScope _)) =
+    getAnthologiesForSchool Nothing :<|> createAnthology Nothing :<|> deleteAnthology Nothing
 anthologiesServer _ = throwAll err403
 
-getAnthologiesForSchool :: DB db => SchoolId -> HandlerT db [Anthology]
+getAnthologiesForSchool :: DB db => Maybe SchoolId -> HandlerT db [Anthology]
 getAnthologiesForSchool = runDB . DB.getAnthologies
 
 createAnthology :: DB db => Maybe SchoolId -> Anthology -> HandlerT db Anthology
 createAnthology sid anthology = do
     uuid <- liftIO (toText <$> nextRandom)
-    let anthologyWithId = anthology { id = uuid } :: Anthology
-    _ <- runDB (DB.createAnthology (anthologyWithId, sid))
+    let anthologyWithId = anthology { id = uuid, schoolId = sid } :: Anthology
+    _ <- runDB (DB.createAnthology anthologyWithId)
     return anthologyWithId
+
+deleteAnthology :: DB db => Maybe SchoolId -> AnthologyId -> HandlerT db NoContent
+deleteAnthology sid aid = do
+    _ <- runDB (DB.deleteAnthology aid sid)
+    return NoContent
 
 
 schoolsServer :: DB db => ApiServer SchoolsApi db

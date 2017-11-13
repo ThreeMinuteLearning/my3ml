@@ -41,11 +41,11 @@ class DB db where
 
     getSchool :: MonadIO m => SchoolId -> db -> m (Maybe School)
 
-    getAnthologies :: MonadIO m => SchoolId -> db -> m [Anthology]
+    getAnthologies :: MonadIO m => Maybe SchoolId -> db -> m [Anthology]
 
-    createAnthology :: MonadIO m => (Anthology, Maybe SchoolId) -> db -> m ()
+    createAnthology :: MonadIO m => Anthology -> db -> m ()
 
-    deleteAnthology :: MonadIO m => AnthologyId -> db -> m ()
+    deleteAnthology :: MonadIO m => AnthologyId -> Maybe SchoolId -> db -> m ()
 
     getClasses :: MonadIO m => SchoolId -> db -> m [Class]
 
@@ -140,12 +140,12 @@ instance DB AtomicDB where
 
     getAnthologies _ db = withDB db anthologies
 
-    createAnthology (anthology, _) db =
+    createAnthology anthology db =
         updateDB db $ \d ->
             let newAnthologies = anthology : anthologies d
             in  d { anthologies = newAnthologies }
 
-    deleteAnthology trid db =
+    deleteAnthology trid _ db =
         updateDB db $ \d ->
             let newAnthologies = filter (\t -> id (t :: Anthology) /= trid) (anthologies d)
             in  d { anthologies = newAnthologies }

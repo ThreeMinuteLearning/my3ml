@@ -99,6 +99,7 @@ data Anthology = Anthology
     { id :: AnthologyId
     , name :: Text
 --    , createdBy :: SubjectId
+    , schoolId :: Maybe SchoolId
     , stories :: [StoryId]
     } deriving (Show, Generic, ToJSON, FromJSON)
 
@@ -269,6 +270,8 @@ type AnthologiesApi =
     "anthologies" :> AccessTokenAuth :>
         (    Get '[JSON] [Anthology]
         :<|> ReqBody '[JSON] Anthology :> Post '[JSON] Anthology
+        :<|> Capture "anthologyId" AnthologyId :>
+             Delete '[JSON] NoContent
         )
 
 type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> AnthologiesApi :<|> LoginApi :<|> AccountApi

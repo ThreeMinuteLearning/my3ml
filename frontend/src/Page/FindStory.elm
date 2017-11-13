@@ -60,6 +60,8 @@ type Msg
     | SetViewType ViewType
     | SubmitAnthologyForm
     | CreateAnthologyResponse (Result Http.Error Api.Anthology)
+    | DeleteAnthology String
+    | DeleteAnthologyResponse (Result Http.Error Api.NoContent)
 
 
 type ViewType
@@ -94,7 +96,7 @@ init : Session -> Task PageLoadError ( Model, Session )
 init session =
     let
         handleLoadError e =
-            pageLoadError e "There was a problem loading the stories."
+            pageLoadError e ("There was a problem loading the stories: " ++ defaultHttpErrorMsg e ++ ".")
 
         loadData =
             Session.loadStories session
@@ -192,7 +194,7 @@ update session msg model =
                     case validateAnthologyForm f of
                         [] ->
                             { model | errors = [], anthologyForm = Nothing }
-                                => (Api.postAnthologies (authorization session) (Api.Anthology "" f (List.map .id model.selectedStories))
+                                => (Api.postAnthologies (authorization session) (Api.Anthology "" f (Just "") (List.map .id model.selectedStories))
                                         |> Http.send CreateAnthologyResponse
                                    )
 
@@ -208,11 +210,24 @@ update session msg model =
                 => Cmd.none
 
         CreateAnthologyResponse (Err e) ->
-            { model | errors = [ "Couldn't create the antholody: " ++ defaultHttpErrorMsg e ] }
+            { model | errors = [ "Couldn't create the anthology: " ++ defaultHttpErrorMsg e ] }
                 => Cmd.none
 
         SetViewType v ->
             { model | viewType = v } => Cmd.none
+
+        DeleteAnthology aid ->
+            model
+                => (Api.deleteAnthologiesByAnthologyId (authorization session) aid
+                        |> Http.send DeleteAnthologyResponse
+                   )
+
+        DeleteAnthologyResponse (Ok _) ->
+            ( model, Cmd.none )
+
+        DeleteAnthologyResponse (Err e) ->
+            { model | errors = [ "Couldn't delete the anthology: " ++ defaultHttpErrorMsg e ] }
+                => Cmd.none
 
 
 type alias Error =
@@ -264,7 +279,7 @@ view session m =
                             viewStoriesTable m
 
                         Anthologies ->
-                            viewAnthologies session.cache
+                            viewAnthologies session
                     ]
 
             Just b ->
@@ -438,7 +453,7 @@ viewSelectedStories m =
                         ]
 
         submitButton =
-            Html.button [ class "btn btn-primary pull-xs-right", tabindex 2 ] [ text "Save new username" ]
+            Html.button [ class "btn btn-primary pull-xs-right", tabindex 2 ] [ text "Save anthology" ]
     in
         div [ class "panel panel-default" ]
             [ div [ class "panel-heading" ]
@@ -465,18 +480,22 @@ viewStoryTable stories =
             [ tbody [] (List.map storyRow stories) ]
 
 
-viewAnthologies : Cache -> Html Msg
-viewAnthologies cache =
+viewAnthologies : Session -> Html Msg
+viewAnthologies session =
     let
         go =
-            List.map pickStories cache.anthologies
+            List.map pickStories session.cache.anthologies
 
         pickStories a =
-            ( a.name, List.filterMap (findStoryById cache) a.stories )
+            ( a, List.filterMap (findStoryById session.cache) a.stories )
 
-        render ( title, astories ) =
+        canDelete a =
+            (a.schoolId /= Nothing && Session.isTeacher session) || Session.isEditor session
+
+        render ( a, astories ) =
             div [ class "anthology" ]
-                [ h4 [] [ text title ]
+                [ h4 [] [ text a.name ]
+                , viewIf (canDelete a) (button [ class "btn btn-default btn-xs", onClick (DeleteAnthology a.id) ] [ text "Delete" ])
                 , viewStoryTable astories
                 ]
     in
