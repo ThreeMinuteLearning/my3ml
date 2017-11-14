@@ -101,6 +101,7 @@ data Anthology = Anthology
 --    , createdBy :: SubjectId
     , schoolId :: Maybe SchoolId
     , stories :: [StoryId]
+    , hidden :: Bool
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 type AnthologyId = Text
@@ -272,7 +273,8 @@ type AnthologiesApi =
         :<|> ReqBody '[JSON] Anthology :> Post '[JSON] Anthology
         :<|> Capture "anthologyId" AnthologyId :>
             (    "starter_stories" :> PostNoContent '[JSON] NoContent
-            :<|> Delete '[JSON] NoContent
+            :<|> ReqBody '[JSON] Anthology :> Post '[JSON] Anthology
+            :<|> Delete '[JSON] AnthologyId
             )
         )
 

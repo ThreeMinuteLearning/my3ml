@@ -393,7 +393,7 @@ updatePage page msg model =
                 toPageUpdateSession Story StoryMsg Story.update subMsg subModel
 
             ( FindStoryMsg subMsg, FindStory subModel ) ->
-                toPage FindStory FindStoryMsg (FindStory.update model.session) subMsg subModel
+                toPageUpdateSession FindStory FindStoryMsg FindStory.update subMsg subModel
 
             ( StudentsMsg subMsg, Students subModel ) ->
                 toPageUpdateSession Students StudentsMsg Students.update subMsg subModel

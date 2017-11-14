@@ -1,4 +1,4 @@
-module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isEditor, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadUserAnswers, loadClasses, loadAnthologies, findStoryById)
+module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isEditor, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadUserAnswers, loadClasses, loadAnthologies, findStoryById, updateCache)
 
 import Api
 import Data.Settings as Settings exposing (Settings)
@@ -97,6 +97,11 @@ authorization session =
 clearCache : Cache -> Cache
 clearCache c =
     Cache c.dict [] Dict.empty [] [] []
+
+
+updateCache : (Cache -> Cache) -> Session -> Session
+updateCache f session =
+    { session | cache = f session.cache }
 
 
 stringToRole : String -> Role

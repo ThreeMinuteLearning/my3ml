@@ -94,6 +94,7 @@ CREATE TABLE anthology
     , name text NOT NULL CHECK (length(name) > 0)
     , school_id uuid REFERENCES school
     , stories integer[] NOT NULL
+    , hidden boolean NOT NULL default false
     );
 
 CREATE TABLE dict

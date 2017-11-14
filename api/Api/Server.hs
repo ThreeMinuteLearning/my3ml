@@ -247,11 +247,23 @@ storyServer token_ =
 anthologiesServer :: DB db => ApiServer AnthologiesApi db
 anthologiesServer Nothing = throwAll err401
 anthologiesServer (Just (TeacherScope _ sid _ _)) =
-     getAnthologiesForSchool (Just sid) :<|> createAnthology (Just sid) :<|> (\aid -> throwAll err403 :<|> deleteAnthology (Just sid) aid)
+     getAnthologiesForSchool (Just sid)
+     :<|> createAnthology (Just sid)
+     :<|> (\aid ->
+               throwAll err403
+          :<|> updateAnthology (Just sid) aid
+          :<|> deleteAnthology (Just sid) aid
+          )
 anthologiesServer (Just (StudentScope _ sid)) =
      getAnthologiesForSchool (Just sid) :<|> throwAll err403 :<|> throwAll err403
 anthologiesServer (Just (EditorScope _)) =
-     getAnthologiesForSchool Nothing :<|> createAnthology Nothing :<|> (\aid -> setStarterStories aid :<|> deleteAnthology Nothing aid)
+     getAnthologiesForSchool Nothing
+     :<|> createAnthology Nothing
+     :<|> (\aid ->
+               setStarterStories aid
+               :<|> updateAnthology Nothing aid
+               :<|> deleteAnthology Nothing aid
+          )
 anthologiesServer _ = throwAll err403
 
 getAnthologiesForSchool :: DB db => Maybe SchoolId -> HandlerT db [Anthology]
@@ -264,6 +276,12 @@ createAnthology sid anthology = do
     _ <- runDB (DB.createAnthology anthologyWithId)
     return anthologyWithId
 
+updateAnthology :: DB db => Maybe SchoolId -> AnthologyId -> Anthology -> HandlerT db Anthology
+updateAnthology sid aid anthology = do
+    let anthologyWithId = anthology { id = aid, schoolId = sid } :: Anthology
+    _ <- runDB (DB.updateAnthology anthologyWithId)
+    return anthologyWithId
+
 setStarterStories :: DB db => AnthologyId -> HandlerT db NoContent
 setStarterStories aid = do
     logInfoN $ "Setting starter stories to anthology: " <> aid
@@ -273,10 +291,10 @@ setStarterStories aid = do
     return NoContent
 
 
-deleteAnthology :: DB db => Maybe SchoolId -> AnthologyId -> HandlerT db NoContent
+deleteAnthology :: DB db => Maybe SchoolId -> AnthologyId -> HandlerT db AnthologyId
 deleteAnthology sid aid = do
     _ <- runDB (DB.deleteAnthology aid sid)
-    return NoContent
+    return aid
 
 
 schoolsServer :: DB db => ApiServer SchoolsApi db
