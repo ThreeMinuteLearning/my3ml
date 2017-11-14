@@ -24,9 +24,15 @@ type alias Model =
     , teacherName : String
     , password : String
     , confirmPassword : String
-    , completed : Bool
+    , status : Status
     , zxcvbn : Maybe Zxcvbn
     }
+
+
+type Status
+    = NotSent
+    | AwaitingResponse
+    | Completed
 
 
 type RegistrationType
@@ -57,7 +63,7 @@ init =
     , teacherName = ""
     , password = ""
     , confirmPassword = ""
-    , completed = False
+    , status = NotSent
     , zxcvbn = Nothing
     }
 
@@ -73,7 +79,7 @@ update session msg model =
         SubmitForm ->
             case validate model of
                 [] ->
-                    { model | errors = [] }
+                    { model | status = AwaitingResponse, errors = [] }
                         => (Api.postAccountRegister (authorization session) (Api.Registration model.email model.code model.schoolName model.teacherName model.password)
                                 |> Http.send RegisterResponse
                            )
@@ -128,11 +134,11 @@ update session msg model =
                         _ ->
                             [ defaultHttpErrorMsg error ]
             in
-                { model | errors = List.map (\errorMessage -> Form => errorMessage) errorMessages }
+                { model | status = NotSent, errors = List.map (\errorMessage -> Form => errorMessage) errorMessages }
                     => Cmd.none
 
         RegisterResponse (Ok _) ->
-            { model | completed = True }
+            { model | status = Completed }
                 => Cmd.none
 
         PasswordCheck json ->
@@ -141,8 +147,7 @@ update session msg model =
                     { model | zxcvbn = Just zxcvbn } => Cmd.none
 
                 Err e ->
-                    Debug.log (toString e)
-                        model
+                    { model | errors = [ ( Form, "There was an error checking the password strength" ) ] }
                         => Cmd.none
 
 
@@ -166,8 +171,8 @@ view model =
                 , Form.viewErrors model.errors
                 , if model.registrationType == Nothing then
                     viewRegistrationOptions
-                  else if model.completed then
-                    p [] [ text "Registration complete. Someone will be in touch when your account has been activated. Your can then sign in using your email and password. " ]
+                  else if model.status == Completed then
+                    p [] [ text "Registration complete. Your account should be activated within an hour and someone will contact you by email. Your can then sign in using your email and password. " ]
                   else
                     viewForm model
                 ]
@@ -264,7 +269,7 @@ viewForm model =
             , maxlength 100
             ]
             []
-        , button [ class "btn btn-lg btn-primary pull-xs-right" ]
+        , button [ class "btn btn-lg btn-primary pull-xs-right", disabled (model.status /= NotSent) ]
             [ text "Sign up" ]
         ]
 

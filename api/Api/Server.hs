@@ -175,7 +175,7 @@ accountServer token_ =
     registerNewAccount r = do
         logInfoN $ "New registration for: " <> email r
         existing <- runDB $ DB.getAccountByUsername (email r)
-        unless (isNothing existing) $ throwError err409
+        unless (isNothing existing) $ logInfoN "Account already exists" >> throwError err409
         salt <- liftIO (getRandomBytes 32)
         let submittedPassword = encodeUtf8 (password (r :: Registration))
             pbeKey = deriveKey salt submittedPassword
