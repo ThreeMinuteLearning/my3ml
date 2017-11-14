@@ -230,7 +230,7 @@ update session msg model =
         CreateAnthologyResponse (Ok newAnthology) ->
             { model | anthologyForm = Nothing }
                 => Cmd.none
-                => session
+                => updateAnthologies (\anthologies -> newAnthology :: anthologies) session
 
         CreateAnthologyResponse (Err e) ->
             { model | errors = [ "Couldn't create the anthology: " ++ defaultHttpErrorMsg e ] }
@@ -249,7 +249,7 @@ update session msg model =
 
         DeleteAnthologyResponse (Ok aid) ->
             ( model, Cmd.none )
-                => deleteAnthology aid session
+                => updateAnthologies (List.filter (\a -> a.id /= aid)) session
 
         DeleteAnthologyResponse (Err e) ->
             { model | errors = [ "Couldn't delete the anthology: " ++ defaultHttpErrorMsg e ] }
@@ -278,9 +278,18 @@ update session msg model =
                    )
                 => session
 
-        HideAnthologyResponse (Ok a) ->
+        HideAnthologyResponse (Ok newA) ->
             ( model, Cmd.none )
-                => updateAnthology a session
+                => updateAnthologies
+                    (List.map
+                        (\a ->
+                            if a.id == newA.id then
+                                newA
+                            else
+                                a
+                        )
+                    )
+                    session
 
         HideAnthologyResponse (Err e) ->
             { model | errors = [ "Couldn't update the anthology: " ++ defaultHttpErrorMsg e ] }
@@ -288,21 +297,9 @@ update session msg model =
                 => session
 
 
-deleteAnthology : String -> Session -> Session
-deleteAnthology aid =
-    Session.updateCache (\c -> { c | anthologies = List.filter (\a -> a.id /= aid) c.anthologies })
-
-
-updateAnthology : Api.Anthology -> Session -> Session
-updateAnthology newA =
-    let
-        replaceNew a =
-            if a.id == newA.id then
-                newA
-            else
-                a
-    in
-        Session.updateCache (\c -> { c | anthologies = List.map replaceNew c.anthologies })
+updateAnthologies : (List Api.Anthology -> List Api.Anthology) -> Session -> Session
+updateAnthologies f =
+    Session.updateCache (\c -> { c | anthologies = f c.anthologies })
 
 
 type alias Error =
