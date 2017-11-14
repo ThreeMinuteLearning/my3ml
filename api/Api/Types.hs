@@ -271,7 +271,9 @@ type AnthologiesApi =
         (    Get '[JSON] [Anthology]
         :<|> ReqBody '[JSON] Anthology :> Post '[JSON] Anthology
         :<|> Capture "anthologyId" AnthologyId :>
-             Delete '[JSON] NoContent
+            (    "starter_stories" :> PostNoContent '[JSON] NoContent
+            :<|> Delete '[JSON] NoContent
+            )
         )
 
 type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> AnthologiesApi :<|> LoginApi :<|> AccountApi

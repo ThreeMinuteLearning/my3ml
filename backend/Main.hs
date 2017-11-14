@@ -7,6 +7,7 @@
 
 module Main where
 
+import           Control.Concurrent (newMVar)
 import           Control.Monad.Logger
 import           Control.Monad.Reader
 import           Control.Monad.Catch (catchAll, catchJust, SomeException)
@@ -101,10 +102,10 @@ main = do
         assets = fromMaybe "assets" $ lookup "ASSETS" env
         rollbarToken = lookup "ROLLBAR_TOKEN" env
     T.putStrLn $ "3ml server version " <> Version.version
-    T.putStrLn $ "Root key is " <> maybe "unset" (const "set")rootKey_
+    T.putStrLn $ "Root key is " <> maybe "unset" (const "set") rootKey_
     putStrLn $ "Serving on port " ++ show port ++ "..."
     db <- mkDB pgdb
-    starterStories <- getStarterStories db
+    starterStories <- getStarterStories db >>= newMVar
     let cfg = Config db tokenKey_ starterStories (fmap mkRollbarSettings rollbarToken) rootKey_
         my3mlServer = server cfg assets
         app = serveWithContext siteApi (authServerContext tokenKey_) my3mlServer

@@ -62,6 +62,8 @@ type Msg
     | CreateAnthologyResponse (Result Http.Error Api.Anthology)
     | DeleteAnthology String
     | DeleteAnthologyResponse (Result Http.Error Api.NoContent)
+    | SetStarterStories String
+    | SetStarterStoriesResponse (Result Http.Error Api.NoContent)
 
 
 type ViewType
@@ -227,6 +229,19 @@ update session msg model =
 
         DeleteAnthologyResponse (Err e) ->
             { model | errors = [ "Couldn't delete the anthology: " ++ defaultHttpErrorMsg e ] }
+                => Cmd.none
+
+        SetStarterStories aid ->
+            model
+                => (Api.postAnthologiesByAnthologyIdStarter_stories (authorization session) aid
+                        |> Http.send SetStarterStoriesResponse
+                   )
+
+        SetStarterStoriesResponse (Ok _) ->
+            ( model, Cmd.none )
+
+        SetStarterStoriesResponse (Err e) ->
+            { model | errors = [ "Couldn't set the starter stories: " ++ defaultHttpErrorMsg e ] }
                 => Cmd.none
 
 
@@ -496,7 +511,21 @@ viewAnthologies session =
         render ( a, astories ) =
             div [ class "anthology" ]
                 [ h4 [] [ text a.name ]
-                , viewIf (canDelete a) (button [ class "btn btn-default btn-xs", onClick (DeleteAnthology a.id) ] [ text "Delete" ])
+                , viewIf (canDelete a)
+                    (button
+                        [ class "btn btn-default btn-xs"
+                        , onClick (DeleteAnthology a.id)
+                        ]
+                        [ text "Delete" ]
+                    )
+                , viewIf (isEditor session)
+                    (button
+                        [ class "btn btn-default btn-xs"
+                        , onClick (SetStarterStories a.id)
+                        , disabled (List.length a.stories < 24)
+                        ]
+                        [ text "Set Starter Stories" ]
+                    )
                 , viewStoryTable astories
                 ]
     in

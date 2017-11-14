@@ -118,6 +118,8 @@ instance DB HasqlDB where
         nRows <- runQuery deleteAnthologyById (anthologyId_, schoolId_) db
         when (nRows == 0) $ liftIO $ throwDBException "Anthology not found to delete"
 
+    getAnthologyStories = runQuery selectAnthologyStories
+
     getClasses = runQuery selectClassesBySchool
 
     addClassMembers schoolId_ classId_ studentIds db = runSession db $ do
@@ -710,6 +712,15 @@ deleteAnthologyById = Q.statement sql encode D.rowsAffected True
           \ AND ($2 is null or school_id = $2 :: uuid)"
     encode = contramap fst evText
         <> contramap snd (E.nullableValue E.text)
+
+
+selectAnthologyStories :: Query AnthologyId [Story]
+selectAnthologyStories = Q.statement sql evText (D.rowsList storyRow) True
+  where
+    sql = selectStorySql <> " AND id in\
+                            \ ( SELECT unnest(stories) FROM anthology \
+                            \   WHERE id = $1 :: uuid\
+                            \ )"
 
 -- Word dictionary
 

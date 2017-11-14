@@ -47,6 +47,8 @@ class DB db where
 
     deleteAnthology :: MonadIO m => AnthologyId -> Maybe SchoolId -> db -> m ()
 
+    getAnthologyStories :: MonadIO m => AnthologyId -> db -> m [Story]
+
     getClasses :: MonadIO m => SchoolId -> db -> m [Class]
 
     getClass :: MonadIO m => ClassId -> db -> m (Maybe Class)

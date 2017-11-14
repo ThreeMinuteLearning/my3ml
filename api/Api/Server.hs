@@ -12,6 +12,7 @@ module Api.Server
     , Config (..)
     , HandlerT
     ) where
+import           Control.Concurrent
 import           Control.Error
 import           Control.Monad (unless)
 import           Control.Monad.Except (MonadError, throwError)
@@ -55,7 +56,7 @@ import qualified Rollbar
 data Config db = Config
     { database :: db
     , tokenKey :: Jwk
-    , sampleStories :: [Story]
+    , sampleStories :: MVar [Story]
     , rollbarSettings :: Maybe Rollbar.Settings
     , rootKey :: Maybe Jwk
     }
@@ -219,7 +220,9 @@ storyServer token_ =
 
     getStories =
         case token_ of
-            Nothing -> fmap sampleStories ask
+            Nothing -> do
+                cfg <- ask
+                liftIO (readMVar (sampleStories cfg))
             Just (EditorScope _) -> runDB (DB.getStories True)
             _ -> runDB (DB.getStories False)
 
@@ -244,11 +247,11 @@ storyServer token_ =
 anthologiesServer :: DB db => ApiServer AnthologiesApi db
 anthologiesServer Nothing = throwAll err401
 anthologiesServer (Just (TeacherScope _ sid _ _)) =
-    getAnthologiesForSchool (Just sid) :<|> createAnthology (Just sid) :<|> deleteAnthology (Just sid)
+     getAnthologiesForSchool (Just sid) :<|> createAnthology (Just sid) :<|> (\aid -> throwAll err403 :<|> deleteAnthology (Just sid) aid)
 anthologiesServer (Just (StudentScope _ sid)) =
-    getAnthologiesForSchool (Just sid) :<|> throwAll err403 :<|> throwAll err403
+     getAnthologiesForSchool (Just sid) :<|> throwAll err403 :<|> throwAll err403
 anthologiesServer (Just (EditorScope _)) =
-    getAnthologiesForSchool Nothing :<|> createAnthology Nothing :<|> deleteAnthology Nothing
+     getAnthologiesForSchool Nothing :<|> createAnthology Nothing :<|> (\aid -> setStarterStories aid :<|> deleteAnthology Nothing aid)
 anthologiesServer _ = throwAll err403
 
 getAnthologiesForSchool :: DB db => Maybe SchoolId -> HandlerT db [Anthology]
@@ -260,6 +263,15 @@ createAnthology sid anthology = do
     let anthologyWithId = anthology { id = uuid, schoolId = sid } :: Anthology
     _ <- runDB (DB.createAnthology anthologyWithId)
     return anthologyWithId
+
+setStarterStories :: DB db => AnthologyId -> HandlerT db NoContent
+setStarterStories aid = do
+    logInfoN $ "Setting starter stories to anthology: " <> aid
+    stories_ <- runDB (DB.getAnthologyStories aid)
+    mvar <- sampleStories <$> ask
+    liftIO $ takeMVar mvar >> putMVar mvar stories_
+    return NoContent
+
 
 deleteAnthology :: DB db => Maybe SchoolId -> AnthologyId -> HandlerT db NoContent
 deleteAnthology sid aid = do
