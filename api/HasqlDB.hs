@@ -397,7 +397,7 @@ updateStudentPassword = Q.statement sql encode D.unit True
 updateStudentUsername :: Query (SchoolId, SubjectId, Text) ()
 updateStudentUsername = Q.statement sql encode D.unit True
   where
-    sql = "UPDATE login SET username = $3 \
+    sql = "UPDATE login SET username = lower($3) \
           \ WHERE id = (SELECT id from student WHERE id = $2 :: uuid and school_id = $1 :: uuid)"
     encode = contramap (\(sid, _, _) -> sid) evText
         <> contramap (\(_, sid, _) -> sid) evSubjectId

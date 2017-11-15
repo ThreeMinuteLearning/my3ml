@@ -6,6 +6,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
 import Http
+import Regex exposing (Regex)
 import Util exposing ((=>), defaultHttpErrorMsg)
 import Validate exposing (Validator, ifInvalid)
 import Views.Form as Form
@@ -96,13 +97,19 @@ type alias Error =
     String
 
 
+spaceChars : Regex
+spaceChars =
+    Regex.regex "\\s+"
+
+
 validate : Model -> List Error
 validate =
     Validate.all
-        [ \m ->
-            (ifNotLongEnough minLength)
+        [ .username
+            >> (ifNotLongEnough minLength)
                 ("Username must be at least " ++ toString minLength ++ " characters")
-                m.username
+        , .username
+            >> ifInvalid (Regex.contains spaceChars) "Username can't contain spaces"
         ]
 
 
