@@ -1,4 +1,5 @@
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 module DB where
 
@@ -12,94 +13,97 @@ import           Data.Maybe (fromMaybe)
 import           Data.List (find)
 import qualified Data.Map.Strict as Map
 import           Data.Text (Text)
+import           GHC.Stack.Types (HasCallStack)
 import           Prelude hiding (id)
 
 import Api.Types
 
+type DBFn m = (MonadIO m, HasCallStack)
+
 class DB db where
-    registerNewAccount :: MonadIO m => Registration -> UserKeys -> Maybe ByteString -> db -> m (Maybe ())
+    registerNewAccount :: DBFn m => Registration -> UserKeys -> Maybe ByteString -> db -> m (Maybe ())
 
-    createRegistrationCode :: MonadIO m => SchoolId -> db -> m Text
+    createRegistrationCode :: DBFn m => SchoolId -> db -> m Text
 
-    getUserKeys :: MonadIO m => SubjectId -> db -> m (Maybe UserKeys)
+    getUserKeys :: DBFn m => SubjectId -> db -> m (Maybe UserKeys)
 
-    activateAccount :: MonadIO m => (SchoolId, SubjectId) -> ByteString -> db -> m ()
+    activateAccount :: DBFn m => (SchoolId, SubjectId) -> ByteString -> db -> m ()
 
-    loginSuccess :: MonadIO m => SubjectId -> Maybe ByteString -> db -> m ()
+    loginSuccess :: DBFn m => SubjectId -> Maybe ByteString -> db -> m ()
 
-    getAccountByUsername :: MonadIO m => Text -> db -> m (Maybe Account)
+    getAccountByUsername :: DBFn m => Text -> db -> m (Maybe Account)
 
-    getStories :: MonadIO m => Bool -> db -> m [Story]
+    getStories :: DBFn m => Bool -> db -> m [Story]
 
-    getStory :: MonadIO m => StoryId -> db -> m (Maybe Story)
+    getStory :: DBFn m => StoryId -> db -> m (Maybe Story)
 
-    createStory :: MonadIO m => Story -> db -> m StoryId
+    createStory :: DBFn m => Story -> db -> m StoryId
 
-    updateStory :: MonadIO m => Story -> db -> m Story
+    updateStory :: DBFn m => Story -> db -> m Story
 
-    getSchools :: MonadIO m => db -> m [School]
+    getSchools :: DBFn m => db -> m [School]
 
-    getSchool :: MonadIO m => SchoolId -> db -> m (Maybe School)
+    getSchool :: DBFn m => SchoolId -> db -> m (Maybe School)
 
-    getAnthologies :: MonadIO m => Maybe SchoolId -> db -> m [Anthology]
+    getAnthologies :: DBFn m => Maybe SchoolId -> db -> m [Anthology]
 
-    createAnthology :: MonadIO m => Anthology -> db -> m ()
+    createAnthology :: DBFn m => Anthology -> db -> m ()
 
-    updateAnthology :: MonadIO m => Anthology -> db -> m ()
+    updateAnthology :: DBFn m => Anthology -> db -> m ()
 
-    deleteAnthology :: MonadIO m => AnthologyId -> Maybe SchoolId -> db -> m ()
+    deleteAnthology :: DBFn m => AnthologyId -> Maybe SchoolId -> db -> m ()
 
-    getAnthologyStories :: MonadIO m => AnthologyId -> db -> m [Story]
+    getAnthologyStories :: DBFn m => AnthologyId -> db -> m [Story]
 
-    getClasses :: MonadIO m => SchoolId -> db -> m [Class]
+    getClasses :: DBFn m => SchoolId -> db -> m [Class]
 
-    getClass :: MonadIO m => ClassId -> db -> m (Maybe Class)
+    getClass :: DBFn m => ClassId -> db -> m (Maybe Class)
 
-    addClassMembers :: MonadIO m => SchoolId -> ClassId -> [SubjectId] -> db -> m Class
+    addClassMembers :: DBFn m => SchoolId -> ClassId -> [SubjectId] -> db -> m Class
 
-    removeClassMembers :: MonadIO m => SchoolId -> ClassId -> [SubjectId] -> db -> m Class
+    removeClassMembers :: DBFn m => SchoolId -> ClassId -> [SubjectId] -> db -> m Class
 
-    createClass :: MonadIO m => Class -> db -> m (Maybe ())
+    createClass :: DBFn m => Class -> db -> m (Maybe ())
 
-    deleteClass :: MonadIO m => ClassId -> SchoolId -> db -> m ()
+    deleteClass :: DBFn m => ClassId -> SchoolId -> db -> m ()
 
-    getStudents :: MonadIO m => SchoolId -> db -> m [Student]
+    getStudents :: DBFn m => SchoolId -> db -> m [Student]
 
-    getStudent :: MonadIO m => SchoolId -> SubjectId -> db -> m (Maybe Student)
+    getStudent :: DBFn m => SchoolId -> SubjectId -> db -> m (Maybe Student)
 
-    getStudentBySubjectId :: MonadIO m => SubjectId -> db -> m Student
+    getStudentBySubjectId :: DBFn m => SubjectId -> db -> m Student
 
-    updateStudent :: MonadIO m => Student -> SchoolId -> db -> m Student
+    updateStudent :: DBFn m => Student -> SchoolId -> db -> m Student
 
-    createStudent :: MonadIO m => (Text, Int, SchoolId) -> (Text, Text) -> db -> m Student
+    createStudent :: DBFn m => (Text, Int, SchoolId) -> (Text, Text) -> db -> m Student
 
-    deleteStudent :: MonadIO m => SubjectId -> SchoolId -> db -> m Student
+    deleteStudent :: DBFn m => SubjectId -> SchoolId -> db -> m Student
 
-    undeleteStudent :: MonadIO m => SubjectId -> SchoolId -> db -> m ()
+    undeleteStudent :: DBFn m => SubjectId -> SchoolId -> db -> m ()
 
-    setStudentPassword :: MonadIO m => SchoolId -> SubjectId -> Text -> db -> m ()
+    setStudentPassword :: DBFn m => SchoolId -> SubjectId -> Text -> db -> m ()
 
-    setStudentUsername :: MonadIO m => SchoolId -> SubjectId -> Text -> db -> m ()
+    setStudentUsername :: DBFn m => SchoolId -> SubjectId -> Text -> db -> m ()
 
-    getTeacherBySubjectId :: MonadIO m => SubjectId -> db -> m Teacher
+    getTeacherBySubjectId :: DBFn m => SubjectId -> db -> m Teacher
 
-    getTeachers :: MonadIO m => SchoolId -> db -> m [(Teacher, Bool)]
+    getTeachers :: DBFn m => SchoolId -> db -> m [(Teacher, Bool)]
 
-    getDictionary :: MonadIO m => db -> m WordDictionary
+    getDictionary :: DBFn m => db -> m WordDictionary
 
-    lookupWord :: MonadIO m => Text -> db -> m [WordDefinition]
+    lookupWord :: DBFn m => Text -> db -> m [WordDefinition]
 
-    getAnswers :: MonadIO m => SchoolId -> Maybe SubjectId -> Maybe StoryId -> db -> m [Answer]
+    getAnswers :: DBFn m => SchoolId -> Maybe SubjectId -> Maybe StoryId -> db -> m [Answer]
 
-    createAnswer :: MonadIO m => (Answer, SchoolId) -> db -> m ()
+    createAnswer :: DBFn m => (Answer, SchoolId) -> db -> m ()
 
-    generateWords :: MonadIO m => db -> m [Text]
+    generateWords :: DBFn m => db -> m [Text]
 
-    generateUsername :: MonadIO m => db -> m Text
+    generateUsername :: DBFn m => db -> m Text
 
-    getLeaderBoard :: MonadIO m => SchoolId -> db -> m [LeaderBoardEntry]
+    getLeaderBoard :: DBFn m => SchoolId -> db -> m [LeaderBoardEntry]
 
-    updateAccountSettings :: MonadIO m => (SubjectId, Value) -> db -> m ()
+    updateAccountSettings :: DBFn m => (SubjectId, Value) -> db -> m ()
 
 data InMemoryDB = InMemoryDB
     { stories :: Map.Map StoryId Story
