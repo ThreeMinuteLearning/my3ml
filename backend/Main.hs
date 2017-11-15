@@ -7,10 +7,11 @@
 
 module Main where
 
-import           Control.Concurrent (newMVar)
+import           Control.Concurrent (newMVar, forkIO)
+import           Control.Exception (fromException, SomeException)
 import           Control.Monad.Logger
 import           Control.Monad.Reader
-import           Control.Monad.Catch (catchAll, catchJust, SomeException)
+import           Control.Monad.Catch (catchAll, catchJust)
 import           Crypto.Random (getRandomBytes)
 import qualified Data.Aeson as A
 import           Data.Array.IO
@@ -36,7 +37,7 @@ import qualified Api.Server as Api
 import           Api.Auth (authServerContext)
 import           Api.Types (Api, Story(..), StoryId)
 import           DB (DB, getStories)
-import           HasqlDB (mkDB)
+import           HasqlDB (mkDB, DBException(..))
 import qualified Version
 
 type SiteApi = "api" :> Api
@@ -54,7 +55,7 @@ server config assets = enter transform Api.server :<|> serveDirectoryFileServer 
         runReaderT (runStderrLoggingT handler) config `catchAll` errorHandler
 
     errorHandler e = do
-        liftIO $ logE (rollbarSettings config) "3ml" e
+        liftIO $ logE (rollbarSettings config) e
         throwError err500
 
     transform :: HandlerT db :~> Handler
@@ -114,10 +115,9 @@ main = do
 
   where
     mkRollbarSettings token = Rollbar.Settings
-        { Rollbar.environment = Rollbar.Environment "production"
-        , Rollbar.token = Rollbar.ApiToken (T.pack token)
-        , Rollbar.hostName = "3ml"
-        , Rollbar.reportErrors = True
+        { Rollbar.environment = "production"
+        , Rollbar.token = T.pack token
+        , Rollbar.codeVersion = Version.revision
         }
 
     getStarterStories db = do
@@ -138,15 +138,13 @@ shuffle xs = do
     newArr :: [a] -> IO (IOArray Int a)
     newArr = newListArray (1,n)
 
-logE :: Maybe Rollbar.Settings -> T.Text -> SomeException -> IO ()
-logE settings label e =
+logE :: Maybe Rollbar.Settings -> SomeException -> IO ()
+logE settings e = do
+    T.putStrLn $ "[Error]" <> " " <> T.pack (show e)
     case settings of
-        Just s -> Rollbar.reportErrorS s opts label message
-        _ -> T.putStrLn $ "[Error#" `mappend` label `mappend` "] " `mappend` " " `mappend` message
-  where
-    message = T.pack (show e)
-    -- TODO: Find a way to extract the subjectId from the current request and report it here
-    opts = Rollbar.Options
-        { Rollbar.person      = Nothing
-        , Rollbar.revisionSha = Just Version.revision
-        }
+        Just s -> void $ forkIO $ case fromException e of
+            Just (DBException msg cs) ->
+                Rollbar.sendError s (Rollbar.RollbarException "DBException" (T.pack msg) (Just cs))
+            Nothing ->
+                Rollbar.sendError s (Rollbar.RollbarException "Unknown" (T.pack $ show e) Nothing)
+        _ -> return ()

@@ -22,6 +22,7 @@ library
                      , Api.Types
                      , Api.Auth
                      , HasqlDB
+                     , Rollbar
                      , DB
   other-modules:       Password
   build-depends:       aeson >= 0.8.0.2
@@ -35,11 +36,11 @@ library
                      , hasql >= 0.19
                      , hasql-pool
                      , http-api-data >= 0.3.7.1
+                     , http-conduit
                      , jose-jwt
                      , monad-logger
                      , memory > 0.14
                      , mtl
-                     , rollbar
                      , safe-exceptions >= 0.1.4
                      , servant-server >= 0.11
                      , stm >= 2.4.4
@@ -71,7 +72,6 @@ executable backend
                      , mtl
                      , my3ml
                      , random
-                     , rollbar
                      , servant-server >= 0.9
                      , stm >= 2.4.4
                      , text
