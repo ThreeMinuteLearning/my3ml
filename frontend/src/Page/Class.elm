@@ -197,7 +197,7 @@ viewToolbar : Model -> Html Msg
 viewToolbar model =
     let
         inputGroupBtn msg txt =
-            button [ class "btn btn-default", onClick msg, type_ "button" ] [ text txt ]
+            button [ class "btn btn-default btn-xs", onClick msg, type_ "button" ] [ text txt ]
     in
         row
             [ div [ class "col-lg-6" ]
