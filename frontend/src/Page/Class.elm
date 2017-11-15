@@ -197,25 +197,17 @@ viewToolbar : Model -> Html Msg
 viewToolbar model =
     let
         inputGroupBtn msg txt =
-            button [ class "btn btn-default btn-xs", onClick msg, type_ "button" ] [ text txt ]
+            button [ class "btn btn-default btn-sm", onClick msg, type_ "button" ] [ text txt ]
     in
         row
-            [ div [ class "col-lg-6" ]
+            [ div [ class "col-lg-12" ]
                 [ div [ class "input-group" ]
                     [ div [ class "input-group-btn" ]
-                        [ -- inputGroupBtn Edit "Edit"
-                          inputGroupBtn Delete "Delete"
+                        [ inputGroupBtn Delete "Delete"
+                        , viewIf (not (Dict.isEmpty model.selectedStudents)) <| inputGroupBtn RemoveSelectedStudents "Remove students from class"
                         ]
                     ]
                 ]
-            , if Dict.isEmpty model.selectedStudents then
-                div [] []
-              else
-                div [ class "input-group" ]
-                    [ span [ class "input-group-btn" ]
-                        [ button [ class "btn btn-default", onClick RemoveSelectedStudents, type_ "button" ] [ text "Remove students from class" ]
-                        ]
-                    ]
             ]
 
 
