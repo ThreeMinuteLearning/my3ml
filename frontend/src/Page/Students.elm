@@ -3,7 +3,7 @@ module Page.Students exposing (Model, Msg, init, update, view)
 import AddStudentsForm
 import Api
 import Bootstrap
-import Data.Session as Session exposing (Session, authorization)
+import Data.Session as Session exposing (Session, authorization, updateCache)
 import Dialog
 import Dict exposing (Dict)
 import Exts.Html.Bootstrap exposing (formGroup, row)
@@ -35,7 +35,6 @@ type alias Model =
     { notification : Notification
     , tableState : Table.State
     , selectedStudents : Dict String Api.Student
-    , studentAccountsCreated : List ( Api.Student, ( String, String ) )
     , addStudentsForm : Maybe AddStudentsForm.Model
     , studentFilter : ( String, Maybe String )
     }
@@ -64,7 +63,7 @@ init session =
             pageLoadError e ("Unable to load student data. " ++ defaultHttpErrorMsg e ++ ".")
 
         createModel session =
-            Model NoMsg StudentTable.init Dict.empty [] Nothing ( "", Nothing )
+            Model NoMsg StudentTable.init Dict.empty Nothing ( "", Nothing )
                 => session
     in
         Session.loadStudents session
@@ -80,7 +79,7 @@ update session msg model =
             { model | selectedStudents = Dict.empty } => Cmd.none => session
 
         ClearNewAccounts ->
-            { model | studentAccountsCreated = [] } => Cmd.none => session
+            model => Cmd.none => updateCache (\c -> { c | newAccounts = [] }) session
 
         StudentFilterInput txt ->
             { model | studentFilter = ( txt, second model.studentFilter ) } => Cmd.none => session
@@ -111,21 +110,12 @@ update session msg model =
 
                 Just ( _, Just newAccounts ) ->
                     let
-                        cache =
-                            session.cache
-
-                        accountsCreated =
-                            newAccounts ++ model.studentAccountsCreated
-
-                        newStudents =
-                            List.map first newAccounts
-
-                        newSession =
-                            { session | cache = { cache | students = List.append newStudents cache.students } }
+                        f c =
+                            { c | students = (List.map first newAccounts) ++ c.students, newAccounts = newAccounts ++ c.newAccounts }
                     in
-                        { model | addStudentsForm = Nothing, studentAccountsCreated = accountsCreated }
+                        { model | addStudentsForm = Nothing }
                             => Cmd.none
-                            => newSession
+                            => updateCache f session
 
         SetTableState state ->
             { model | tableState = state } => Cmd.none => session
@@ -188,7 +178,7 @@ view session model =
     div [ class "container page" ]
         [ TeacherToolbar.view session (subtools session)
         , viewNotification model.notification
-        , row [ NewAccounts.view PrintWindow ClearNewAccounts model.studentAccountsCreated ]
+        , row [ NewAccounts.view PrintWindow ClearNewAccounts session.cache.newAccounts ]
         , viewStudentsFilter session.cache model
         , viewTable session.cache model
         , Dialog.view (Maybe.map addStudentsDialog model.addStudentsForm)
