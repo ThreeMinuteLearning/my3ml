@@ -2,7 +2,7 @@ module Page.FindStory exposing (Model, Msg, init, view, subscriptions, update)
 
 import Api
 import Bootstrap exposing (closeBtn)
-import Data.Session as Session exposing (Session, Cache, authorization, findStoryById, isEditor)
+import Data.Session as Session exposing (Session, Cache, authorization, findStoryById, isEditor, updateCache)
 import Data.Settings exposing (Settings, defaultSettings)
 import Exts.List exposing (firstMatch)
 import Html exposing (..)
@@ -33,7 +33,6 @@ type alias Model =
     , storyView : StoryView.State
     , viewType : ViewType
     , windowSize : Window.Size
-    , selectedStories : List Api.Story
     , anthologyForm : Maybe AnthologyForm
     }
 
@@ -64,8 +63,8 @@ type Msg
     | DeleteAnthologyResponse (Result Http.Error String)
     | SetStarterStories String
     | SetStarterStoriesResponse (Result Http.Error Api.NoContent)
-    | HideAnthology Api.Anthology
-    | HideAnthologyResponse (Result Http.Error Api.Anthology)
+    | UpdateAnthology Api.Anthology
+    | UpdateAnthologyResponse (Result Http.Error Api.Anthology)
 
 
 type ViewType
@@ -92,7 +91,7 @@ initialModel session size =
             else
                 Table
     in
-        Model [] "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType size [] Nothing
+        Model [] "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType size Nothing
             => session
 
 
@@ -190,12 +189,12 @@ update session msg model =
                     => session
 
         SelectStory s ->
-            { model | selectedStories = s :: model.selectedStories }
+            model
                 => Cmd.none
-                => session
+                => updateCache (\c -> { c | selectedStories = s :: c.selectedStories }) session
 
         ClearSelectedStories ->
-            { model | selectedStories = [] } => Cmd.none => session
+            model => Cmd.none => updateCache (\c -> { c | selectedStories = [] }) session
 
         CreateAnthology ->
             { model | anthologyForm = Just "" } => Cmd.none => session
@@ -214,7 +213,7 @@ update session msg model =
                     case validateAnthologyForm f of
                         [] ->
                             { model | errors = [], anthologyForm = Nothing }
-                                => (Api.postAnthologies (authorization session) (Api.Anthology "" f (Just "") (List.map .id model.selectedStories) False)
+                                => (Api.postAnthologies (authorization session) (Api.Anthology "" f (Just "") (List.map .id session.cache.selectedStories) False)
                                         |> Http.send CreateAnthologyResponse
                                    )
                                 => session
@@ -271,14 +270,14 @@ update session msg model =
                 => Cmd.none
                 => session
 
-        HideAnthology a ->
+        UpdateAnthology a ->
             model
-                => (Api.postAnthologiesByAnthologyId (authorization session) a.id ({ a | hidden = not a.hidden })
-                        |> Http.send HideAnthologyResponse
+                => (Api.postAnthologiesByAnthologyId (authorization session) a.id a
+                        |> Http.send UpdateAnthologyResponse
                    )
                 => session
 
-        HideAnthologyResponse (Ok newA) ->
+        UpdateAnthologyResponse (Ok newA) ->
             ( model, Cmd.none )
                 => updateAnthologies
                     (List.map
@@ -291,7 +290,7 @@ update session msg model =
                     )
                     session
 
-        HideAnthologyResponse (Err e) ->
+        UpdateAnthologyResponse (Err e) ->
             { model | errors = [ "Couldn't update the anthology: " ++ defaultHttpErrorMsg e ] }
                 => Cmd.none
                 => session
@@ -342,7 +341,7 @@ view session m =
                 div []
                     [ viewStoriesFilter session m
                     , Form.viewErrorMsgs m.errors
-                    , viewUnless (List.isEmpty m.selectedStories) (viewSelectedStories m)
+                    , viewUnless (List.isEmpty session.cache.selectedStories) (viewSelectedStories m session.cache.selectedStories)
                     , case m.viewType of
                         Tiles n ->
                             StoryTiles.view (List.take n m.stories)
@@ -356,7 +355,7 @@ view session m =
 
             Just b ->
                 div []
-                    [ viewBrowserToolbar session (Zipper.current b) (m.selectedStories)
+                    [ viewBrowserToolbar session (Zipper.current b) (session.cache.selectedStories)
                     , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) (Zipper.current b) m.storyView
                     ]
         ]
@@ -505,8 +504,8 @@ viewStoryLink s =
     Html.a [ href "#", onClickPreventDefault (BrowseFrom s.id) ] [ text s.title ]
 
 
-viewSelectedStories : Model -> Html Msg
-viewSelectedStories m =
+viewSelectedStories : Model -> List Api.Story -> Html Msg
+viewSelectedStories m stories =
     let
         createAnthology =
             case m.anthologyForm of
@@ -535,7 +534,7 @@ viewSelectedStories m =
                 , h4 [ class "panel-title" ] [ text "Selected Stories" ]
                 ]
             , div [ class "panel-body" ]
-                [ viewStoryTable m.selectedStories
+                [ viewStoryTable stories
                 , createAnthology
                 ]
             ]
@@ -567,7 +566,7 @@ viewAnthologies session =
 
         render ( a, astories ) =
             div [ class "anthology" ]
-                [ h4 [] [ text a.name ]
+                [ h3 [] [ text a.name ]
                 , viewIf (canDelete a)
                     (button
                         [ class "btn btn-default btn-xs"
@@ -578,7 +577,7 @@ viewAnthologies session =
                 , viewIf (isEditor session)
                     (button
                         [ class "btn btn-default btn-xs"
-                        , onClick (HideAnthology a)
+                        , onClick (UpdateAnthology { a | hidden = not a.hidden })
                         ]
                         [ text
                             (if a.hidden then
@@ -596,7 +595,7 @@ viewAnthologies session =
                         ]
                         [ text "Set Starter Stories" ]
                     )
-                , viewStoryTable astories
+                , StoryTiles.view astories
                 ]
     in
         div [ class "anthologies" ]

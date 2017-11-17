@@ -42,6 +42,7 @@ type alias Cache =
     , classes : List Api.Class
     , anthologies : List Api.Anthology
     , newAccounts : List ( Api.Student, ( String, String ) )
+    , selectedStories : List Api.Story
     }
 
 
@@ -58,7 +59,7 @@ emptySession =
 
 emptyCache : Cache
 emptyCache =
-    Cache Dict.empty [] Dict.empty [] [] [] []
+    Cache Dict.empty [] Dict.empty [] [] [] [] []
 
 
 hasRole : Role -> Session -> Bool
@@ -96,8 +97,9 @@ authorization session =
 
 
 clearCache : Cache -> Cache
-clearCache c =
-    Cache c.dict [] Dict.empty [] [] [] []
+clearCache oldCache =
+    emptyCache
+        |> \c -> { c | dict = oldCache.dict }
 
 
 updateCache : (Cache -> Cache) -> Session -> Session
