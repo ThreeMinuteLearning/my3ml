@@ -257,7 +257,7 @@ anthologiesServer (Just (TeacherScope _ sid _ _)) =
 anthologiesServer (Just (StudentScope _ sid)) =
      getAnthologiesForSchool (Just sid) :<|> throwAll err403 :<|> throwAll err403
 anthologiesServer (Just (EditorScope _)) =
-     getAnthologiesForSchool Nothing
+     getGlobalAnthologies
      :<|> createAnthology Nothing
      :<|> (\aid ->
                setStarterStories aid
@@ -266,8 +266,12 @@ anthologiesServer (Just (EditorScope _)) =
           )
 anthologiesServer _ = throwAll err403
 
+
+getGlobalAnthologies :: DB db => HandlerT db [Anthology]
+getGlobalAnthologies = runDB $ DB.getAnthologies Nothing
+
 getAnthologiesForSchool :: DB db => Maybe SchoolId -> HandlerT db [Anthology]
-getAnthologiesForSchool = runDB . DB.getAnthologies
+getAnthologiesForSchool = fmap (filter (not . (hidden :: Anthology -> Bool))) . runDB . DB.getAnthologies
 
 createAnthology :: DB db => Maybe SchoolId -> Anthology -> HandlerT db Anthology
 createAnthology sid anthology = do

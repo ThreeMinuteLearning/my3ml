@@ -689,7 +689,7 @@ selectAnthologiesBySchoolId = Q.statement sql (E.nullableValue E.text) (D.rowsLi
   where
     sql = "SELECT id, name, school_id :: text, stories, hidden \
           \ FROM anthology \
-          \ WHERE (school_id is null AND not hidden) \
+          \ WHERE school_id is null \
           \ OR school_id = $1 :: uuid"
 
 anthologyRow :: D.Row Anthology
