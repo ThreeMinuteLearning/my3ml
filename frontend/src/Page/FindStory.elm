@@ -227,9 +227,11 @@ update session msg model =
                     ( ( model, Cmd.none ), session )
 
         CreateAnthologyResponse (Ok newAnthology) ->
-            { model | anthologyForm = Nothing }
+            { model | anthologyForm = Nothing, viewType = Anthologies }
                 => Cmd.none
-                => updateAnthologies (\anthologies -> newAnthology :: anthologies) session
+                => (updateAnthologies (\anthologies -> newAnthology :: anthologies) session
+                        |> updateCache (\c -> { c | selectedStories = [] })
+                   )
 
         CreateAnthologyResponse (Err e) ->
             { model | errors = [ "Couldn't create the anthology: " ++ defaultHttpErrorMsg e ] }
