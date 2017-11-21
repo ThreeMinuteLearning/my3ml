@@ -14,12 +14,10 @@ import           Control.Monad.Reader
 import           Control.Monad.Catch (catchAll, catchJust)
 import           Crypto.Random (getRandomBytes)
 import qualified Data.Aeson as A
-import           Data.Array.IO
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import           Data.Maybe (fromMaybe)
 import           Data.Monoid ((<>))
-import           Data.List (sortOn)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           Jose.Jwa
@@ -29,15 +27,14 @@ import           Prelude hiding (id)
 import           Servant
 import           System.Environment (getEnvironment)
 import           System.IO.Error
-import           System.Random (randomRIO)
-import qualified Rollbar
 
 import           Api.Server (HandlerT, Config(..))
 import qualified Api.Server as Api
 import           Api.Auth (authServerContext)
-import           Api.Types (Api, Story(..), StoryId)
-import           DB (DB, getStories)
+import           Api.Types (Api)
+import           DB (DB, getStarterStories)
 import           HasqlDB (mkDB, DBException(..))
+import qualified Rollbar
 import qualified Version
 
 type SiteApi = "api" :> Api
@@ -56,6 +53,7 @@ server config assets = enter transform Api.server :<|> serveDirectoryFileServer 
 
     errorHandler e = do
         liftIO $ logE (rollbarSettings config) e
+        liftIO $ print "blah"
         throwError err500
 
     transform :: HandlerT db :~> Handler
@@ -119,24 +117,6 @@ main = do
         , Rollbar.token = T.pack token
         , Rollbar.codeVersion = Version.revision
         }
-
-    getStarterStories db = do
-        stories <- take 100 . reverse . sortOn (id :: Story -> StoryId) <$> getStories False db
-        take 24 <$> shuffle stories
-
-shuffle :: [a] -> IO [a]
-shuffle xs = do
-    ar <- newArr xs
-    forM [1..n] $ \i -> do
-        j <- randomRIO (i,n)
-        vi <- readArray ar i
-        vj <- readArray ar j
-        writeArray ar j vi
-        return vj
-  where
-    n = length xs
-    newArr :: [a] -> IO (IOArray Int a)
-    newArr = newListArray (1,n)
 
 logE :: Maybe Rollbar.Settings -> SomeException -> IO ()
 logE settings e = do

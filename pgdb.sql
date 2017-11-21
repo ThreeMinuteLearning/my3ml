@@ -129,6 +129,10 @@ CREATE TABLE famous_name
     ( name text PRIMARY KEY
     );
 
+CREATE TABLE config
+    ( starter_stories uuid REFERENCES anthology
+    );
+
 CREATE MATERIALIZED VIEW leaderboard
 AS
     SELECT row_number() OVER (ORDER BY a.score DESC) AS position

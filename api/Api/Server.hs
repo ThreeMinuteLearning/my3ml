@@ -290,6 +290,7 @@ setStarterStories :: DB db => AnthologyId -> HandlerT db NoContent
 setStarterStories aid = do
     logInfoN $ "Setting starter stories to anthology: " <> aid
     stories_ <- runDB (DB.getAnthologyStories aid)
+    runDB (DB.setStarterStories aid)
     mvar <- sampleStories <$> ask
     liftIO $ takeMVar mvar >> putMVar mvar stories_
     return NoContent

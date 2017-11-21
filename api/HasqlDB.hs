@@ -6,19 +6,20 @@ module HasqlDB where
 
 import           Control.Applicative (liftA2)
 import           Control.Exception.Safe
-import           Control.Monad (when, replicateM)
+import           Control.Monad (when, replicateM, forM)
 import           Control.Monad.Except (catchError, throwError)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Contravariant.Extras.Contrazip
 import           Crypto.Random (getRandomBytes)
 import qualified Data.Aeson as JSON
+import           Data.Array.IO (IOArray, readArray, writeArray, newListArray)
 import           Data.ByteArray.Encoding (convertToBase, Base(Base16))
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BC
 import           Data.Functor.Contravariant
 import           Data.Function (on)
 import           Data.Int (Int64)
-import           Data.List (foldl', groupBy)
+import           Data.List (foldl', groupBy, sortOn)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (fromMaybe)
 import           Data.Monoid
@@ -35,6 +36,7 @@ import qualified Hasql.Encoders as E
 import qualified Hasql.Decoders as D
 import qualified Hasql.Session as S
 import           Prelude hiding (id, words)
+import           System.Random (randomRIO)
 import           Text.Read (readMaybe)
 
 import Api.Types
@@ -121,6 +123,16 @@ instance DB HasqlDB where
         when (nRows == 0) $ liftIO $ throwDBException "Anthology not found to delete"
 
     getAnthologyStories = runQuery selectAnthologyStories
+
+    getStarterStories db = do
+        anthologyId_ <- runQuery (Q.statement "SELECT starter_stories FROM config" E.unit (D.singleRow (D.nullableValue D.uuid)) False) () db
+        case anthologyId_ of
+            Just id_ -> getAnthologyStories (UUID.toText id_) db
+            Nothing -> do
+                stories <- take 100 . reverse . sortOn (id :: Story -> StoryId) <$> getStories False db
+                take 24 <$> liftIO (shuffle stories)
+
+    setStarterStories = runQuery updateStarterStories
 
     getClasses = runQuery selectClassesBySchool
 
@@ -229,6 +241,20 @@ instance DB HasqlDB where
     getLeaderBoard = runQuery selectLeaderboardBySchoolId
 
     updateAccountSettings = runQuery updateAccountSettings_
+
+shuffle :: [a] -> IO [a]
+shuffle xs = do
+    ar <- newArr xs
+    forM [1..n] $ \i -> do
+        j <- randomRIO (i,n)
+        vi <- readArray ar i
+        vj <- readArray ar j
+        writeArray ar j vi
+        return vj
+  where
+    n = length xs
+    newArr :: [a] -> IO (IOArray Int a)
+    newArr = newListArray (1,n)
 
 
 generateCode :: IO Text
@@ -735,6 +761,11 @@ selectAnthologyStories = Q.statement sql evText (D.rowsList storyRow) True
                             \ ( SELECT unnest(stories) FROM anthology \
                             \   WHERE id = $1 :: uuid\
                             \ )"
+
+
+updateStarterStories :: Query AnthologyId ()
+updateStarterStories =
+    Q.statement "UPDATE config SET starter_stories = $1 :: uuid" evText D.unit False
 
 -- Word dictionary
 

@@ -55,6 +55,10 @@ class DB db where
 
     getAnthologyStories :: DBFn m => AnthologyId -> db -> m [Story]
 
+    getStarterStories :: DBFn m => db -> m [Story]
+
+    setStarterStories :: DBFn m => AnthologyId -> db -> m ()
+
     getClasses :: DBFn m => SchoolId -> db -> m [Class]
 
     getClass :: DBFn m => ClassId -> db -> m (Maybe Class)
