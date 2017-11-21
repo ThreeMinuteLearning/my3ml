@@ -164,17 +164,37 @@ fieldError field errors =
 validate : Model -> List Error
 validate =
     Validate.all
-        [ .connection >> ifBlank ( Connection, "Please fill in your connection with the story" )
-        , .connection >> ifNotSentence ( Connection, "Please write a sentence for your connection with the story" )
-        , .question >> ifBlank ( Question, "Please enter a question about the story" )
-        , .question >> ifNotSentence ( Question, "Please write a sentence for your question" )
-        , .summary >> ifBlank ( Summary, "Please write your summary sentence for the story" )
-        , .summary >> ifNotSentence ( Summary, "Please the summary as a sentence" )
-        , .clarification >> ifBlank ( Clarification, "Please fill in the meaning of the word" )
-        , .clarification >> ifNotSentence ( Clarification, "Please write a sentence for the meaning of the word" )
+        [ .connection
+            >> Validate.all
+                [ ifBlank ( Connection, "Please fill in your connection with the story" )
+                , ifNotSentence ( Connection, "Please write a sentence for your connection with the story" )
+                , ifTooLong Connection
+                ]
+        , .question
+            >> Validate.all
+                [ ifBlank ( Question, "Please enter a question about the story" )
+                , ifNotSentence ( Question, "Please write a sentence for your question" )
+                , ifTooLong Question
+                ]
+        , .summary
+            >> Validate.all
+                [ ifBlank ( Summary, "Please write your summary sentence for the story" )
+                , ifNotSentence ( Summary, "Please the summary as a sentence" )
+                , ifTooLong Summary
+                ]
+        , .clarification
+            >> Validate.all
+                [ ifBlank ( Clarification, "Please fill in the meaning of the word" )
+                , ifNotSentence ( Clarification, "Please write a sentence for the meaning of the word" )
+                ]
         , .clarificationMethod >> ifNothing ( ClarificationMethod, "Please select the clarification method you used" )
         , naughtyWordsCheck
         ]
+
+
+ifTooLong : Field -> Validator Error String
+ifTooLong f =
+    ifInvalid (\s -> String.length s > 250) ( f, "The answer can't be longer than 250 characters" )
 
 
 ifNotSentence : Error -> Validator Error String
