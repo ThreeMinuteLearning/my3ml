@@ -141,7 +141,7 @@ loginServer authReq = do
 
         just (pbeKey, sk)
 
-    uName = T.toLower $ username (authReq :: LoginRequest)
+    uName = T.toLower . T.strip $ username (authReq :: LoginRequest)
 
     getTeacher subId isAdmin userKey = case userKey of
         Nothing -> logErrorN "Teacher account with no tenant key" >> throwError err500

@@ -96,7 +96,7 @@ update msg model =
             case validate model of
                 [] ->
                     { model | errors = [] }
-                        => Http.send LoginCompleted (Api.postAuthenticate (Api.LoginRequest (.username model) (.password model)))
+                        => Http.send LoginCompleted (Api.postAuthenticate (Api.LoginRequest (String.trim (.username model)) (.password model)))
                         => Nothing
 
                 errors ->
