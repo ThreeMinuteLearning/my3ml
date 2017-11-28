@@ -8,8 +8,9 @@ import Drawer exposing (DrawerType)
 import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, onSubmit)
+import Html.Events exposing (on, onClick, onInput, onSubmit, targetValue)
 import Http
+import Json.Decode as Json
 import Regex
 import Util exposing ((=>))
 import Validate exposing (Validator, ifBlank, ifNothing, ifInvalid)
@@ -256,6 +257,9 @@ viewForm model =
                 , ( toString Substitution, "Imagine the word isn't there and try another word or words in its place." )
                 ]
 
+        onSelect msg =
+            on "change" (Json.map msg targetValue)
+
         submitButton =
             Html.button [ class "btn btn-primary pull-xs-right", tabindex 6 ] [ text "Submit your answers" ]
 
@@ -270,7 +274,7 @@ viewForm model =
                 , answerField Clarification SetClarification [ drwrBtn "?" Drawer.Clarify, text " Work through the clarify methods then type what you think this word means: ", em [ class "clarify-word" ] [ text (.clarifyWord model.story) ] ] 4
                 , div [ class (errorClass (fieldError ClarificationMethod model.errors)) ]
                     [ label [ for "clarifyMethod" ] [ text "Which clarify method worked best for you?" ]
-                    , Html.select [ id "clarifyMethod", class "form-control", onInput SetClarifyMethod, tabindex 5 ] clarifyMethodOptions
+                    , Html.select [ id "clarifyMethod", class "form-control", onSelect SetClarifyMethod, tabindex 5 ] clarifyMethodOptions
                     ]
                 , submitButton
                 ]
