@@ -53,7 +53,6 @@ server config assets = enter transform Api.server :<|> serveDirectoryFileServer 
 
     errorHandler e = do
         liftIO $ logE (rollbarSettings config) e
-        liftIO $ print "blah"
         throwError err500
 
     transform :: HandlerT db :~> Handler
