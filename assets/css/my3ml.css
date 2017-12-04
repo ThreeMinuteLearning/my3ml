@@ -193,7 +193,6 @@ th span {
     left: 0px;
 }
 
-
 .panelheader {
     background-color: white;
     height: 65px;
@@ -212,22 +211,23 @@ th span {
     background-color: white;
     font-size: 2em;
     color: black;
+    margin-left: 5px;
 }
 
 .connectpanel {
-    background: rgba(255,168,48,1);
-}
-
-.summarisepanel{
-    background: rgba(8,22,41,1);
+    background: #107896;
 }
 
 .questionpanel {
-    background: rgba(238,94,86,1);
+    background: #9a2617;
+}
+
+.summarisepanel {
+    background: #093145;
 }
 
 .clarifypanel {
-    background: rgba(96,125,203,1);
+    background: #c2571a;
 }
 
 .dict-lookup {
