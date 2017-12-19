@@ -156,7 +156,7 @@ view session model =
                 [ h2 []
                     [ text (storiesTitle session)
                     ]
-                , StoryTiles.view (List.take 24 model.stories)
+                , StoryTiles.view False (List.take 24 model.stories)
                 ]
             ]
         ]

@@ -354,10 +354,10 @@ view session m =
                 div []
                     [ viewStoriesFilter session m
                     , Form.viewErrorMsgs m.errors
-                    , viewUnless (List.isEmpty session.cache.selectedStories) (viewSelectedStories m session.cache.selectedStories)
+                    , viewUnless (Session.isStudent session) <| viewStoryBasket m session.cache.selectedStories
                     , case m.viewType of
                         Tiles n ->
-                            StoryTiles.view (List.take n m.stories)
+                            StoryTiles.view False (List.take n m.stories)
 
                         Table ->
                             viewStoriesTable m
@@ -388,7 +388,7 @@ viewBrowserToolbar session s selected =
             [ li [ class "previous" ] [ a [ href "#", onClickPreventDefault Previous ] [ text "Prev" ] ]
             , viewIf (isEditor session) <| li [] [ a [ href (Route.routeToString (Route.Editor s.id)) ] [ text "Edit" ] ]
             , li [] [ a [ href "#", onClickPreventDefault CloseBrowser ] [ text "Back to stories" ] ]
-            , viewUnless (Session.isStudent session || List.member s selected) <| li [] [ a [ href "#", onClickPreventDefault (SelectStory s) ] [ text "Select story" ] ]
+            , viewUnless (Session.isStudent session || List.member s selected) <| li [] [ a [ href "#", onClickPreventDefault (SelectStory s) ] [ text "Add to basket" ] ]
             , viewIf (Session.isStudent session) <| li [] [ a [ href (Route.routeToString (Route.Story s.id)) ] [ text "Work on story" ] ]
             , li [ class "next" ] [ a [ class "pull-right", href "#", onClickPreventDefault Next ] [ text "Next" ] ]
             ]
@@ -517,9 +517,12 @@ viewStoryLink s =
     Html.a [ href "#", onClickPreventDefault (BrowseFrom s.id) ] [ text s.title ]
 
 
-viewSelectedStories : Model -> List Api.Story -> Html Msg
-viewSelectedStories m stories =
+viewStoryBasket : Model -> List Api.Story -> Html Msg
+viewStoryBasket m stories =
     let
+        isEmpty =
+            List.isEmpty stories
+
         createAnthology =
             case m.anthologyForm of
                 Nothing ->
@@ -546,17 +549,24 @@ viewSelectedStories m stories =
 
         submitButton =
             Html.button [ class "btn btn-primary pull-xs-right", tabindex 3 ] [ text "Save anthology" ]
+
+        basketContents =
+            if isEmpty then
+                [ p [ title "Click on a story in the table to open the story browser" ] [ text "Your story basket is empty. You can browse the search results and add stories, then use them to create an anthology." ]
+                ]
+            else
+                [ StoryTiles.view True stories
+                , createAnthology
+                ]
     in
         div [ class "panel panel-default" ]
             [ div [ class "panel-heading" ]
                 [ div [ class "btn-group pull-right" ]
-                    [ closeBtn ClearSelectedStories ]
-                , h4 [ class "panel-title" ] [ text "Selected Stories" ]
+                    [ viewUnless isEmpty (closeBtn ClearSelectedStories) ]
+                , h4 [ class "panel-title" ] [ text "Story basket" ]
                 ]
-            , div [ class "panel-body" ]
-                [ viewStoryTable stories
-                , createAnthology
-                ]
+            , div [ id "storybasket", class "panel-body" ]
+                basketContents
             ]
 
 
@@ -615,7 +625,10 @@ viewAnthologies session =
                         ]
                         [ text "Set Starter Stories" ]
                     )
-                , StoryTiles.view astories
+                , div []
+                    [ p [] [ text a.description ]
+                    ]
+                , StoryTiles.view True astories
                 ]
     in
         div [ class "anthologies" ]

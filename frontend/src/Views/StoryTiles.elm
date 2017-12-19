@@ -9,14 +9,27 @@ import Route
 import Window
 
 
-view : List Story -> Html msg
-view stories =
+view : Bool -> List Story -> Html msg
+view useSmallTiles stories =
     let
         storyStyle s =
             style [ ( "background", "url(pix/" ++ s.img ++ ")" ), ( "background-size", "cover" ) ]
 
+        tileClass =
+            if useSmallTiles then
+                "storytile smalltile"
+            else
+                "storytile"
+
+        attributes s =
+            [ class tileClass, storyStyle s, Html.Attributes.href (Route.routeToString (Route.Story s.id)) ]
+                ++ if useSmallTiles then
+                    [ title s.title ]
+                   else
+                    []
+
         storyTile s =
-            a [ class "storytile", storyStyle s, Html.Attributes.href (Route.routeToString (Route.Story s.id)) ]
+            a (attributes s)
                 [ h3 [] [ text s.title ] ]
     in
         div [ id "storytiles" ] (List.map storyTile stories)
