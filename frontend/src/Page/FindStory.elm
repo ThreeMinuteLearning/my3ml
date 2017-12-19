@@ -411,23 +411,29 @@ viewStoriesFilter session m =
             ]
         , viewIf (isEditor session) (viewToggleDisabledStoriesOnly m)
         , text "  "
-        , viewCycleDisplayButton m
+        , viewCycleDisplayButton session m
         ]
 
 
-viewCycleDisplayButton : Model -> Html Msg
-viewCycleDisplayButton m =
+viewCycleDisplayButton : Session -> Model -> Html Msg
+viewCycleDisplayButton session m =
     let
+        viewTiles =
+            ( Tiles (StoryTiles.tilesPerPage m.windowSize), "View tiles" )
+
         ( nextViewType, displayTxt ) =
             case m.viewType of
                 Table ->
-                    ( Anthologies, "View anthologies" )
+                    if List.isEmpty session.cache.anthologies then
+                        viewTiles
+                    else
+                        ( Anthologies, "View anthologies" )
 
                 Tiles _ ->
                     ( Table, "View table" )
 
                 Anthologies ->
-                    ( Tiles (StoryTiles.tilesPerPage m.windowSize), "View tiles" )
+                    viewTiles
     in
         button [ class "btn btn-default", onClick (SetViewType nextViewType) ] [ text displayTxt ]
 
@@ -585,7 +591,7 @@ viewStoryTable stories =
 viewAnthologies : Session -> Html Msg
 viewAnthologies session =
     let
-        go =
+        anthologiesWithStories =
             List.map pickStories session.cache.anthologies
 
         pickStories a =
@@ -632,4 +638,4 @@ viewAnthologies session =
                 ]
     in
         div [ class "anthologies" ]
-            (List.map render go)
+            (List.map render anthologiesWithStories)
