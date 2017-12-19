@@ -98,7 +98,8 @@ data LoginRequest = LoginRequest
 data Anthology = Anthology
     { id :: AnthologyId
     , name :: Text
---    , createdBy :: SubjectId
+    , description :: Text
+    , createdBy :: SubjectId
     , schoolId :: Maybe SchoolId
     , stories :: [StoryId]
     , hidden :: Bool

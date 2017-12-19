@@ -713,7 +713,7 @@ deleteClassById = Q.statement sql eTextPair D.rowsAffected True
 selectAnthologiesBySchoolId :: Query (Maybe SchoolId) [Anthology]
 selectAnthologiesBySchoolId = Q.statement sql (E.nullableValue E.text) (D.rowsList anthologyRow) True
   where
-    sql = "SELECT id, name, school_id :: text, stories, hidden \
+    sql = "SELECT id, name, description, created_by, school_id :: text, stories, hidden \
           \ FROM anthology \
           \ WHERE school_id is null \
           \ OR school_id = $1 :: uuid"
@@ -722,6 +722,8 @@ anthologyRow :: D.Row Anthology
 anthologyRow = Anthology
     <$> dvUUID
     <*> dvText
+    <*> dvText
+    <*> (SubjectId <$> dvUUID)
     <*> D.nullableValue D.text
     <*> (map fromIntegral <$> dArray D.int4)
     <*> D.value D.bool
@@ -729,6 +731,8 @@ anthologyRow = Anthology
 anthologyEncoder :: E.Params Anthology
 anthologyEncoder = contramap (id :: Anthology -> AnthologyId) evText
     <> contramap (name :: Anthology -> Text) evText
+    <> contramap (description :: Anthology -> Text) evText
+    <> contramap (unSubjectId . (createdBy :: Anthology -> SubjectId)) evText
     <> contramap (schoolId :: Anthology -> Maybe SchoolId) (E.nullableValue E.text)
     <> contramap (map fromIntegral <$> (stories :: Anthology -> [StoryId])) (eArray E.int4)
     <> contramap (hidden :: Anthology -> Bool) (E.value E.bool)
@@ -736,8 +740,8 @@ anthologyEncoder = contramap (id :: Anthology -> AnthologyId) evText
 insertAnthology :: Query Anthology ()
 insertAnthology = Q.statement sql anthologyEncoder D.unit True
   where
-    sql = "INSERT INTO anthology (id, name, school_id, stories, hidden) \
-              \ VALUES ($1 :: uuid, $2, $3 :: uuid, $4, $5)"
+    sql = "INSERT INTO anthology (id, name, description, created_by, school_id, stories, hidden) \
+              \ VALUES ($1 :: uuid, $2, $3, $4 :: uuid, $5 :: uuid, $6, $7)"
 
 updateAnthology_ :: Query Anthology ()
 updateAnthology_ = Q.statement sql anthologyEncoder D.unit True

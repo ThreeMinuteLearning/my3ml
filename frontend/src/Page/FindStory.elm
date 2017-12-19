@@ -38,7 +38,9 @@ type alias Model =
 
 
 type alias AnthologyForm =
-    String
+    { name : String
+    , description : String
+    }
 
 
 type Msg
@@ -56,6 +58,7 @@ type Msg
     | SelectStory Api.Story
     | CreateAnthology
     | SetAnthologyName String
+    | SetAnthologyDescription String
     | SetViewType ViewType
     | SubmitAnthologyForm
     | CreateAnthologyResponse (Result Http.Error Api.Anthology)
@@ -197,12 +200,20 @@ update session msg model =
             model => Cmd.none => updateCache (\c -> { c | selectedStories = [] }) session
 
         CreateAnthology ->
-            { model | anthologyForm = Just "" } => Cmd.none => session
+            { model | anthologyForm = Just (AnthologyForm "" "") } => Cmd.none => session
 
         SetAnthologyName n ->
             case model.anthologyForm of
-                Just _ ->
-                    { model | anthologyForm = Just n } => Cmd.none => session
+                Just f ->
+                    { model | anthologyForm = Just { name = n, description = f.description } } => Cmd.none => session
+
+                Nothing ->
+                    ( ( model, Cmd.none ), session )
+
+        SetAnthologyDescription d ->
+            case model.anthologyForm of
+                Just f ->
+                    { model | anthologyForm = Just { name = f.name, description = d } } => Cmd.none => session
 
                 Nothing ->
                     ( ( model, Cmd.none ), session )
@@ -213,7 +224,7 @@ update session msg model =
                     case validateAnthologyForm f of
                         [] ->
                             { model | errors = [], anthologyForm = Nothing }
-                                => (Api.postAnthologies (authorization session) (Api.Anthology "" f (Just "") (List.map .id session.cache.selectedStories) False)
+                                => (Api.postAnthologies (authorization session) (Api.Anthology "" f.name f.description "" (Just "") (List.map .id session.cache.selectedStories) False)
                                         |> Http.send CreateAnthologyResponse
                                    )
                                 => session
@@ -309,7 +320,7 @@ type alias Error =
 
 validateAnthologyForm : AnthologyForm -> List Error
 validateAnthologyForm f =
-    if String.length f <= 3 then
+    if String.length f.name <= 3 then
         [ "The anthology name must be more than 3 characters long" ]
     else
         []
@@ -523,11 +534,18 @@ viewSelectedStories m stories =
                             , onInput SetAnthologyName
                             ]
                             []
+                        , Form.input
+                            [ class "form-control-lg"
+                            , placeholder "Anthology description"
+                            , tabindex 2
+                            , onInput SetAnthologyDescription
+                            ]
+                            []
                         , submitButton
                         ]
 
         submitButton =
-            Html.button [ class "btn btn-primary pull-xs-right", tabindex 2 ] [ text "Save anthology" ]
+            Html.button [ class "btn btn-primary pull-xs-right", tabindex 3 ] [ text "Save anthology" ]
     in
         div [ class "panel panel-default" ]
             [ div [ class "panel-heading" ]

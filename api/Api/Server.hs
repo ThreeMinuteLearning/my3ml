@@ -246,9 +246,9 @@ storyServer token_ =
 
 anthologiesServer :: DB db => ApiServer AnthologiesApi db
 anthologiesServer Nothing = throwAll err401
-anthologiesServer (Just (TeacherScope _ sid _ _)) =
+anthologiesServer (Just (TeacherScope subId sid _ _)) =
      getAnthologiesForSchool (Just sid)
-     :<|> createAnthology (Just sid)
+     :<|> createAnthology subId (Just sid)
      :<|> (\aid ->
                throwAll err403
           :<|> updateAnthology (Just sid) aid
@@ -256,9 +256,9 @@ anthologiesServer (Just (TeacherScope _ sid _ _)) =
           )
 anthologiesServer (Just (StudentScope _ sid)) =
      getAnthologiesForSchool (Just sid) :<|> throwAll err403 :<|> throwAll err403
-anthologiesServer (Just (EditorScope _)) =
+anthologiesServer (Just (EditorScope subId)) =
      getGlobalAnthologies
-     :<|> createAnthology Nothing
+     :<|> createAnthology subId Nothing
      :<|> (\aid ->
                setStarterStories aid
                :<|> updateAnthology Nothing aid
@@ -273,10 +273,10 @@ getGlobalAnthologies = runDB $ DB.getAnthologies Nothing
 getAnthologiesForSchool :: DB db => Maybe SchoolId -> HandlerT db [Anthology]
 getAnthologiesForSchool = fmap (filter (not . (hidden :: Anthology -> Bool))) . runDB . DB.getAnthologies
 
-createAnthology :: DB db => Maybe SchoolId -> Anthology -> HandlerT db Anthology
-createAnthology sid anthology = do
+createAnthology :: DB db => SubjectId -> Maybe SchoolId -> Anthology -> HandlerT db Anthology
+createAnthology subId sid anthology = do
     uuid <- liftIO (toText <$> nextRandom)
-    let anthologyWithId = anthology { id = uuid, schoolId = sid } :: Anthology
+    let anthologyWithId = anthology { id = uuid, createdBy = subId, schoolId = sid } :: Anthology
     _ <- runDB (DB.createAnthology anthologyWithId)
     return anthologyWithId
 
