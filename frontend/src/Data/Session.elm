@@ -1,4 +1,4 @@
-module Data.Session exposing (AccessToken, Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isEditor, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadUserAnswers, loadClasses, loadAnthologies, findStoryById, updateCache)
+module Data.Session exposing (AccessToken, Alert(..), Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isEditor, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadUserAnswers, loadClasses, loadAnthologies, findStoryById, updateCache, success, error, warn, closeAlert)
 
 import Api
 import Data.Settings as Settings exposing (Settings)
@@ -30,6 +30,7 @@ type AccessToken
 
 type alias Session =
     { cache : Cache
+    , alerts : List ( Alert, Bool )
     , user : Maybe User
     }
 
@@ -52,9 +53,15 @@ type Role
     | Teacher Bool
 
 
+type Alert
+    = Success String
+    | Error String
+    | Warning String
+
+
 emptySession : Session
 emptySession =
-    Session emptyCache Nothing
+    Session emptyCache [] Nothing
 
 
 emptyCache : Cache
@@ -107,6 +114,41 @@ updateCache f session =
     { session | cache = f session.cache }
 
 
+success : String -> Session -> Session
+success =
+    Success >> alert
+
+
+error : String -> Session -> Session
+error =
+    Error >> alert
+
+
+warn : String -> Session -> Session
+warn =
+    Warning >> alert
+
+
+alert : Alert -> Session -> Session
+alert a session =
+    { session | alerts = ( a, False ) :: session.alerts }
+
+
+closeAlert : Alert -> Session -> Session
+closeAlert a session =
+    { session
+        | alerts =
+            List.map
+                (\( a_, closed ) ->
+                    if a_ == a then
+                        ( a_, True )
+                    else
+                        ( a_, closed )
+                )
+                session.alerts
+    }
+
+
 stringToRole : String -> Role
 stringToRole s =
     case s of
@@ -137,7 +179,7 @@ newLogin s { sub, name, level, token, role, settings } =
         user =
             User name sub userRole level (AccessToken token) userSettings
     in
-        Session (clearCache s.cache) (Just user)
+        Session (clearCache s.cache) [] (Just user)
 
 
 loadStories : Session -> Task Http.Error Session
@@ -218,7 +260,7 @@ decodeSession json =
         |> Decode.decodeValue Decode.string
         |> Result.toMaybe
         |> Maybe.andThen (Decode.decodeString userDecoder >> Result.toMaybe)
-        |> Session emptyCache
+        |> Session emptyCache []
 
 
 encodeUser : User -> Encode.Value

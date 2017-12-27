@@ -3,7 +3,8 @@ module Views.Page exposing (frame, ActivePage(..))
 {-| The frame around a typical page - that is, the header and footer.
 -}
 
-import Data.Session as Session exposing (User)
+import Bootstrap exposing (closeBtn)
+import Data.Session as Session exposing (Alert(..), Session, User)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Lazy exposing (lazy2)
@@ -27,10 +28,11 @@ type ActivePage
 
 {-| Take a page's Html and frame it with a header.
 -}
-frame : Bool -> Maybe User -> ActivePage -> Html msg -> Html msg
-frame isLoading user page content =
+frame : Bool -> Session -> (Alert -> msg) -> ActivePage -> Html msg -> Html msg
+frame isLoading session onAlertClose page content =
     div [ class "page-frame" ]
-        [ viewHeader page user isLoading
+        [ viewHeader page session.user isLoading
+        , viewAlerts session.alerts onAlertClose
         , content
         ]
 
@@ -53,6 +55,38 @@ viewHeader page user isLoading =
                 ]
             ]
         ]
+
+
+viewAlerts : List ( Alert, Bool ) -> (Alert -> msg) -> Html msg
+viewAlerts alerts onAlertClose =
+    div [ id "alerts", class "container" ]
+        (List.map (viewAlert onAlertClose) alerts)
+
+
+viewAlert : (Alert -> msg) -> ( Alert, Bool ) -> Html msg
+viewAlert onAlertClose ( a, closed ) =
+    let
+        ( cls, msg ) =
+            case a of
+                Success m ->
+                    ( "alert alert-success", m )
+
+                Error m ->
+                    ( "alert alert-danger", m )
+
+                Warning m ->
+                    ( "alert alert-warning", m )
+
+        hide =
+            if closed then
+                " closed"
+            else
+                ""
+    in
+        div [ class (cls ++ hide), attribute "role" "alert" ]
+            [ closeBtn (onAlertClose a)
+            , text msg
+            ]
 
 
 mobileToggleButton : Html msg

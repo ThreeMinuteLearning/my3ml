@@ -242,12 +242,13 @@ update session msg model =
                 => Cmd.none
                 => (updateAnthologies (\anthologies -> newAnthology :: anthologies) session
                         |> updateCache (\c -> { c | selectedStories = [] })
+                        |> Session.success "New anthology created."
                    )
 
         CreateAnthologyResponse (Err e) ->
-            { model | errors = [ "Couldn't create the anthology: " ++ defaultHttpErrorMsg e ] }
+            model
                 => Cmd.none
-                => session
+                => Session.error ("Couldn't create the anthology: " ++ defaultHttpErrorMsg e) session
 
         SetViewType v ->
             { model | viewType = v } => Cmd.none => session
@@ -261,12 +262,14 @@ update session msg model =
 
         DeleteAnthologyResponse (Ok aid) ->
             ( model, Cmd.none )
-                => updateAnthologies (List.filter (\a -> a.id /= aid)) session
+                => (updateAnthologies (List.filter (\a -> a.id /= aid)) session
+                        |> Session.success "Anthology deleted."
+                   )
 
         DeleteAnthologyResponse (Err e) ->
-            { model | errors = [ "Couldn't delete the anthology: " ++ defaultHttpErrorMsg e ] }
+            model
                 => Cmd.none
-                => session
+                => Session.error ("Couldn't delete the anthology" ++ defaultHttpErrorMsg e) session
 
         SetStarterStories aid ->
             model
@@ -279,9 +282,9 @@ update session msg model =
             ( model, Cmd.none ) => session
 
         SetStarterStoriesResponse (Err e) ->
-            { model | errors = [ "Couldn't set the starter stories: " ++ defaultHttpErrorMsg e ] }
+            model
                 => Cmd.none
-                => session
+                => Session.error ("Couldn't set the starter stories: " ++ defaultHttpErrorMsg e) session
 
         UpdateAnthology a ->
             model

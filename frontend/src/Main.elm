@@ -22,6 +22,8 @@ import Page.Teachers as Teachers
 import Ports
 import Route exposing (Route)
 import Task
+import Time exposing (Time, inSeconds)
+import Tuple exposing (second)
 import Util exposing ((=>))
 import Views.Page as Page exposing (ActivePage)
 
@@ -52,6 +54,7 @@ type PageState
 
 type alias Model =
     { session : Session
+    , tick : Time
     , pageState : PageState
     }
 
@@ -61,6 +64,7 @@ init value location =
     setRoute (Route.fromLocation location)
         { pageState = Loaded Blank
         , session = decodeSession value
+        , tick = 0
         }
 
 
@@ -78,7 +82,7 @@ viewPage : Session -> Bool -> Page -> Html Msg
 viewPage session isLoading page =
     let
         frame =
-            Page.frame isLoading session.user
+            Page.frame isLoading session CloseAlert
 
         mapMsg m =
             Html.map (PageMsg << m)
@@ -102,43 +106,43 @@ viewPage session isLoading page =
 
             Story subModel ->
                 Story.view session subModel
-                    |> frame Page.Home
                     |> mapMsg StoryMsg
+                    |> frame Page.Home
 
             FindStory subModel ->
                 FindStory.view session subModel
-                    |> frame Page.FindStory
                     |> mapMsg FindStoryMsg
+                    |> frame Page.FindStory
 
             Login subModel ->
                 Login.view session subModel
-                    |> frame Page.Other
                     |> mapMsg LoginMsg
+                    |> frame Page.Other
 
             Students subModel ->
                 Students.view session subModel
-                    |> frame Page.Teacher
                     |> mapMsg StudentsMsg
+                    |> frame Page.Teacher
 
             Student subModel ->
                 Student.view subModel
-                    |> frame Page.Teacher
                     |> mapMsg StudentMsg
+                    |> frame Page.Teacher
 
             Classes subModel ->
                 Classes.view session subModel
-                    |> frame Page.Teacher
                     |> mapMsg ClassesMsg
+                    |> frame Page.Teacher
 
             Class subModel ->
                 Class.view session subModel
-                    |> frame Page.Teacher
                     |> mapMsg ClassMsg
+                    |> frame Page.Teacher
 
             Editor subModel ->
                 Editor.view subModel
-                    |> frame Page.Other
                     |> mapMsg EditorMsg
+                    |> frame Page.Other
 
             LeaderBoard subModel ->
                 LeaderBoard.view subModel
@@ -146,24 +150,26 @@ viewPage session isLoading page =
 
             Account subModel ->
                 Account.view subModel
-                    |> frame Page.Account
                     |> mapMsg AccountMsg
+                    |> frame Page.Account
 
             Register subModel ->
                 Register.view subModel
-                    |> frame Page.Register
                     |> mapMsg RegisterMsg
+                    |> frame Page.Register
 
             Teachers subModel ->
                 Teachers.view session subModel
-                    |> frame Page.Teacher
                     |> mapMsg TeachersMsg
+                    |> frame Page.Teacher
 
 
 type Msg
     = SetRoute (Maybe Route)
     | PageLoaded PageLoaded
     | PageMsg PageMsg
+    | CloseAlert Session.Alert
+    | Tick Time
 
 
 type PageLoaded
@@ -305,6 +311,35 @@ update msg model =
 
         PageMsg p ->
             updatePage (getPage model.pageState) p model
+
+        CloseAlert a ->
+            { model | session = Session.closeAlert a model.session }
+                => Cmd.none
+
+        Tick t ->
+            let
+                session =
+                    model.session
+
+                alerts =
+                    List.filter (not << second) session.alerts
+
+                interval =
+                    inSeconds t - model.tick
+
+                ( newAlerts, newTick ) =
+                    if interval < 3 then
+                        ( alerts, model.tick )
+                    else if interval > 10 then
+                        ( alerts, inSeconds t )
+                    else
+                        ( List.map (\( a, _ ) -> ( a, True )) alerts, inSeconds t )
+
+                newSession =
+                    { session | alerts = newAlerts }
+            in
+                { model | tick = newTick, session = newSession }
+                    => Cmd.none
 
 
 pageLoaded : PageLoaded -> Model -> ( Model, Cmd Msg )
@@ -466,6 +501,17 @@ subscriptions : Model -> Sub Msg
 subscriptions m =
     pageSubscriptions (getPage m.pageState)
         |> Sub.map PageMsg
+        |> \s -> Sub.batch [ s, sessionSubscriptions m.session ]
+
+
+sessionSubscriptions : Session -> Sub Msg
+sessionSubscriptions s =
+    case s.alerts of
+        [] ->
+            Sub.none
+
+        _ ->
+            Time.every Time.second Tick
 
 
 pageSubscriptions : Page -> Sub PageMsg

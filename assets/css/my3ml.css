@@ -264,6 +264,24 @@ th span {
     }
 }
 
+/* Alerts */
+
+#alerts {
+    margin-bottom: 15px;
+}
+
+#alerts .alert {
+    margin-bottom: 2px;
+    opacity: 1;
+    transition:opacity 0.5s, height 1s ease 1s;
+}
+
+#alerts .closed {
+    opacity: 0;
+    height: 0;
+    border: 0;
+    padding: 0;
+}
 /* Story fade-in animation */
 
 .u-selectable:hover {
@@ -275,8 +293,7 @@ th span {
     opacity: 0;
     max-height: 0;
     overflow: hidden;
-    animation: fadeIn 0.7s linear forwards,
-    slideDown 3s ease-out forwards;
+    animation: fadeIn 0.7s linear forwards, slideDown 3s ease-out forwards;
 }
 
 @keyframes fadeIn {
