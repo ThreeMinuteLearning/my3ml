@@ -333,7 +333,15 @@ update msg model =
                     else if interval > 10 then
                         ( alerts, inSeconds t )
                     else
-                        ( List.map (\( a, _ ) -> ( a, True )) alerts, inSeconds t )
+                        ( List.map closeUnlessError alerts, inSeconds t )
+
+                closeUnlessError ( a, c ) =
+                    case a of
+                        Session.Success _ ->
+                            ( a, True )
+
+                        _ ->
+                            ( a, c )
 
                 newSession =
                     { session | alerts = newAlerts }
