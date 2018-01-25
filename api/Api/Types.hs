@@ -25,7 +25,7 @@ data Story = Story
     , title :: Text
     , img :: Text
     , level :: Int
-    , qualification :: Text
+    , qualification :: Maybe Text
     , curriculum :: Maybe Text
     , tags :: [Text]
     , content :: Text

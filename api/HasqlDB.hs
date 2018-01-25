@@ -490,7 +490,7 @@ storyRow = Story
     <*> dvText
     <*> dvText
     <*> (fromIntegral <$> D.value D.int2)
-    <*> dvText
+    <*> D.nullableValue D.text
     <*> D.nullableValue D.text
     <*> dArray D.text
     <*> dvText
@@ -516,7 +516,7 @@ storyEncoder = contramap (fromIntegral . (id :: Story -> StoryId)) (E.value E.in
     <> contramap title evText
     <> contramap img evText
     <> contramap (fromIntegral . storyLevel) (E.value E.int4)
-    <> contramap qualification evText
+    <> contramap qualification (E.nullableValue E.text)
     <> contramap curriculum (E.nullableValue E.text)
     <> contramap tags (eArray E.text)
     <> contramap content evText

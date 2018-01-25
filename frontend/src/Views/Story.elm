@@ -69,7 +69,9 @@ view settings story state =
 
 tagList : Story -> List String
 tagList story =
-    story.tags ++ Maybe.withDefault [] (Maybe.map List.singleton story.curriculum) ++ [ story.qualification ]
+    story.tags
+        ++ Maybe.withDefault [] (Maybe.map List.singleton story.curriculum)
+        ++ Maybe.withDefault [] (Maybe.map List.singleton story.qualification)
 
 
 thresholdWidth : Int -> Int

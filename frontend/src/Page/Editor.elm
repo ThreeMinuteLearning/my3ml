@@ -80,7 +80,7 @@ makeZipper stories storyId =
 
 makeSqaTags : List Api.Story -> List String
 makeSqaTags =
-    List.map .qualification >> Set.fromList >> Set.toList
+    List.filterMap .qualification >> Set.fromList >> Set.toList
 
 
 initMultiselect : List Api.Story -> Multiselect.Model

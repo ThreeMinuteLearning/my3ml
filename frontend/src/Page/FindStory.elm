@@ -471,8 +471,11 @@ filterStories storyFilter stories =
             tagMatch tags =
                 (firstMatch (Regex.contains r) tags) /= Nothing
 
+            qualMatch q =
+                Maybe.map (Regex.contains r) q == Just True
+
             match story =
-                Regex.contains r story.title || Regex.contains r story.qualification || tagMatch story.tags || Regex.contains r story.content
+                Regex.contains r story.title || qualMatch story.qualification || tagMatch story.tags || Regex.contains r story.content
         in
             List.filter match stories
 
@@ -514,7 +517,7 @@ tableConfig =
                 [ storyTitleColumn
                 , Table.stringColumn "General" (tag 1)
                 , Table.stringColumn "BGE" (Maybe.withDefault "" << .curriculum)
-                , Table.stringColumn "SQA" .qualification
+                , Table.stringColumn "SQA" (Maybe.withDefault "" << .qualification)
                 , levelColumn
                 ]
             , customizations = Bootstrap.tableCustomizations
