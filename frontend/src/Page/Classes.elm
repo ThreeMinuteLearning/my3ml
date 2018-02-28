@@ -135,7 +135,7 @@ viewClassLink class =
 
 subtools : List (Html Msg)
 subtools =
-    [ Bootstrap.btn ShowAddClass [ text "Add Class" ] ]
+    [ Bootstrap.btn "add-class-button" ShowAddClass [ text "Add Class" ] ]
 
 
 addClassesDialog : AddClassForm.Model -> Dialog.Config Msg

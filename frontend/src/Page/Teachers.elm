@@ -118,7 +118,7 @@ viewCode code =
 
 newRegistrationCodeButton : Html Msg
 newRegistrationCodeButton =
-    Bootstrap.btn GenerateRegistrationCode [ text "New Teacher Account" ]
+    Bootstrap.btn "new-registration-code-button" GenerateRegistrationCode [ text "New Teacher Account" ]
 
 
 tableConfig : Table.Config ( Api.Teacher, Bool ) Msg

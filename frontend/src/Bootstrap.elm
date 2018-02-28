@@ -36,8 +36,8 @@ btnGroup =
     div [ class "btn-group", role "group" ]
 
 
-btn action =
-    button [ class "btn btn-default", onClick action ]
+btn id_ action =
+    button [ id id_, class "btn btn-default", onClick action ]
 
 
 closeBtn action =

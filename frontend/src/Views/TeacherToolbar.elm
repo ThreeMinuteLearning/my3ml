@@ -14,19 +14,19 @@ view session subtools =
     row
         [ toolbar "toolbar"
             [ btnGroup
-                [ btn (routeTo Route.Students) [ text "Students" ]
-                , btn (routeTo Route.Classes) [ text "Classes" ]
+                [ btn "students-button" (routeTo Route.Students) [ text "Students" ]
+                , btn "classes-button" (routeTo Route.Classes) [ text "Classes" ]
                 , viewIf (isSchoolAdmin session)
-                    (btn (routeTo Route.Teachers) [ text "Teachers" ])
+                    (btn "teachers-button" (routeTo Route.Teachers) [ text "Teachers" ])
                 ]
             , btnGroup subtools
             ]
         ]
 
 
-btn : String -> List (Html msg) -> Html msg
-btn link =
-    a [ class "btn btn-default", href link ]
+btn : String -> String -> List (Html msg) -> Html msg
+btn id_ link =
+    a [ id id_, class "btn btn-default", href link ]
 
 
 routeTo : Route.TeacherSubRoute -> String

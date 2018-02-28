@@ -208,9 +208,9 @@ for your school.
 viewRegistrationOptions : Html Msg
 viewRegistrationOptions =
     div []
-        [ button [ type_ "button", class "btn", onClick (SetRegistrationType NewSchool) ] [ text "Register a new school" ]
+        [ button [ id "register-school", type_ "button", class "btn", onClick (SetRegistrationType NewSchool) ] [ text "Register a new school" ]
         , text " "
-        , button [ type_ "button", class "btn btn-primary", onClick (SetRegistrationType WithCode) ] [ text "Register as a teacher in an existing school" ]
+        , button [ id "register-teacher", type_ "button", class "btn btn-primary", onClick (SetRegistrationType WithCode) ] [ text "Register as a teacher in an existing school" ]
         ]
 
 

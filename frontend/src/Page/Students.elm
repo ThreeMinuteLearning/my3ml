@@ -188,7 +188,7 @@ view session model =
 subtools : Session -> List (Html Msg)
 subtools session =
     if Session.isSchoolAdmin session then
-        [ Bootstrap.btn ShowAddStudents [ text "Add Students" ]
+        [ Bootstrap.btn "add-students-button" ShowAddStudents [ text "Add Students" ]
         ]
     else
         []
