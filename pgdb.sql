@@ -55,7 +55,7 @@ CREATE TABLE class
     , name text NOT NULL CHECK (length(name) > 0)
     , description text
     , school_id uuid NOT NULL REFERENCES school
-    , created_by uuid NOT NULL REFERENCES login
+    , created_by uuid NOT NULL REFERENCES login ON DELETE CASCADE
     , UNIQUE (id, school_id)
     , UNIQUE (name, school_id)
     );
@@ -96,7 +96,7 @@ CREATE TABLE anthology
     , school_id uuid REFERENCES school
     , stories integer[] NOT NULL
     , hidden boolean NOT NULL default false
-    , created_by uuid NOT NULL REFERENCES login
+    , created_by uuid NOT NULL REFERENCES login ON DELETE CASCADE
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -112,7 +112,7 @@ CREATE TABLE dict
 CREATE TABLE story_answer
     ( story_id integer NOT NULL REFERENCES story
     , student_id uuid NOT NULL REFERENCES student
-    , school_id uuid NOT NULL REFERENCES school
+    , school_id uuid NOT NULL REFERENCES school ON DELETE CASCADE
     , connect text NOT NULL
     , question text NOT NULL
     , summarise text NOT NULL
@@ -124,7 +124,7 @@ CREATE TABLE story_answer
 
 CREATE TABLE registration_code
     ( code text PRIMARY KEY
-    , school_id uuid NOT NULL REFERENCES school
+    , school_id uuid NOT NULL REFERENCES school ON DELETE CASCADE
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
