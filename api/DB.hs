@@ -7,7 +7,7 @@ import           Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, 
 import           Control.Monad.IO.Class (liftIO, MonadIO)
 import           Data.Aeson (Value)
 import           Data.ByteString (ByteString)
-import           Data.UUID (toText)
+import           Data.UUID (UUID, toText)
 import           Data.UUID.V4 (nextRandom)
 import           Data.Maybe (fromMaybe)
 import           Data.List (find)
@@ -136,8 +136,8 @@ updateDB (AtomicDB tDB) f =
         db <- readTVar tDB
         writeTVar tDB (f db)
 
-newUUID :: MonadIO m => m Text
-newUUID = liftIO (toText <$> nextRandom)
+newUUID :: MonadIO m => m UUID
+newUUID = liftIO nextRandom
 
 instance DB AtomicDB where
     getStories _ db =  Map.elems <$> withDB db stories

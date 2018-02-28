@@ -15,6 +15,7 @@ import           Control.Monad (join)
 import           Data.Monoid ((<>))
 import           Data.Proxy (Proxy (Proxy))
 import           Data.Text (Text)
+import           Data.UUID (UUID, toText)
 import           Elm
 import           GHC.TypeLits (KnownSymbol)
 import           Servant.Elm (ElmOptions (..), defElmImports, defElmOptions, generateElmForAPIWith, UrlPrefix (Static))
@@ -94,6 +95,10 @@ deriving instance ElmType Registration
 
 instance ElmType SubjectId where
     toElmType _ = toElmType (Proxy :: Proxy Text)
+
+instance ElmType UUID where
+    toElmType _ = toElmType (Proxy :: Proxy Text)
+
 
 main :: IO ()
 main = specsToDir specs "frontend/src"

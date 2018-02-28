@@ -14,11 +14,15 @@ import           Data.Time.Clock (UTCTime)
 import qualified Data.Map.Strict as Map
 import           Data.ByteString (ByteString)
 import           Data.Text (Text)
+import           Data.UUID (UUID, fromText, toText)
 import           Jose.Jwk (Jwk)
 import           GHC.Generics (Generic)
 import           Prelude hiding (id)
 import           Servant ((:<|>), (:>), AuthProtect, Capture, QueryParam, ReqBody, Delete, Post, PostNoContent, NoContent, Get, JSON)
 import           Web.HttpApiData
+
+
+newtype Id a = Id UUID
 
 data Story = Story
     { id :: StoryId
@@ -51,7 +55,7 @@ data School = School
     , description :: Maybe Text
     } deriving (Show, Generic, ToJSON)
 
-type SchoolId = Text
+type SchoolId = UUID
 
 data Class = Class
     { id :: ClassId
@@ -62,7 +66,7 @@ data Class = Class
     , students :: [SubjectId]
     } deriving (Show, Generic, ToJSON, FromJSON)
 
-type ClassId = Text
+type ClassId = UUID
 
 data Answer = Answer
     { storyId :: StoryId
@@ -105,7 +109,7 @@ data Anthology = Anthology
     , hidden :: Bool
     } deriving (Show, Generic, ToJSON, FromJSON)
 
-type AnthologyId = Text
+type AnthologyId = UUID
 
 data Account = Account
     { id :: SubjectId
@@ -150,16 +154,20 @@ data Registration = Registration
     , password :: Text
     } deriving (Show, Generic, FromJSON)
 
-newtype SubjectId = SubjectId { unSubjectId :: Text} deriving (Show, Eq, Generic)
+newtype SubjectId = SubjectId { unSubjectId :: UUID} deriving (Show, Eq, Generic)
 
 instance FromHttpApiData SubjectId where
-    parseUrlPiece = Right . SubjectId
+    parseUrlPiece p = case fromText p of
+        Just u -> Right (SubjectId u)
+        Nothing -> Left "Invalid UUID"
+
 
 instance ToJSON SubjectId where
-    toJSON = String . unSubjectId
+    toJSON = String . toText . unSubjectId
 
 instance FromJSON SubjectId where
-    parseJSON = withText "SubjectId" (pure . SubjectId)
+    parseJSON = withText "SubjectId" $
+        maybe (fail "Invalid UUID") pure . fmap SubjectId . fromText
 
 type AccessToken = Text
 

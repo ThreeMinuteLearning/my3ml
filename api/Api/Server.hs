@@ -36,7 +36,7 @@ import           Data.List (scanl', last, uncons)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Text.Encoding (encodeUtf8, decodeUtf8)
-import           Data.UUID (toText)
+import           Data.UUID (UUID, toText)
 import           Data.UUID.V4 (nextRandom)
 import           Jose.Jwt hiding (encode, decode)
 import           Jose.Jwa
@@ -71,8 +71,8 @@ runDB f = ask >>= f . database
 server :: DB db => ApiServer Api db
 server = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> anthologiesServer :<|> loginServer :<|> accountServer
 
-newUUID :: HandlerT db Text
-newUUID = liftIO (toText <$> nextRandom)
+newUUID :: HandlerT db UUID
+newUUID = liftIO nextRandom
 
 deriveKey :: BA.ByteArrayAccess b2 => B.ByteString -> b2 -> ScrubbedBytes
 deriveKey salt password = pbeKeyBytes :: ScrubbedBytes
@@ -275,7 +275,7 @@ getAnthologiesForSchool = fmap (filter (not . (hidden :: Anthology -> Bool))) . 
 
 createAnthology :: DB db => SubjectId -> Maybe SchoolId -> Anthology -> HandlerT db Anthology
 createAnthology subId sid anthology = do
-    uuid <- liftIO (toText <$> nextRandom)
+    uuid <- liftIO nextRandom
     let anthologyWithId = anthology { id = uuid, createdBy = subId, schoolId = sid } :: Anthology
     _ <- runDB (DB.createAnthology anthologyWithId)
     return anthologyWithId
@@ -288,7 +288,7 @@ updateAnthology sid aid anthology = do
 
 setStarterStories :: DB db => AnthologyId -> HandlerT db NoContent
 setStarterStories aid = do
-    logInfoN $ "Setting starter stories to anthology: " <> aid
+    logInfoN $ "Setting starter stories to anthology: " <> toText aid
     stories_ <- runDB (DB.getAnthologyStories aid)
     runDB (DB.setStarterStories aid)
     mvar <- sampleStories <$> ask
@@ -369,14 +369,14 @@ studentsServer scp@(TeacherScope _ _ (TenantKey key) _) schoolId_ = getStudents 
         maybe (throwError err404) return (fmap decryptStudent s)
 
     changePassword studId password_ = do
-        logInfoN $ "Setting password for student: " <> unSubjectId studId
+        logInfoN $ "Setting password for student: " <> subToText studId
         when (T.length password_ < 8) (throwError err400)
         hashedPassword <- encodePassword password_
         runDB $ DB.setStudentPassword schoolId_ studId hashedPassword
         return NoContent
 
     changeUsername studId username_ = do
-        logInfoN $ "Setting username for student: " <> unSubjectId studId <> " to " <> username_
+        logInfoN $ "Setting username for student: " <> subToText studId <> " to " <> username_
         when (T.length username_ < 3) (throwError err400)
 
         user <- runDB $ DB.getAccountByUsername username_
@@ -387,18 +387,18 @@ studentsServer scp@(TeacherScope _ _ (TenantKey key) _) schoolId_ = getStudents 
         return NoContent
 
     updateStudent _ s@Student{..} = do
-        logInfoN $ "Updating student: " <> unSubjectId id
+        logInfoN $ "Updating student: " <> subToText id
         eStudent <- encryptStudent s
         dbStudent <- runDB $ DB.updateStudent eStudent schoolId_
         return $ decryptStudent dbStudent
 
     deleteStudent studId = do
-        logInfoN $ "Deleting student: " <> unSubjectId studId
+        logInfoN $ "Deleting student: " <> subToText studId
         s <- runDB $ DB.deleteStudent studId schoolId_
         return $ decryptStudent s
 
     undelete studId = do
-        logInfoN $ "Un-deleting student: " <> unSubjectId studId
+        logInfoN $ "Un-deleting student: " <> subToText studId
         runDB $ DB.undeleteStudent studId schoolId_
         return NoContent
 
@@ -461,14 +461,17 @@ studentsServer scp@(TeacherScope _ _ (TenantKey key) _) schoolId_ = getStudents 
 
 studentsServer _ _ = throwAll err403
 
+subToText :: SubjectId -> Text
+subToText =  toText . unSubjectId
+
 teachersServer :: DB db => AccessScope -> SchoolId -> ApiServer TeachersApi db
 teachersServer (TeacherScope _ _ (TenantKey sk) True) schoolId_ = runDB (DB.getTeachers schoolId_) :<|> activateAccount
   where
     activateAccount accountId = do
-        logInfoN $ "Activating account: " <> unSubjectId accountId
+        logInfoN $ "Activating account: " <> subToText accountId
         keys <- runDB (DB.getUserKeys accountId)
         case keys of
-            Nothing -> logErrorN ("Activating account with no keys: " <> unSubjectId accountId) >> throwError err500
+            Nothing -> logErrorN ("Activating account with no keys: " <> subToText accountId) >> throwError err500
             Just ks -> do
                 esk <- liftIO $ encryptSchoolKeyWithRsaKey sk (pubKey ks)
                 runDB (DB.activateAccount (schoolId_, accountId) esk)

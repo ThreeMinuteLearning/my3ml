@@ -127,7 +127,7 @@ instance DB HasqlDB where
     getStarterStories db = do
         anthologyId_ <- runQuery (Q.statement "SELECT starter_stories FROM config" E.unit (D.singleRow (D.nullableValue D.uuid)) False) () db
         case anthologyId_ of
-            Just id_ -> getAnthologyStories (UUID.toText id_) db
+            Just id_ -> getAnthologyStories id_ db
             Nothing -> do
                 stories <- take 100 . reverse . sortOn (id :: Story -> StoryId) <$> getStories False db
                 take 24 <$> liftIO (shuffle stories)
@@ -167,7 +167,7 @@ instance DB HasqlDB where
 
     createStudent (nm, lvl, schoolId_) (username, password) db = runSession db $ do
         begin
-        subId <- SubjectId . UUID.toText <$> S.query (username, password, student, True) insertAccount
+        subId <- SubjectId <$> S.query (username, password, student, True) insertAccount
         let s = Student subId nm Nothing lvl schoolId_ False Nothing
         S.query (s, subId) insertStudent
         commit
@@ -181,8 +181,8 @@ instance DB HasqlDB where
     deleteStudent subjectId_ schoolId_ db = runSession db $ do
         begin
         S.query (subjectId_, schoolId_) $
-            Q.statement "UPDATE student SET deleted=now() WHERE id=$1 :: uuid AND school_id = $2 :: uuid AND deleted is null"
-              (contramap fst evSubjectId <> contramap snd evText) D.unit True
+            Q.statement "UPDATE student SET deleted=now() WHERE id=$1 AND school_id = $2 AND deleted is null"
+              (contramap fst evSubjectId <> contramap snd evUUID) D.unit True
         S.query subjectId_ $
             Q.statement "UPDATE login SET locked=true WHERE id=$1 :: uuid"
               evSubjectId D.unit True
@@ -193,7 +193,7 @@ instance DB HasqlDB where
         begin
         S.query (subjectId_, schoolId_) $
             Q.statement "UPDATE student SET deleted=null WHERE id=$1 :: uuid AND school_id = $2 :: uuid"
-              (contramap fst evSubjectId <> contramap snd evText) D.unit True
+              (contramap fst evSubjectId <> contramap snd evUUID) D.unit True
         S.query subjectId_ $
             Q.statement "UPDATE login SET locked=false WHERE id=$1 :: uuid"
               evSubjectId D.unit True
@@ -316,8 +316,11 @@ dvText = D.value D.text
 evText :: E.Params Text
 evText = E.value E.text
 
+evUUID :: E.Params UUID.UUID
+evUUID = E.value E.uuid
+
 evSubjectId :: E.Params SubjectId
-evSubjectId = contramap unSubjectId evText
+evSubjectId = contramap unSubjectId evUUID
 
 eTextPair :: E.Params (Text, Text)
 eTextPair = contramap fst evText <> contramap snd evText
@@ -325,11 +328,11 @@ eTextPair = contramap fst evText <> contramap snd evText
 evUserType :: E.Params UserType
 evUserType = E.value (contramap userType E.text)
 
-dvUUID :: D.Row Text
-dvUUID = UUID.toText <$> D.value D.uuid
+dvUUID :: D.Row UUID.UUID
+dvUUID = D.value D.uuid
 
 dvSubjectId :: D.Row SubjectId
-dvSubjectId = fmap SubjectId dvUUID
+dvSubjectId = fmap SubjectId (D.value D.uuid)
 
 dArray :: D.Value a -> D.Row [a]
 dArray v = D.value (D.array (D.arrayDimension replicateM (D.arrayValue v)))
@@ -359,9 +362,10 @@ userTypeValue = -- D.composite (uType <$> D.compositeValue D.text)
 -- User accounts
 
 insertRegistrationCode :: Query (Text, SchoolId) ()
-insertRegistrationCode = Q.statement sql eTextPair D.unit False
+insertRegistrationCode = Q.statement sql encode D.unit False
   where
-    sql = "INSERT INTO registration_code (code, school_id) VALUES ($1, $2 :: uuid)"
+    sql = "INSERT INTO registration_code (code, school_id) VALUES ($1, $2)"
+    encode = contramap fst evText <> contramap snd evUUID
 
 getRegistrationCode :: Query Text (Maybe UUID.UUID)
 getRegistrationCode = Q.statement sql evText (D.maybeRow (D.value D.uuid)) False
@@ -375,12 +379,12 @@ getRegistrationCode = Q.statement sql evText (D.maybeRow (D.value D.uuid)) False
 activateTeacherAccount :: Query (SchoolId, SubjectId) ()
 activateTeacherAccount = Q.statement sql encode D.unit False
   where
-    encode = contramap fst evText
+    encode = contramap fst evUUID
         <> contramap snd evSubjectId
     sql = "UPDATE login SET active = true \
           \ WHERE id = (SELECT id FROM teacher \
-                     \  WHERE id = $2 :: uuid \
-                     \  AND school_id = $1 :: uuid \
+                     \  WHERE id = $2 \
+                     \  AND school_id = $1 \
                      \ )"
 
 selectAccountByUsername :: Query Text (Maybe Account)
@@ -415,8 +419,8 @@ updateStudentPassword :: Query (SchoolId, SubjectId, Text) ()
 updateStudentPassword = Q.statement sql encode D.unit True
   where
     sql = "UPDATE login SET password = $3 \
-          \ WHERE id = (SELECT id from student WHERE id = $2 :: uuid and school_id = $1 :: uuid)"
-    encode = contramap (\(sid, _, _) -> sid) evText
+          \ WHERE id = (SELECT id from student WHERE id = $2 and school_id = $1)"
+    encode = contramap (\(sid, _, _) -> sid) evUUID
         <> contramap (\(_, sid, _) -> sid) evSubjectId
         <> contramap (\(_, _, pwd) -> pwd) evText
 
@@ -424,8 +428,8 @@ updateStudentUsername :: Query (SchoolId, SubjectId, Text) ()
 updateStudentUsername = Q.statement sql encode D.unit True
   where
     sql = "UPDATE login SET username = lower($3) \
-          \ WHERE id = (SELECT id from student WHERE id = $2 :: uuid and school_id = $1 :: uuid)"
-    encode = contramap (\(sid, _, _) -> sid) evText
+          \ WHERE id = (SELECT id from student WHERE id = $2 and school_id = $1)"
+    encode = contramap (\(sid, _, _) -> sid) evUUID
         <> contramap (\(_, sid, _) -> sid) evSubjectId
         <> contramap (\(_, _, nm) -> nm) evText
 
@@ -548,7 +552,7 @@ selectTeacherBySubjectId = Q.statement sql evSubjectId (D.singleRow teacherRow) 
     sql = selectTeacherSql <> " WHERE id = $1 :: uuid"
 
 selectTeachersBySchool :: Query SchoolId [(Teacher, Bool)]
-selectTeachersBySchool = Q.statement sql evText (D.rowsList (liftA2 (,) teacherRow (D.value D.bool))) True
+selectTeachersBySchool = Q.statement sql evUUID (D.rowsList (liftA2 (,) teacherRow (D.value D.bool))) True
   where
     sql = "SELECT t.id, t.name, t.bio, t.school_id, a.active \
           \ FROM teacher as t \
@@ -576,21 +580,21 @@ selectStudentSql :: ByteString
 selectStudentSql = "SELECT id, name, description, level, school_id, hidden, deleted FROM student"
 
 selectStudentsBySchool :: Query SchoolId [Student]
-selectStudentsBySchool = Q.statement sql evText (D.rowsList studentRow) True
+selectStudentsBySchool = Q.statement sql evUUID (D.rowsList studentRow) True
   where
-    sql = selectStudentSql <> " WHERE school_id = $1 :: uuid"
+    sql = selectStudentSql <> " WHERE school_id = $1"
 
 selectStudentById :: Query (SubjectId, SchoolId) (Maybe Student)
 selectStudentById = Q.statement sql encode (D.maybeRow studentRow) True
   where
     encode = contramap fst evSubjectId
-        <> contramap snd evText
-    sql = selectStudentSql <> " WHERE id = $1 :: uuid AND school_id = $2 :: uuid"
+        <> contramap snd evUUID
+    sql = selectStudentSql <> " WHERE id = $1 :: uuid AND school_id = $2"
 
 selectStudentBySubjectId :: Query SubjectId Student
 selectStudentBySubjectId = Q.statement sql evSubjectId (D.singleRow studentRow) True
   where
-    sql = selectStudentSql <> " WHERE id = $1 :: uuid"
+    sql = selectStudentSql <> " WHERE id = $1"
 
 studentRow :: D.Row Student
 studentRow = Student
@@ -610,19 +614,19 @@ insertStudent = Q.statement sql encode D.unit True
         <> contramap ((name :: Student -> Text) . fst) evText
         <> contramap ((description :: Student -> Maybe Text) . fst) (E.nullableValue E.text)
         <> contramap ((fromIntegral . (level :: Student -> Int)) . fst) (E.value E.int4)
-        <> contramap ((schoolId :: Student -> SchoolId) . fst) evText
+        <> contramap ((schoolId :: Student -> SchoolId) . fst) evUUID
 
 updateStudent_ :: Query (Student, SchoolId) ()
 updateStudent_ = Q.statement sql encode D.unit True
   where
     sql = "UPDATE student SET level=$3, hidden=$4 \
-          \ WHERE id=$5 :: uuid AND school_id=$6 :: uuid"
+          \ WHERE id=$5 :: uuid AND school_id=$6"
     encode = contramap ((name :: Student -> Text) . fst) evText
         <> contramap ((description :: Student -> Maybe Text) . fst) (E.nullableValue E.text)
         <> contramap ((fromIntegral . (level :: Student -> Int)) . fst) (E.value E.int4)
         <> contramap ((hidden :: Student -> Bool) . fst) (E.value E.bool)
         <> contramap ((id :: Student -> SubjectId) . fst) evSubjectId
-        <> contramap snd evText
+        <> contramap snd evUUID
 
 -- Schools
 
@@ -635,7 +639,7 @@ selectAllSchools =
 
 selectSchoolById :: Query SchoolId (Maybe School)
 selectSchoolById =
-    Q.statement (selectSchoolSql <> " WHERE id = $1 :: uuid") evText (D.maybeRow schoolRow) True
+    Q.statement (selectSchoolSql <> " WHERE id = $1") evUUID (D.maybeRow schoolRow) True
 
 schoolRow :: D.Row School
 schoolRow = School
@@ -647,17 +651,17 @@ schoolRow = School
 -- Classes
 
 selectClassSql :: ByteString
-selectClassSql = "SELECT id, name, description, school_id, created_by, array(SELECT student_id :: text FROM student_class WHERE class_id = class.id) AS students FROM class"
+selectClassSql = "SELECT id, name, description, school_id, created_by, array(SELECT student_id FROM student_class WHERE class_id = class.id) AS students FROM class"
 
 selectClassesBySchool :: Query SchoolId [Class]
-selectClassesBySchool = Q.statement sql evText (D.rowsList classRow) True
+selectClassesBySchool = Q.statement sql evUUID (D.rowsList classRow) True
   where
-    sql = selectClassSql <> " WHERE school_id = $1 :: uuid"
+    sql = selectClassSql <> " WHERE school_id = $1"
 
 selectClassById :: Query ClassId (Maybe Class)
-selectClassById = Q.statement sql evText (D.maybeRow classRow) True
+selectClassById = Q.statement sql evUUID (D.maybeRow classRow) True
   where
-    sql = selectClassSql <> " WHERE id = $1 :: uuid"
+    sql = selectClassSql <> " WHERE id = $1"
 
 classRow :: D.Row Class
 classRow = Class
@@ -666,74 +670,75 @@ classRow = Class
     <*> D.nullableValue D.text
     <*> dvUUID
     <*> dvSubjectId
-    <*> dArray (SubjectId <$> D.text)
+    <*> dArray (SubjectId <$> D.uuid)
 
 insertClassMembers :: Query (SchoolId, ClassId, [SubjectId]) ()
 insertClassMembers = Q.statement sql encode D.unit True
   where
     sql = "INSERT INTO student_class (school_id, class_id, student_id) \
-          \ SELECT $1 :: uuid, $2 :: uuid, studentId FROM unnest ($3 :: uuid[]) as studentId \
+          \ SELECT $1, $2, studentId FROM unnest $3 as studentId \
           \ ON CONFLICT DO NOTHING"
-    encode = contramap (\(sid, _, _) -> sid) evText
-        <> contramap (\(_, cid, _) -> cid) evText
-        <> contramap (\(_, _, sids) -> map unSubjectId sids) (eArray E.text)
+    encode = contramap (\(sid, _, _) -> sid) evUUID
+        <> contramap (\(_, cid, _) -> cid) evUUID
+        <> contramap (\(_, _, sids) -> map unSubjectId sids) (eArray E.uuid)
 
 deleteClassMembers :: Query (SchoolId, ClassId, [SubjectId]) ()
 deleteClassMembers = Q.statement sql encode D.unit True
   where
     sql = "DELETE FROM student_class \
-          \ WHERE class_id=$2 :: uuid \
-          \ AND school_id=$1 :: uuid \
-          \ AND student_id IN (SELECT studentId FROM unnest ($3 :: uuid[]) as studentId)"
-    encode = contramap (\(sid, _, _) -> sid) evText
-        <> contramap (\(_, cid, _) -> cid) evText
-        <> contramap (\(_, _, sids) -> map unSubjectId sids) (eArray E.text)
+          \ WHERE class_id=$2 \
+          \ AND school_id=$1 \
+          \ AND student_id IN (SELECT studentId FROM unnest $3 as studentId)"
+    encode = contramap (\(sid, _, _) -> sid) evUUID
+        <> contramap (\(_, cid, _) -> cid) evUUID
+        <> contramap (\(_, _, sids) -> map unSubjectId sids) (eArray E.uuid)
 
 
 
 insertClass :: Query Class ()
 insertClass = Q.statement sql encode D.unit True
   where
-    sql = "INSERT INTO class (id, name, description, school_id, created_by) values ($1 :: uuid, $2, $3, $4 :: uuid, $5 :: uuid)"
-    encode = contramap (id :: Class -> ClassId) evText
+    sql = "INSERT INTO class (id, name, description, school_id, created_by) values ($1, $2, $3, $4, $5)"
+    encode = contramap (id :: Class -> ClassId) evUUID
         <> contramap (name :: Class -> Text) evText
         <> contramap (description :: Class -> Maybe Text) (E.nullableValue E.text)
-        <> contramap (schoolId :: Class -> SchoolId) evText
+        <> contramap (schoolId :: Class -> SchoolId) evUUID
         <> contramap (createdBy :: Class -> SubjectId) evSubjectId
 
 deleteClassById :: Query (ClassId, SchoolId) Int64
-deleteClassById = Q.statement sql eTextPair D.rowsAffected True
+deleteClassById = Q.statement sql encode D.rowsAffected True
   where
-    sql = "DELETE FROM class WHERE id = $1 :: uuid AND school_id = $2 :: uuid"
+    sql = "DELETE FROM class WHERE id = $1 AND school_id = $2"
+    encode = contramap fst evUUID <> contramap snd evUUID
 
 
 
 -- Anthologies
 
 selectAnthologiesBySchoolId :: Query (Maybe SchoolId) [Anthology]
-selectAnthologiesBySchoolId = Q.statement sql (E.nullableValue E.text) (D.rowsList anthologyRow) True
+selectAnthologiesBySchoolId = Q.statement sql (E.nullableValue E.uuid) (D.rowsList anthologyRow) True
   where
-    sql = "SELECT id, name, description, created_by, school_id :: text, stories, hidden \
+    sql = "SELECT id, name, description, created_by, school_id, stories, hidden \
           \ FROM anthology \
           \ WHERE school_id is null \
-          \ OR school_id = $1 :: uuid"
+          \ OR school_id = $1"
 
 anthologyRow :: D.Row Anthology
 anthologyRow = Anthology
     <$> dvUUID
     <*> dvText
     <*> dvText
-    <*> (SubjectId <$> dvUUID)
-    <*> D.nullableValue D.text
+    <*> (SubjectId <$> D.value D.uuid)
+    <*> D.nullableValue D.uuid
     <*> (map fromIntegral <$> dArray D.int4)
     <*> D.value D.bool
 
 anthologyEncoder :: E.Params Anthology
-anthologyEncoder = contramap (id :: Anthology -> AnthologyId) evText
+anthologyEncoder = contramap (id :: Anthology -> AnthologyId) evUUID
     <> contramap (name :: Anthology -> Text) evText
     <> contramap (description :: Anthology -> Text) evText
-    <> contramap (unSubjectId . (createdBy :: Anthology -> SubjectId)) evText
-    <> contramap (schoolId :: Anthology -> Maybe SchoolId) (E.nullableValue E.text)
+    <> contramap (unSubjectId . (createdBy :: Anthology -> SubjectId)) evUUID
+    <> contramap (schoolId :: Anthology -> Maybe SchoolId) (E.nullableValue E.uuid)
     <> contramap (map fromIntegral <$> (stories :: Anthology -> [StoryId])) (eArray E.int4)
     <> contramap (hidden :: Anthology -> Bool) (E.value E.bool)
 
@@ -741,35 +746,35 @@ insertAnthology :: Query Anthology ()
 insertAnthology = Q.statement sql anthologyEncoder D.unit True
   where
     sql = "INSERT INTO anthology (id, name, description, created_by, school_id, stories, hidden) \
-              \ VALUES ($1 :: uuid, $2, $3, $4 :: uuid, $5 :: uuid, $6, $7)"
+              \ VALUES ($1, $2, $3, $4, $5, $6, $7)"
 
 updateAnthology_ :: Query Anthology ()
 updateAnthology_ = Q.statement sql anthologyEncoder D.unit True
   where
-    sql = "UPDATE anthology SET name=$2, stories=$4, hidden=$5 WHERE id=$1 :: uuid"
+    sql = "UPDATE anthology SET name=$2, stories=$4, hidden=$5 WHERE id=$1"
 
 deleteAnthologyById :: Query (AnthologyId, Maybe SchoolId) Int64
 deleteAnthologyById = Q.statement sql encode D.rowsAffected True
   where
     sql = "DELETE FROM anthology \
-          \ WHERE id = $1 :: uuid \
-          \ AND ($2 is null or school_id = $2 :: uuid)"
-    encode = contramap fst evText
-        <> contramap snd (E.nullableValue E.text)
+          \ WHERE id = $1 \
+          \ AND ($2 is null or school_id = $2)"
+    encode = contramap fst evUUID
+        <> contramap snd (E.nullableValue E.uuid)
 
 
 selectAnthologyStories :: Query AnthologyId [Story]
-selectAnthologyStories = Q.statement sql evText (D.rowsList storyRow) True
+selectAnthologyStories = Q.statement sql evUUID (D.rowsList storyRow) True
   where
     sql = selectStorySql <> " AND id in\
                             \ ( SELECT unnest(stories) FROM anthology \
-                            \   WHERE id = $1 :: uuid\
+                            \   WHERE id = $1 \
                             \ )"
 
 
 updateStarterStories :: Query AnthologyId ()
 updateStarterStories =
-    Q.statement "UPDATE config SET starter_stories = $1 :: uuid" evText D.unit False
+    Q.statement "UPDATE config SET starter_stories = $1" evUUID D.unit False
 
 -- Word dictionary
 
@@ -812,23 +817,23 @@ selectAnswersSql :: ByteString
 selectAnswersSql = "SELECT story_id, student_id, connect, question, summarise, clarify FROM story_answer"
 
 selectAnswersBySchool :: Query SchoolId [Answer]
-selectAnswersBySchool = Q.statement sql evText (D.rowsList answerRow) True
+selectAnswersBySchool = Q.statement sql evUUID (D.rowsList answerRow) True
   where
-    sql = selectAnswersSql <> " WHERE school_id = $1 :: uuid"
+    sql = selectAnswersSql <> " WHERE school_id = $1"
 
 selectAnswersByStudent :: Query (SubjectId, SchoolId) [Answer]
 selectAnswersByStudent = Q.statement sql encode (D.rowsList answerRow) True
   where
     encode = contramap fst evSubjectId
-        <> contramap snd evText
-    sql = selectAnswersSql <> " WHERE student_id = $1 :: uuid AND school_id = $2 :: uuid ORDER BY created_at DESC"
+        <> contramap snd evUUID
+    sql = selectAnswersSql <> " WHERE student_id = $1 AND school_id = $2 ORDER BY created_at DESC"
 
 selectAnswersByStory :: Query (SchoolId, StoryId) [Answer]
 selectAnswersByStory = Q.statement sql encode (D.rowsList answerRow) True
   where
-    encode = contramap fst evText
+    encode = contramap fst evUUID
         <> contramap (fromIntegral . snd) (E.value E.int4)
-    sql = selectAnswersSql <> " WHERE school_id = $1 :: uuid AND story_id = $2 ORDER BY created_at DESC"
+    sql = selectAnswersSql <> " WHERE school_id = $1 AND story_id = $2 ORDER BY created_at DESC"
 
 answerRow :: D.Row Answer
 answerRow = Answer
@@ -843,10 +848,10 @@ insertAnswer :: Query (Answer, SchoolId) ()
 insertAnswer = Q.statement sql encode D.unit True
   where
     sql = "INSERT INTO story_answer (story_id, student_id, school_id, connect, question, summarise, clarify) \
-          \ VALUES ($1, $2 :: uuid, $3 :: uuid, $4, $5, $6, $7)"
+          \ VALUES ($1, $2, $3, $4, $5, $6, $7)"
     encode = contramap (fromIntegral . (storyId :: Answer -> Int) . fst) (E.value E.int4)
         <> contramap ((studentId :: Answer -> SubjectId) . fst) evSubjectId
-        <> contramap snd evText
+        <> contramap snd evUUID
         <> contramap (connect . fst) evText
         <> contramap (question . fst) evText
         <> contramap (summarise . fst) evText
@@ -855,9 +860,9 @@ insertAnswer = Q.statement sql encode D.unit True
 -- Leaderboard
 
 selectLeaderboardBySchoolId :: Query SchoolId [LeaderBoardEntry]
-selectLeaderboardBySchoolId = Q.statement sql evText (D.rowsList decode) True
+selectLeaderboardBySchoolId = Q.statement sql evUUID (D.rowsList decode) True
   where
-    sql = "SELECT position, name, student_id, score FROM leaderboard WHERE school_id=$1 :: uuid"
+    sql = "SELECT position, name, student_id, score FROM leaderboard WHERE school_id=$1"
     decode = LeaderBoardEntry
         <$> (fromIntegral <$> D.value D.int4)
         <*> dvText
