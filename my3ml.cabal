@@ -26,7 +26,7 @@ library
                      , DB
   other-modules:       Password
   build-depends:       aeson >= 0.8.0.2
-                     , base >= 4.7 && < 5
+                     , base >= 4.11
                      , array
                      , bytestring
                      , containers >= 0.5.6.2
@@ -34,8 +34,8 @@ library
                      , contravariant-extras >= 0.3
                      , cryptonite
                      , errors
-                     , hasql >= 0.19
-                     , hasql-pool
+                     , hasql >= 1.3
+                     , hasql-pool >= 0.5
                      , http-api-data >= 0.3.7.1
                      , http-conduit
                      , jose-jwt
@@ -44,7 +44,7 @@ library
                      , mtl
                      , random
                      , safe-exceptions >= 0.1.4
-                     , servant-server >= 0.11
+                     , servant-server >= 0.14
                      , stm >= 2.4.4
                      , text
                      , time
@@ -62,7 +62,7 @@ executable backend
   build-depends:       base
                      , aeson
                      , bytestring
-                     , containers >= 0.5.6.2
+                     , containers
                      , cryptonite
                      , directory
                      , exceptions
@@ -72,13 +72,13 @@ executable backend
                      , monad-logger
                      , mtl
                      , my3ml
-                     , servant-server >= 0.9
-                     , stm >= 2.4.4
+                     , servant-server
+                     , stm
                      , text
                      , uuid
-                     , wai >= 3.2
+                     , wai
                      , wai-extra
-                     , warp >= 3.2
+                     , warp
   default-language:    Haskell2010
 
 executable code-generator
@@ -89,8 +89,8 @@ executable code-generator
                      , elm-export
                      , my3ml
                      , servant-elm >= 0.4
-                     , servant-server >= 0.11
-                     , servant-foreign >= 0.10
+                     , servant-server >= 0.14
+                     , servant-foreign >= 0.11
                      , text
   default-language:    Haskell2010
 

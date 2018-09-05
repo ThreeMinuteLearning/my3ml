@@ -1,4 +1,4 @@
-{ compiler ? "ghc822" }:
+{ compiler ? "ghc843" }:
 
 let
   pkgs = import <nixpkgs> {};
@@ -7,6 +7,7 @@ let
     my3ml = self.callPackage ./my3ml.nix {};
     elm-export = self.callPackage ./elm-export.nix {};
     servant-elm = dontCheck super.servant-elm;
+    text-builder = dontCheck super.text-builder;
   });
 in
   {

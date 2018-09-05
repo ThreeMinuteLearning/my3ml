@@ -11,7 +11,7 @@ import           Control.Concurrent (newMVar, forkIO)
 import           Control.Exception (fromException, SomeException)
 import           Control.Monad.Logger
 import           Control.Monad.Reader
-import           Control.Monad.Catch (catchAll, catchJust)
+import           Control.Monad.Catch (catchAll, catchIf)
 import           Crypto.Random (getRandomBytes)
 import qualified Data.Aeson as A
 import qualified Data.ByteString as B
@@ -22,12 +22,15 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           Jose.Jwa
 import           Jose.Jwk
+import           Network.Wai (Request)
 import           Network.Wai.Handler.Warp (run)
 import           Prelude hiding (id)
 import           Servant
+import           Servant.Server.Experimental.Auth (AuthHandler)
 import           System.Environment (getEnvironment)
 import           System.IO.Error
 
+import           Api.Auth
 import           Api.Server (HandlerT, Config(..))
 import qualified Api.Server as Api
 import           Api.Auth (authServerContext)
@@ -43,20 +46,21 @@ type SiteApi = "api" :> Api
 siteApi :: Proxy SiteApi
 siteApi = Proxy
 
-
 server :: forall db. DB db => Config db -> FilePath -> ServerT SiteApi Handler
-server config assets = enter transform Api.server :<|> serveDirectoryFileServer assets
+server config assets = hoistServerWithContext (Proxy :: Proxy Api) ctx transform Api.server
+    :<|> serveDirectoryFileServer assets
   where
-    transform' :: HandlerT db a -> Handler a
-    transform' handler =
+    transform :: HandlerT db a -> Handler a
+    transform handler =
         runReaderT (runStderrLoggingT handler) config `catchAll` errorHandler
+
+    ctx :: Proxy '[AuthHandler Request (Maybe AccessScope)]
+    ctx = Proxy
 
     errorHandler e = do
         liftIO $ logE (rollbarSettings config) e
         throwError err500
 
-    transform :: HandlerT db :~> Handler
-    transform = NT transform'
 
 defaultKeyFile :: FilePath
 defaultKeyFile = "token_key.json"
@@ -85,10 +89,7 @@ getKey file = do
             Nothing -> error $ "Failed to decode " <> file
             _ -> error $ "File " <> file <> " was expected to contain only one JWK"
   where
-    readFileMaybe = catchJust
-        (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing)
-        (Just <$> B.readFile file)
-        (const $ return Nothing)
+    readFileMaybe = catchIf isDoesNotExistError (Just <$> B.readFile file) (const $ return Nothing)
 
 main :: IO ()
 main = do
