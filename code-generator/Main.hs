@@ -15,6 +15,7 @@ import           Control.Monad (join)
 import           Data.Monoid ((<>))
 import           Data.Proxy (Proxy (Proxy))
 import           Data.Text (Text)
+import           Data.Time.Clock (NominalDiffTime)
 import           Elm
 import           GHC.TypeLits (KnownSymbol)
 import           Servant.Elm (ElmOptions (..), defElmImports, defElmOptions, generateElmForAPIWith, UrlPrefix (Static))
@@ -31,11 +32,8 @@ specs :: [Spec]
 specs =
     [ Spec ["Api"]
         (
-            [  "import Date exposing (Date)"
-            ,  "import Dict exposing (Dict)"
-            ,  "import Exts.Date exposing (toISOString)"
+            [  "import Dict exposing (Dict)"
             ,  "import Exts.Json.Encode exposing (tuple2)"
-            ,  "import Exts.Json.Decode exposing (decodeDate)"
             ,  defElmImports
             ]
            <> typeSources
@@ -94,6 +92,9 @@ deriving instance ElmType Registration
 
 instance ElmType SubjectId where
     toElmType _ = toElmType (Proxy :: Proxy Text)
+
+instance ElmType NominalDiffTime where
+    toElmType _ = toElmType (Proxy :: Proxy Double)
 
 main :: IO ()
 main = specsToDir specs "frontend/src"

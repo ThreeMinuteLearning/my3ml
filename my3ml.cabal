@@ -92,6 +92,7 @@ executable code-generator
                      , servant-server >= 0.14
                      , servant-foreign >= 0.11
                      , text
+                     , time
   default-language:    Haskell2010
 
 test-suite test

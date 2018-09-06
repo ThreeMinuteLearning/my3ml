@@ -26,6 +26,7 @@ import           Data.Monoid
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import           Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import qualified Data.UUID as UUID
 import           GHC.Stack (prettySrcLoc)
 import           GHC.Stack.Types (HasCallStack, CallStack, getCallStack)
@@ -399,7 +400,7 @@ selectAccountByUsername = Q.Statement sql evText (D.rowMaybe decode) True
         <*> userTypeValue
         <*> (maybe 10 fromIntegral <$> D.nullableColumn D.int2)
         <*> D.column D.bool
-        <*> D.nullableColumn D.timestamptz
+        <*> (fmap utcTimeToPOSIXSeconds <$> D.nullableColumn D.timestamptz)
         <*> D.nullableColumn D.jsonb
 
 insertAccount :: Statement (Text, Text, UserType, Bool) UUID.UUID
@@ -600,7 +601,7 @@ studentRow = Student
     <*> (fromIntegral <$> D.column D.int2)
     <*> dvUUID
     <*> D.column D.bool
-    <*> D.nullableColumn D.timestamptz
+    <*> (fmap utcTimeToPOSIXSeconds <$> D.nullableColumn D.timestamptz)
 
 insertStudent :: Statement (Student, SubjectId) ()
 insertStudent = Q.Statement sql encode D.unit True

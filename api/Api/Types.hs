@@ -10,7 +10,7 @@
 module Api.Types where
 
 import           Data.Aeson
-import           Data.Time.Clock (UTCTime)
+import           Data.Time.Clock.POSIX (POSIXTime)
 import qualified Data.Map.Strict as Map
 import           Data.ByteString (ByteString)
 import           Data.Text (Text)
@@ -87,7 +87,7 @@ data Student = Student
     , level :: Int
     , schoolId :: SchoolId
     , hidden :: Bool
-    , deleted :: Maybe UTCTime
+    , deleted :: Maybe POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 data LoginRequest = LoginRequest
@@ -114,7 +114,7 @@ data Account = Account
     , role :: UserType
     , level :: Int
     , active :: Bool
-    , lastLogin :: Maybe UTCTime
+    , lastLogin :: Maybe POSIXTime
     , settings :: Maybe Value
     }
 
