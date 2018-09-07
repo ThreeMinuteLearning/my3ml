@@ -422,21 +422,25 @@ viewCycleDisplayButton : Session -> Model -> Html Msg
 viewCycleDisplayButton session m =
     let
         viewTiles =
-            ( Tiles (StoryTiles.tilesPerPage m.windowSize), "View tiles" )
+            ( Tiles (StoryTiles.tilesPerPage m.windowSize), "Switch view (tiles)" )
+
+        viewTable =
+            ( Table, "Switch view (table)" )
 
         ( nextViewType, displayTxt ) =
             case m.viewType of
-                Table ->
-                    if List.isEmpty session.cache.anthologies then
-                        viewTiles
-                    else
-                        ( Anthologies, "View anthologies" )
-
                 Tiles _ ->
-                    ( Table, "View table" )
+                     if List.isEmpty session.cache.anthologies then
+                        viewTable
+                    else
+                        ( Anthologies, "Switch view (anthologies)" )
 
                 Anthologies ->
+                    viewTable
+
+                Table ->
                     viewTiles
+
     in
         button [ class "btn btn-default", onClick (SetViewType nextViewType) ] [ text displayTxt ]
 
