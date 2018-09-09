@@ -105,6 +105,7 @@ view : Model -> Html Msg
 view { settings, answers } =
     div [ class "page container" ]
         [ viewSettings settings
+        , h1 [] [ text "My story answers" ]
         , Answers.viewWithStories answers
         ]
 
@@ -112,7 +113,7 @@ view { settings, answers } =
 viewSettings : Settings -> Html Msg
 viewSettings settings =
     div []
-        [ h3 [] [ text "Story display settings" ]
+        [ h1 [] [ text "Story display settings" ]
         , div [ toStyle settings ]
             [ p [] [ text "You may wish to change the way your stories are displayed." ]
             , p [] [ text "Use the buttons below to make changes and then save the settings." ]

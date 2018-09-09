@@ -207,7 +207,7 @@ sendUpdateStudent session student =
 view : Model -> Html Msg
 view model =
     div [ class "container page" ]
-        [ h3 [] [ text (.name model.student) ]
+        [ h1 [] [ text (.name model.student) ]
         , viewToolbar model.userIsAdmin model.student
         , Form.viewErrorMsgs model.errors
         , Answers.viewWithStories model.answers

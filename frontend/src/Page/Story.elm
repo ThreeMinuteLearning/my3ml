@@ -112,7 +112,10 @@ view session m =
             |> Words.view session.cache.dict
         , viewIf (Session.isStudent session) (viewAnswersForm m)
         , viewIf (Session.isTeacher session) (viewPrintAnswerSections m.story)
-        , viewIf (m.answersForm == Nothing && not (List.isEmpty m.answers)) (Answers.view m.story m.answers)
+        , viewIf (m.answersForm == Nothing && not (List.isEmpty m.answers))
+            ( div [class "hidden-print" ]
+                (h2 [] [ text "Story answers"] :: Answers.view m.story m.answers)
+            )
         ]
 
 
@@ -136,7 +139,7 @@ viewPrintAnswerSections story =
         [ h4 [] [ text "Connect this story with yourself or something you know about." ]
         , h4 [] [ text "Think of a question the story makes you want to ask." ]
         , h4 [] [ text "Write one sentence that captures the main idea." ]
-        , h4 [] [ text ("What do you thing the word \"" ++ story.clarifyWord ++ "\" means?") ]
+        , h4 [] [ text ("What do you think the word \"" ++ story.clarifyWord ++ "\" means?") ]
         ]
 
 
