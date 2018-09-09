@@ -11,7 +11,7 @@ import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Ports
 import Task exposing (Task)
-import Util exposing ((=>), viewIf, defaultHttpErrorMsg, printButton)
+import Util exposing (viewIf, defaultHttpErrorMsg, printButton)
 import Views.Answers as Answers
 import Views.RobotPanel as RobotPanel
 import Views.Story as StoryView
@@ -113,8 +113,8 @@ view session m =
         , viewIf (Session.isStudent session) (viewAnswersForm m)
         , viewIf (Session.isTeacher session) (viewPrintAnswerSections m.story)
         , viewIf (m.answersForm == Nothing && not (List.isEmpty m.answers))
-            ( div [class "hidden-print" ]
-                (h2 [] [ text "Story answers"] :: Answers.view m.story m.answers)
+            (div [ class "hidden-print" ]
+                (h2 [] [ text "Story answers" ] :: Answers.view m.story m.answers)
             )
         ]
 
@@ -151,29 +151,31 @@ update session msg model =
                 ( newStoryView, cmd ) =
                     StoryView.update svm model.storyView
             in
-                { model | storyView = newStoryView } => Cmd.map StoryViewMsg cmd => session
+                ( ( { model | storyView = newStoryView }, Cmd.map StoryViewMsg cmd ), session )
 
         DictLookup ( w, i ) ->
-            { model | dictLookup = Just (Api.DictEntry w i) } => Cmd.none => session
+            ( ( { model | dictLookup = Just (Api.DictEntry w i) }, Cmd.none ), session )
 
         PrintWindow ->
-            model => Ports.printWindow () => session
+            ( ( model, Ports.printWindow () ), session )
 
         ClearAnswers ->
-            resetAnswersForm model => Cmd.none => session
+            ( ( resetAnswersForm model, Cmd.none ), session )
 
         AnswersFormMsg subMsg ->
             case Maybe.map (AnswersForm.update session subMsg) model.answersForm of
                 Nothing ->
-                    model => Cmd.none => session
+                    ( ( model, Cmd.none ), session )
 
                 Just ( ( subModel, cmd ), Nothing ) ->
-                    { model | answersForm = Just subModel } => Cmd.map AnswersFormMsg cmd => session
+                    ( ( { model | answersForm = Just subModel }, Cmd.map AnswersFormMsg cmd ), session )
 
                 Just ( ( _, cmd ), Just submittedAnswer ) ->
-                    { model | answersForm = Nothing, answers = submittedAnswer :: model.answers }
-                        => Cmd.map AnswersFormMsg cmd
-                        => { session | cache = updateCacheAnswers submittedAnswer session.cache }
+                    ( ( { model | answersForm = Nothing, answers = submittedAnswer :: model.answers }
+                      , Cmd.map AnswersFormMsg cmd
+                      )
+                    , { session | cache = updateCacheAnswers submittedAnswer session.cache }
+                    )
 
 
 updateCacheAnswers : Api.Answer -> Cache -> Cache

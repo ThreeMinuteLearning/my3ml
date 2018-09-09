@@ -9,7 +9,7 @@ import Html.Attributes exposing (class, id, disabled, selected)
 import Html.Events exposing (onInput, onSubmit)
 import Http
 import Regex
-import Util exposing ((=>), defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg)
 import Validate exposing (Validator, ifBlank, ifInvalid)
 import Views.Form as Form
 import Views.SelectLevel as SelectLevel
@@ -52,39 +52,33 @@ update session msg model =
         SubmitForm ->
             case validate model of
                 Ok names ->
-                    { model | errors = [], waitingForResponse = True }
-                        => sendNewAccountsRequest session model.level names
-                        => Nothing
+                    ( ( { model | errors = [], waitingForResponse = True }
+                      , sendNewAccountsRequest session model.level names
+                      )
+                    , Nothing
+                    )
 
                 Err errors ->
-                    { model | errors = errors }
-                        => Cmd.none
-                        => Nothing
+                    ( ( { model | errors = errors }, Cmd.none ), Nothing )
 
         SetClass class ->
-            { model | class = class }
-                => Cmd.none
-                => Nothing
+            ( ( { model | class = class }, Cmd.none ), Nothing )
 
         SetLevel level ->
-            { model | level = level }
-                => Cmd.none
-                => Nothing
+            ( ( { model | level = level }, Cmd.none ), Nothing )
 
         SetNames names ->
-            { model | names = names }
-                => Cmd.none
-                => Nothing
+            ( ( { model | names = names }, Cmd.none ), Nothing )
 
         AddStudentsResponse (Ok newAccounts) ->
-            { model | waitingForResponse = False }
-                => Cmd.none
-                => Just newAccounts
+            ( ( { model | waitingForResponse = False }, Cmd.none ), Just newAccounts )
 
         AddStudentsResponse (Err e) ->
-            { model | errors = model.errors ++ [ ("Couldn't save the new accounts: " ++ defaultHttpErrorMsg e) ], waitingForResponse = False }
-                => Cmd.none
-                => Nothing
+            ( ( { model | errors = model.errors ++ [ ("Couldn't save the new accounts: " ++ defaultHttpErrorMsg e) ], waitingForResponse = False }
+              , Cmd.none
+              )
+            , Nothing
+            )
 
 
 sendNewAccountsRequest : Session -> Int -> List String -> Cmd Msg

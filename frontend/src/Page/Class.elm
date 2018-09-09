@@ -12,7 +12,7 @@ import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Table
 import Task exposing (Task)
-import Util exposing ((=>), dialog, viewIf, defaultHttpErrorMsg)
+import Util exposing (dialog, viewIf, defaultHttpErrorMsg)
 import Views.Form as Form
 import Views.StudentTable as StudentTable
 
@@ -65,31 +65,35 @@ update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), ExternalMsg )
 update session msg model =
     case msg of
         Delete ->
-            { model | showConfirmDelete = True } => Cmd.none => NoOp
+            ( ( { model | showConfirmDelete = True }, Cmd.none ), NoOp )
 
         DismissDialog ->
-            { model | showConfirmDelete = False } => Cmd.none => NoOp
+            ( ( { model | showConfirmDelete = False }, Cmd.none ), NoOp )
 
         ConfirmDelete ->
-            model
-                => (Api.deleteSchoolClassesByClassId (authorization session) (.id model.class)
-                        |> Http.send DeleteResponse
-                   )
-                => NoOp
+            ( ( model
+              , (Api.deleteSchoolClassesByClassId (authorization session) (.id model.class)
+                    |> Http.send DeleteResponse
+                )
+              )
+            , NoOp
+            )
 
         DeleteResponse (Ok _) ->
-            { model | showConfirmDelete = False }
-                => Cmd.none
-                => Deleted (deleteFromCache model.class session)
+            ( ( { model | showConfirmDelete = False }
+              , Cmd.none
+              )
+            , Deleted (deleteFromCache model.class session)
+            )
 
         DeleteResponse (Err _) ->
-            model => Cmd.none => NoOp
+            ( ( model, Cmd.none ), NoOp )
 
         Edit ->
-            model => Cmd.none => NoOp
+            ( ( model, Cmd.none ), NoOp )
 
         SetTableState state ->
-            { model | membersTable = state } => Cmd.none => NoOp
+            ( ( { model | membersTable = state }, Cmd.none ), NoOp )
 
         SelectStudent student checked ->
             let
@@ -99,7 +103,7 @@ update session msg model =
                     else
                         Dict.remove student.id
             in
-                { model | selectedStudents = f model.selectedStudents } => Cmd.none => NoOp
+                ( ( { model | selectedStudents = f model.selectedStudents }, Cmd.none ), NoOp )
 
         RemoveSelectedStudents ->
             let
@@ -107,11 +111,13 @@ update session msg model =
                     Dict.values model.selectedStudents
                         |> List.map (.id)
             in
-                { model | selectedStudents = Dict.empty }
-                    => (Api.postSchoolClassesByClassIdMembers (authorization session) (.id model.class) (Just True) studentsToDelete
-                            |> Http.send ClassMembersResponse
-                       )
-                    => NoOp
+                ( ( { model | selectedStudents = Dict.empty }
+                  , (Api.postSchoolClassesByClassIdMembers (authorization session) (.id model.class) (Just True) studentsToDelete
+                        |> Http.send ClassMembersResponse
+                    )
+                  )
+                , NoOp
+                )
 
         ClassMembersResponse (Ok updatedClass) ->
             let
@@ -125,14 +131,10 @@ update session msg model =
                 newSession =
                     { session | cache = { cache | classes = newClasses } }
             in
-                { model | errors = [], class = updatedClass }
-                    => Cmd.none
-                    => Updated newSession
+                ( ( { model | errors = [], class = updatedClass }, Cmd.none ), Updated newSession )
 
         ClassMembersResponse (Err e) ->
-            { model | errors = [ defaultHttpErrorMsg e ] }
-                => Cmd.none
-                => NoOp
+            ( ( { model | errors = [ defaultHttpErrorMsg e ] }, Cmd.none ), NoOp )
 
 
 deleteFromCache : Api.Class -> Session -> Session

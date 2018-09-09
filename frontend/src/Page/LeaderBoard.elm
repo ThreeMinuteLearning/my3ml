@@ -7,7 +7,7 @@ import Html.Attributes exposing (..)
 import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Task exposing (Task)
-import Util exposing ((=>), defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg)
 
 
 type alias Model =

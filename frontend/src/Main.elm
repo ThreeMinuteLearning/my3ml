@@ -24,7 +24,6 @@ import Route exposing (Route)
 import Task
 import Time exposing (Time, inSeconds)
 import Tuple exposing (second)
-import Util exposing ((=>))
 import Views.Page as Page exposing (ActivePage)
 
 
@@ -214,8 +213,9 @@ setRoute : Maybe Route -> Model -> ( Model, Cmd Msg )
 setRoute maybeRoute model =
     let
         transition toMsg task =
-            { model | pageState = TransitioningFrom (getPage model.pageState) }
-                => Task.attempt (PageLoaded << toMsg) task
+            ( { model | pageState = TransitioningFrom (getPage model.pageState) }
+            , Task.attempt (PageLoaded << toMsg) task
+            )
 
         errored =
             pageErrored model
@@ -253,7 +253,7 @@ setRoute maybeRoute model =
     in
         case maybeRoute of
             Nothing ->
-                { model | pageState = Loaded NotFound } => Cmd.none
+                ( { model | pageState = Loaded NotFound }, Cmd.none )
 
             Just (Route.Home) ->
                 transition HomeLoaded (Home.init session)
@@ -266,15 +266,16 @@ setRoute maybeRoute model =
                     transition EditorLoaded (Editor.init session slug)
 
             Just (Route.Login) ->
-                { model | pageState = Loaded (Login Login.initialModel) } => Cmd.none
+                ( { model | pageState = Loaded (Login Login.initialModel) }, Cmd.none )
 
             Just (Route.Logout) ->
                 let
                     s =
                         { session | user = Nothing }
                 in
-                    { model | session = s }
-                        => Cmd.batch [ storeSession s, Route.modifyUrl Route.Home ]
+                    ( { model | session = s }
+                    , Cmd.batch [ storeSession s, Route.modifyUrl Route.Home ]
+                    )
 
             Just (Route.FindStory) ->
                 transition FindStoryLoaded (FindStory.init session)
@@ -289,15 +290,15 @@ setRoute maybeRoute model =
                 transition AccountLoaded (Account.init session)
 
             Just (Route.Register) ->
-                { model | pageState = Loaded (Register Register.init) } => Cmd.none
+                ( { model | pageState = Loaded (Register Register.init) }, Cmd.none )
 
             Just (Route.Trails) ->
-                model => Cmd.none
+                ( model, Cmd.none )
 
 
 pageErrored : Model -> String -> ( Model, Cmd msg )
 pageErrored model errorMessage =
-    { model | pageState = Loaded (Errored (PageLoadError errorMessage)) } => Cmd.none
+    ( { model | pageState = Loaded (Errored (PageLoadError errorMessage)) }, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -313,8 +314,7 @@ update msg model =
             updatePage (getPage model.pageState) p model
 
         CloseAlert a ->
-            { model | session = Session.closeAlert a model.session }
-                => Cmd.none
+            ( { model | session = Session.closeAlert a model.session }, Cmd.none )
 
         Tick t ->
             let
@@ -346,8 +346,7 @@ update msg model =
                 newSession =
                     { session | alerts = newAlerts }
             in
-                { model | tick = newTick, session = newSession }
-                    => Cmd.none
+                ( { model | tick = newTick, session = newSession }, Cmd.none )
 
 
 pageLoaded : PageLoaded -> Model -> ( Model, Cmd Msg )
@@ -359,22 +358,25 @@ pageLoaded msg model =
                     f a
 
                 Err AuthenticationRequired ->
-                    { model | session = Session.emptySession, pageState = Loaded (Errored AuthenticationRequired) } => Cmd.none
+                    ( { model | session = Session.emptySession, pageState = Loaded (Errored AuthenticationRequired) }
+                    , Cmd.none
+                    )
 
                 Err error ->
-                    { model | pageState = Loaded (Errored error) } => Cmd.none
+                    ( { model | pageState = Loaded (Errored error) }, Cmd.none )
 
         pageLoadedWithNewSession r toModel =
             handlePageLoadError r <|
                 \( subModel, newSession ) ->
-                    { model | session = newSession, pageState = Loaded (toModel subModel) } => Cmd.none
+                    ( { model | session = newSession, pageState = Loaded (toModel subModel) }, Cmd.none )
     in
         case msg of
             StoryLoaded r ->
                 handlePageLoadError r <|
                     \( subModel, newSession ) ->
-                        { model | session = newSession, pageState = Loaded (Story subModel) }
-                            => Ports.postProcessStory (.words subModel.story)
+                        ( { model | session = newSession, pageState = Loaded (Story subModel) }
+                        , Ports.postProcessStory (.words subModel.story)
+                        )
 
             HomeLoaded r ->
                 pageLoadedWithNewSession r Home
@@ -400,7 +402,7 @@ pageLoaded msg model =
             LeaderBoardLoaded r ->
                 handlePageLoadError r <|
                     \subModel ->
-                        { model | pageState = Loaded (LeaderBoard subModel) } => Cmd.none
+                        ( { model | pageState = Loaded (LeaderBoard subModel) }, Cmd.none )
 
             AccountLoaded r ->
                 pageLoadedWithNewSession r Account
@@ -408,7 +410,7 @@ pageLoaded msg model =
             TeachersLoaded r ->
                 handlePageLoadError r <|
                     \subModel ->
-                        { model | pageState = Loaded (Teachers subModel) } => Cmd.none
+                        ( { model | pageState = Loaded (Teachers subModel) }, Cmd.none )
 
 
 updatePage : Page -> PageMsg -> Model -> ( Model, Cmd Msg )
@@ -454,15 +456,16 @@ updatePage page msg model =
                 in
                     case externalMsg of
                         Class.NoOp ->
-                            { model | pageState = Loaded (Class pageModel) } => mapMsg ClassMsg cmd
+                            ( { model | pageState = Loaded (Class pageModel) }, mapMsg ClassMsg cmd )
 
                         Class.Deleted newSession ->
                             setRoute (Just (Route.Teacher Route.Classes))
                                 { model | session = newSession }
 
                         Class.Updated newSession ->
-                            { model | pageState = Loaded (Class pageModel), session = newSession }
-                                => mapMsg ClassMsg cmd
+                            ( { model | pageState = Loaded (Class pageModel), session = newSession }
+                            , mapMsg ClassMsg cmd
+                            )
 
             ( LoginMsg subMsg, Login subModel ) ->
                 let
@@ -475,8 +478,9 @@ updatePage page msg model =
                             |> Maybe.map (\s -> ( s, Cmd.batch [ storeSession s, chooseStartPage s.user ] ))
                             |> Maybe.withDefault ( model.session, Cmd.none )
                 in
-                    { model | session = newSession, pageState = Loaded (Login pageModel) }
-                        => Cmd.batch [ mapMsg LoginMsg loginCmd, cmd ]
+                    ( { model | session = newSession, pageState = Loaded (Login pageModel) }
+                    , Cmd.batch [ mapMsg LoginMsg loginCmd, cmd ]
+                    )
 
             ( EditorMsg subMsg, Editor subModel ) ->
                 toPage Editor EditorMsg (Editor.update model.session) subMsg subModel
@@ -491,7 +495,7 @@ updatePage page msg model =
                 toPage Teachers TeachersMsg (Teachers.update model.session) subMsg subModel
 
             ( _, _ ) ->
-                model => Cmd.none
+                ( model, Cmd.none )
 
 
 chooseStartPage : Maybe User -> Cmd msg

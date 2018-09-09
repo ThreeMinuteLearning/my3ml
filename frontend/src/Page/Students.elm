@@ -18,7 +18,7 @@ import Regex
 import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
-import Util exposing ((=>), viewIf, dialog, defaultHttpErrorMsg)
+import Util exposing (viewIf, dialog, defaultHttpErrorMsg)
 import Views.ClassSelect as ClassSelect
 import Views.NewAccounts as NewAccounts
 import Views.StudentTable as StudentTable
@@ -63,8 +63,7 @@ init session =
             pageLoadError e ("Unable to load student data. " ++ defaultHttpErrorMsg e ++ ".")
 
         createModel session =
-            Model NoMsg StudentTable.init Dict.empty Nothing ( "", Nothing )
-                => session
+            ( Model NoMsg StudentTable.init Dict.empty Nothing ( "", Nothing ), session )
     in
         Session.loadStudents session
             |> Task.andThen (\newSession -> Session.loadClasses newSession)
@@ -76,19 +75,19 @@ update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
 update session msg model =
     case msg of
         ClearSelectedStudents ->
-            { model | selectedStudents = Dict.empty } => Cmd.none => session
+            ( ( { model | selectedStudents = Dict.empty }, Cmd.none ), session )
 
         ClearNewAccounts ->
-            model => Cmd.none => updateCache (\c -> { c | newAccounts = [] }) session
+            ( ( model, Cmd.none ), updateCache (\c -> { c | newAccounts = [] }) session )
 
         StudentFilterInput txt ->
-            { model | studentFilter = ( txt, second model.studentFilter ) } => Cmd.none => session
+            ( ( { model | studentFilter = ( txt, second model.studentFilter ) }, Cmd.none ), session )
 
         PrintWindow ->
-            model => Ports.printWindow () => session
+            ( ( model, Ports.printWindow () ), session )
 
         SetClassFilter c ->
-            { model | studentFilter = ( first model.studentFilter, c ) } => Cmd.none => session
+            ( ( { model | studentFilter = ( first model.studentFilter, c ) }, Cmd.none ), session )
 
         SelectStudent student checked ->
             let
@@ -98,38 +97,36 @@ update session msg model =
                     else
                         Dict.remove student.id
             in
-                { model | selectedStudents = f model.selectedStudents } => Cmd.none => session
+                ( ( { model | selectedStudents = f model.selectedStudents }, Cmd.none ), session )
 
         AddStudentsFormMsg subMsg ->
             case Maybe.map (AddStudentsForm.update session subMsg) model.addStudentsForm of
                 Nothing ->
-                    ( model, Cmd.none ) => session
+                    ( ( model, Cmd.none ), session )
 
                 Just ( ( subModel, subSubMsg ), Nothing ) ->
-                    { model | addStudentsForm = Just subModel } => Cmd.map AddStudentsFormMsg subSubMsg => session
+                    ( ( { model | addStudentsForm = Just subModel }, Cmd.map AddStudentsFormMsg subSubMsg ), session )
 
                 Just ( _, Just newAccounts ) ->
                     let
                         f c =
                             { c | students = (List.map first newAccounts) ++ c.students, newAccounts = newAccounts ++ c.newAccounts }
                     in
-                        { model | addStudentsForm = Nothing }
-                            => Cmd.none
-                            => updateCache f session
+                        ( ( { model | addStudentsForm = Nothing }, Cmd.none ), updateCache f session )
 
         SetTableState state ->
-            { model | tableState = state } => Cmd.none => session
+            ( ( { model | tableState = state }, Cmd.none ), session )
 
         ShowAddStudents ->
-            { model | addStudentsForm = Just AddStudentsForm.init } => Cmd.none => session
+            ( ( { model | addStudentsForm = Just AddStudentsForm.init }, Cmd.none ), session )
 
         DismissAddStudents ->
-            { model | addStudentsForm = Nothing } => Cmd.none => session
+            ( ( { model | addStudentsForm = Nothing }, Cmd.none ), session )
 
         AddStudentsToClass classId ->
             case classId of
                 Nothing ->
-                    model => Cmd.none => session
+                    ( ( model, Cmd.none ), session )
 
                 Just cid ->
                     let
@@ -137,11 +134,13 @@ update session msg model =
                             Dict.values model.selectedStudents
                                 |> List.map (.id)
                     in
-                        { model | selectedStudents = Dict.empty }
-                            => (Api.postSchoolClassesByClassIdMembers (authorization session) cid Nothing studentsToAdd
-                                    |> Http.send ClassMembersResponse
-                               )
-                            => session
+                        ( ( { model | selectedStudents = Dict.empty }
+                          , (Api.postSchoolClassesByClassIdMembers (authorization session) cid Nothing studentsToAdd
+                                |> Http.send ClassMembersResponse
+                            )
+                          )
+                        , session
+                        )
 
         ClassMembersResponse (Ok updatedClass) ->
             let
@@ -155,17 +154,13 @@ update session msg model =
                 newSession =
                     { session | cache = { cache | classes = newClasses } }
             in
-                { model | notification = Msg "Class members updated" } => Cmd.none => newSession
+                ( ( { model | notification = Msg "Class members updated" }, Cmd.none ), newSession )
 
         ClassMembersResponse (Err e) ->
-            { model | notification = Error ("Could't update add class members: " ++ defaultHttpErrorMsg e) }
-                => Cmd.none
-                => session
+            ( ( { model | notification = Error ("Could't update add class members: " ++ defaultHttpErrorMsg e) }, Cmd.none ), session )
 
         DismissNotification ->
-            clearNotification model
-                => Cmd.none
-                => session
+            ( ( clearNotification model, Cmd.none ), session )
 
 
 clearNotification : Model -> Model

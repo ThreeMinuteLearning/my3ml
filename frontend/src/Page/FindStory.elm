@@ -17,7 +17,7 @@ import Route
 import Table
 import Task exposing (Task)
 import Views.Form as Form
-import Util exposing ((=>), onClickPreventDefault, viewIf, viewUnless, defaultHttpErrorMsg)
+import Util exposing (onClickPreventDefault, viewIf, viewUnless, defaultHttpErrorMsg)
 import Views.Story as StoryView
 import Views.StoryTiles as StoryTiles
 import Window
@@ -94,8 +94,7 @@ initialModel session size =
             else
                 Table
     in
-        Model [] "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType size Nothing
-            => session
+        ( Model [] "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType size Nothing, session )
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -131,38 +130,30 @@ update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
 update session msg model =
     case msg of
         StoryFilterInput f ->
-            { model | storyFilter = f, stories = filterStories f session.cache.stories }
-                => Cmd.none
-                => session
+            ( ( { model | storyFilter = f, stories = filterStories f session.cache.stories }
+              , Cmd.none
+              )
+            , session
+            )
 
         SetTableState t ->
-            { model | tableState = t }
-                => Cmd.none
-                => session
+            ( ( { model | tableState = t }, Cmd.none ), session )
 
         BrowseFrom storyId ->
-            { model | browser = zipperFrom storyId model.stories }
-                => Cmd.none
-                => session
+            ( ( { model | browser = zipperFrom storyId model.stories }, Cmd.none ), session )
 
         StoryViewMsg svm ->
             let
                 ( newStoryView, cmd ) =
                     StoryView.update svm model.storyView
             in
-                { model | storyView = newStoryView }
-                    => Cmd.map StoryViewMsg cmd
-                    => session
+                ( ( { model | storyView = newStoryView }, Cmd.map StoryViewMsg cmd ), session )
 
         Next ->
-            { model | browser = model.browser |> Maybe.map Zipper.next }
-                => Cmd.none
-                => session
+            ( ( { model | browser = model.browser |> Maybe.map Zipper.next }, Cmd.none ), session )
 
         Previous ->
-            { model | browser = model.browser |> Maybe.map Zipper.previous }
-                => Cmd.none
-                => session
+            ( ( { model | browser = model.browser |> Maybe.map Zipper.previous }, Cmd.none ), session )
 
         Scroll atBottom ->
             if atBottom then
@@ -171,10 +162,10 @@ update session msg model =
                 ( ( model, Cmd.none ), session )
 
         Resize s ->
-            { model | windowSize = s } => Cmd.none => session
+            ( ( { model | windowSize = s }, Cmd.none ), session )
 
         CloseBrowser ->
-            { model | browser = Nothing } => Cmd.none => session
+            ( ( { model | browser = Nothing }, Cmd.none ), session )
 
         ToggleShowDisabledOnly ->
             let
@@ -187,25 +178,21 @@ update session msg model =
                     else
                         filterStories model.storyFilter session.cache.stories
             in
-                { model | showDisabledStoriesOnly = flag, stories = newStories }
-                    => Cmd.none
-                    => session
+                ( ( { model | showDisabledStoriesOnly = flag, stories = newStories }, Cmd.none ), session )
 
         SelectStory s ->
-            model
-                => Cmd.none
-                => updateCache (\c -> { c | selectedStories = s :: c.selectedStories }) session
+            ( ( model, Cmd.none ), updateCache (\c -> { c | selectedStories = s :: c.selectedStories }) session )
 
         ClearSelectedStories ->
-            model => Cmd.none => updateCache (\c -> { c | selectedStories = [] }) session
+            ( ( model, Cmd.none ), updateCache (\c -> { c | selectedStories = [] }) session )
 
         CreateAnthology ->
-            { model | anthologyForm = Just (AnthologyForm "" "") } => Cmd.none => session
+            ( ( { model | anthologyForm = Just (AnthologyForm "" "") }, Cmd.none ), session )
 
         SetAnthologyName n ->
             case model.anthologyForm of
                 Just f ->
-                    { model | anthologyForm = Just { name = n, description = f.description } } => Cmd.none => session
+                    ( ( { model | anthologyForm = Just { name = n, description = f.description } }, Cmd.none ), session )
 
                 Nothing ->
                     ( ( model, Cmd.none ), session )
@@ -213,7 +200,7 @@ update session msg model =
         SetAnthologyDescription d ->
             case model.anthologyForm of
                 Just f ->
-                    { model | anthologyForm = Just { name = f.name, description = d } } => Cmd.none => session
+                    ( ( { model | anthologyForm = Just { name = f.name, description = d } }, Cmd.none ), session )
 
                 Nothing ->
                     ( ( model, Cmd.none ), session )
@@ -223,93 +210,98 @@ update session msg model =
                 Just f ->
                     case validateAnthologyForm f of
                         [] ->
-                            { model | errors = [], anthologyForm = Nothing }
-                                => (Api.postAnthologies (authorization session) (Api.Anthology "" f.name f.description "" (Just "") (List.map .id session.cache.selectedStories) False)
-                                        |> Http.send CreateAnthologyResponse
-                                   )
-                                => session
+                            ( ( { model | errors = [], anthologyForm = Nothing }
+                              , (Api.postAnthologies (authorization session) (Api.Anthology "" f.name f.description "" (Just "") (List.map .id session.cache.selectedStories) False)
+                                    |> Http.send CreateAnthologyResponse
+                                )
+                              )
+                            , session
+                            )
 
                         errors ->
-                            { model | errors = errors }
-                                => Cmd.none
-                                => session
+                            ( ( { model | errors = errors }, Cmd.none ), session )
 
                 Nothing ->
                     ( ( model, Cmd.none ), session )
 
         CreateAnthologyResponse (Ok newAnthology) ->
-            { model | anthologyForm = Nothing, viewType = Anthologies }
-                => Cmd.none
-                => (updateAnthologies (\anthologies -> newAnthology :: anthologies) session
-                        |> updateCache (\c -> { c | selectedStories = [] })
-                        |> Session.success "New anthology created."
-                   )
+            ( ( { model | anthologyForm = Nothing, viewType = Anthologies }
+              , Cmd.none
+              )
+            , (updateAnthologies (\anthologies -> newAnthology :: anthologies) session)
+                |> updateCache (\c -> { c | selectedStories = [] })
+                |> Session.success "New anthology created."
+            )
 
         CreateAnthologyResponse (Err e) ->
-            model
-                => Cmd.none
-                => Session.error ("Couldn't create the anthology: " ++ defaultHttpErrorMsg e) session
+            ( ( model, Cmd.none ), Session.error ("Couldn't create the anthology: " ++ defaultHttpErrorMsg e) session )
 
         SetViewType v ->
-            { model | viewType = v } => Cmd.none => session
+            ( ( { model | viewType = v }, Cmd.none ), session )
 
         DeleteAnthology aid ->
-            model
-                => (Api.deleteAnthologiesByAnthologyId (authorization session) aid
-                        |> Http.send DeleteAnthologyResponse
-                   )
-                => session
+            ( ( model
+              , (Api.deleteAnthologiesByAnthologyId (authorization session) aid
+                    |> Http.send DeleteAnthologyResponse
+                )
+              )
+            , session
+            )
 
         DeleteAnthologyResponse (Ok aid) ->
-            ( model, Cmd.none )
-                => (updateAnthologies (List.filter (\a -> a.id /= aid)) session
-                        |> Session.success "Anthology deleted."
-                   )
+            ( ( model, Cmd.none )
+            , (updateAnthologies (List.filter (\a -> a.id /= aid)) session
+                |> Session.success "Anthology deleted."
+              )
+            )
 
         DeleteAnthologyResponse (Err e) ->
-            model
-                => Cmd.none
-                => Session.error ("Couldn't delete the anthology" ++ defaultHttpErrorMsg e) session
+            ( ( model, Cmd.none )
+            , Session.error ("Couldn't delete the anthology" ++ defaultHttpErrorMsg e) session
+            )
 
         SetStarterStories aid ->
-            model
-                => (Api.postAnthologiesByAnthologyIdStarter_stories (authorization session) aid
-                        |> Http.send SetStarterStoriesResponse
-                   )
-                => session
+            ( ( model
+              , (Api.postAnthologiesByAnthologyIdStarter_stories (authorization session) aid
+                    |> Http.send SetStarterStoriesResponse
+                )
+              )
+            , session
+            )
 
         SetStarterStoriesResponse (Ok _) ->
-            ( model, Cmd.none ) => session
+            ( ( model, Cmd.none ), session )
 
         SetStarterStoriesResponse (Err e) ->
-            model
-                => Cmd.none
-                => Session.error ("Couldn't set the starter stories: " ++ defaultHttpErrorMsg e) session
+            ( ( model, Cmd.none )
+            , Session.error ("Couldn't set the starter stories: " ++ defaultHttpErrorMsg e) session
+            )
 
         UpdateAnthology a ->
-            model
-                => (Api.postAnthologiesByAnthologyId (authorization session) a.id a
-                        |> Http.send UpdateAnthologyResponse
-                   )
-                => session
+            ( ( model
+              , (Api.postAnthologiesByAnthologyId (authorization session) a.id a
+                    |> Http.send UpdateAnthologyResponse
+                )
+              )
+            , session
+            )
 
         UpdateAnthologyResponse (Ok newA) ->
-            ( model, Cmd.none )
-                => updateAnthologies
-                    (List.map
-                        (\a ->
-                            if a.id == newA.id then
-                                newA
-                            else
-                                a
-                        )
+            ( ( model, Cmd.none )
+            , updateAnthologies
+                (List.map
+                    (\a ->
+                        if a.id == newA.id then
+                            newA
+                        else
+                            a
                     )
-                    session
+                )
+                session
+            )
 
         UpdateAnthologyResponse (Err e) ->
-            { model | errors = [ "Couldn't update the anthology: " ++ defaultHttpErrorMsg e ] }
-                => Cmd.none
-                => session
+            ( ( { model | errors = [ "Couldn't update the anthology: " ++ defaultHttpErrorMsg e ] }, Cmd.none ), session )
 
 
 updateAnthologies : (List Api.Anthology -> List Api.Anthology) -> Session -> Session
@@ -336,8 +328,9 @@ loadMore m =
             if n >= List.length m.stories then
                 ( m, Cmd.none )
             else
-                { m | viewType = Tiles (n + (2 * (StoryTiles.tilesPerRow m.windowSize))) }
-                    => Ports.isLastEltVisible ("storytiles")
+                ( { m | viewType = Tiles (n + (2 * (StoryTiles.tilesPerRow m.windowSize))) }
+                , Ports.isLastEltVisible ("storytiles")
+                )
 
         _ ->
             ( m, Cmd.none )
@@ -430,7 +423,7 @@ viewCycleDisplayButton session m =
         ( nextViewType, displayTxt ) =
             case m.viewType of
                 Tiles _ ->
-                     if List.isEmpty session.cache.anthologies then
+                    if List.isEmpty session.cache.anthologies then
                         viewTable
                     else
                         ( Anthologies, "Switch view (anthologies)" )
@@ -440,7 +433,6 @@ viewCycleDisplayButton session m =
 
                 Table ->
                     viewTiles
-
     in
         button [ class "btn btn-default", onClick (SetViewType nextViewType) ] [ text displayTxt ]
 

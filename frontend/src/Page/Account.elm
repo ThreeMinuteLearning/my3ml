@@ -10,7 +10,7 @@ import Html.Events exposing (onInput, onSubmit)
 import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Task exposing (Task)
-import Util exposing ((=>), defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg)
 import Views.Answers as Answers
 
 
@@ -60,37 +60,31 @@ update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
 update session msg ({ settings } as model) =
     case msg of
         SetBackground bg ->
-            { model | settings = { settings | background = bg } }
-                => Cmd.none
-                => session
+            ( ( { model | settings = { settings | background = bg } }, Cmd.none ), session )
 
         SetColour c ->
-            { model | settings = { settings | colour = c } }
-                => Cmd.none
-                => session
+            ( ( { model | settings = { settings | colour = c } }, Cmd.none ), session )
 
         SetFont f ->
-            { model | settings = { settings | font = f } }
-                => Cmd.none
-                => session
+            ( ( { model | settings = { settings | font = f } }, Cmd.none ), session )
 
         SetFontSize sz ->
-            { model | settings = { settings | size = sz } }
-                => Cmd.none
-                => session
+            ( ( { model | settings = { settings | size = sz } }, Cmd.none ), session )
 
         SaveSettings ->
-            model
-                => (Api.postAccountSettings (authorization session) (encode model.settings)
-                        |> Http.send SaveSettingsResponse
-                   )
-                => session
+            ( ( model
+              , (Api.postAccountSettings (authorization session) (encode model.settings)
+                    |> Http.send SaveSettingsResponse
+                )
+              )
+            , session
+            )
 
         SaveSettingsResponse (Ok _) ->
-            model => Cmd.none => updateSessionSettings session model.settings
+            ( ( model, Cmd.none ), updateSessionSettings session model.settings )
 
         SaveSettingsResponse (Err _) ->
-            model => Cmd.none => session
+            ( ( model, Cmd.none ), session )
 
 
 updateSessionSettings : Session -> Settings -> Session

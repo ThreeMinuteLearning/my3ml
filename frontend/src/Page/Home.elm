@@ -8,7 +8,6 @@ import Html.Attributes exposing (class)
 import List.Extra as List
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
-import Util exposing ((=>))
 import Views.RobotPanel as RobotPanel
 import Views.StoryTiles as StoryTiles
 
@@ -144,7 +143,7 @@ sortForLevel l stories =
 
 update : Session -> Model -> ( Model, Cmd msg )
 update session model =
-    model => Cmd.none
+    ( model, Cmd.none )
 
 
 view : Session -> Model -> Html msg

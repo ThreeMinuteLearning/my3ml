@@ -1,4 +1,4 @@
-module Util exposing ((=>), pair, onClickStopPropagation, onClickPreventDefault, viewIf, viewUnless, appendErrors, dialog, printButton, defaultHttpErrorMsg)
+module Util exposing (onClickStopPropagation, onClickPreventDefault, viewIf, viewUnless, appendErrors, dialog, printButton, defaultHttpErrorMsg)
 
 import Dialog
 import Html exposing (..)
@@ -6,31 +6,6 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onWithOptions, onClick, defaultOptions)
 import Http
 import Json.Decode as Decode
-
-
-(=>) : a -> b -> ( a, b )
-(=>) =
-    (,)
-
-
-{-| infixl 0 means the (=>) operator has the same precedence as (<|) and (|>),
-meaning you can use it at the end of a pipeline and have the precedence work out.
--}
-infixl 0 =>
-
-
-{-| Useful when building up a Cmd via a pipeline, and then pairing it with
-a model at the end.
-
-    session.user
-        |> User.Request.foo
-        |> Task.attempt Foo
-        |> pair { model | something = blah }
-
--}
-pair : a -> b -> ( a, b )
-pair first second =
-    first => second
 
 
 viewIf : Bool -> Html msg -> Html msg

@@ -6,7 +6,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
 import Http
-import Util exposing ((=>), defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg)
 import Validate exposing (Validator, ifInvalid)
 import Views.Form as Form
 
@@ -43,34 +43,22 @@ update session msg model =
         SubmitForm ->
             case validate model of
                 [] ->
-                    { model | errors = [] }
-                        => sendPasswordChangeRequest session model
-                        => NoOp
+                    ( ( { model | errors = [] }, sendPasswordChangeRequest session model ), NoOp )
 
                 errors ->
-                    { model | errors = errors }
-                        => Cmd.none
-                        => NoOp
+                    ( ( { model | errors = errors }, Cmd.none ), NoOp )
 
         SetPassword password ->
-            { model | password = password }
-                => Cmd.none
-                => NoOp
+            ( ( { model | password = password }, Cmd.none ), NoOp )
 
         SetConfirm password ->
-            { model | confirmPassword = password }
-                => Cmd.none
-                => NoOp
+            ( ( { model | confirmPassword = password }, Cmd.none ), NoOp )
 
         PasswordUpdateResponse (Ok _) ->
-            model
-                => Cmd.none
-                => Completed
+            ( ( model, Cmd.none ), Completed )
 
         PasswordUpdateResponse (Err e) ->
-            { model | errors = ("Password update failed: " ++ defaultHttpErrorMsg e) :: model.errors }
-                => Cmd.none
-                => NoOp
+            ( ( { model | errors = ("Password update failed: " ++ defaultHttpErrorMsg e) :: model.errors }, Cmd.none ), NoOp )
 
 
 sendPasswordChangeRequest : Session -> Model -> Cmd Msg

@@ -10,7 +10,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
 import Route exposing (Route)
-import Util exposing ((=>), defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg)
 import Validate exposing (..)
 import Views.Form as Form
 
@@ -95,24 +95,20 @@ update msg model =
         SubmitForm ->
             case validate model of
                 [] ->
-                    { model | errors = [] }
-                        => Http.send LoginCompleted (Api.postAuthenticate (Api.LoginRequest (String.trim (.username model)) (.password model)))
-                        => Nothing
+                    ( ( { model | errors = [] }
+                      , Http.send LoginCompleted (Api.postAuthenticate (Api.LoginRequest (String.trim (.username model)) (.password model)))
+                      )
+                    , Nothing
+                    )
 
                 errors ->
-                    { model | errors = errors }
-                        => Cmd.none
-                        => Nothing
+                    ( ( { model | errors = errors }, Cmd.none ), Nothing )
 
         SetUsername username ->
-            { model | username = username }
-                => Cmd.none
-                => Nothing
+            ( ( { model | username = username }, Cmd.none ), Nothing )
 
         SetPassword password ->
-            { model | password = password }
-                => Cmd.none
-                => Nothing
+            ( ( { model | password = password }, Cmd.none ), Nothing )
 
         LoginCompleted (Err error) ->
             let
@@ -135,14 +131,10 @@ update msg model =
                         _ ->
                             [ defaultHttpErrorMsg error ]
             in
-                { model | errors = List.map (\errorMessage -> Form => errorMessage) errorMessages }
-                    => Cmd.none
-                    => Nothing
+                ( ( { model | errors = List.map (\errorMessage -> ( Form, errorMessage )) errorMessages }, Cmd.none ), Nothing )
 
         LoginCompleted (Ok user) ->
-            model
-                => Cmd.none
-                => Just user
+            ( ( model, Cmd.none ), Just user )
 
 
 
@@ -162,6 +154,6 @@ type alias Error =
 validate : Model -> List Error
 validate =
     Validate.all
-        [ .username >> ifBlank (Email => "You must enter a username")
-        , .password >> ifBlank (Password => "You must enter a password")
+        [ .username >> ifBlank ( Email, "You must enter a username" )
+        , .password >> ifBlank ( Password, "You must enter a password" )
         ]

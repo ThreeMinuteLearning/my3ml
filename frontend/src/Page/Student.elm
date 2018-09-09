@@ -10,7 +10,7 @@ import Html.Events exposing (onClick)
 import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
-import Util exposing ((=>), dialog, defaultHttpErrorMsg)
+import Util exposing (dialog, defaultHttpErrorMsg)
 import Views.Answers as Answers
 import Views.ChangePasswordForm as ChangePassword
 import Views.ChangeUsernameForm as ChangeUsername
@@ -72,9 +72,7 @@ update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
 update session msg model =
     case msg of
         ShowChangePassword ->
-            { model | changePasswordForm = Just <| ChangePassword.init (.id model.student) 8 }
-                => Cmd.none
-                => session
+            ( ( { model | changePasswordForm = Just <| ChangePassword.init (.id model.student) 8 }, Cmd.none ), session )
 
         ChangePasswordMsg subMsg ->
             case Maybe.map (ChangePassword.update session subMsg) model.changePasswordForm of
@@ -82,19 +80,13 @@ update session msg model =
                     ( ( model, Cmd.none ), session )
 
                 Just ( ( subModel, subSubMsg ), ChangePassword.NoOp ) ->
-                    { model | changePasswordForm = Just subModel }
-                        => Cmd.map ChangePasswordMsg subSubMsg
-                        => session
+                    ( ( { model | changePasswordForm = Just subModel }, Cmd.map ChangePasswordMsg subSubMsg ), session )
 
                 Just ( _, ChangePassword.Completed ) ->
-                    { model | changePasswordForm = Nothing }
-                        => Cmd.none
-                        => session
+                    ( ( { model | changePasswordForm = Nothing }, Cmd.none ), session )
 
         ShowChangeUsername ->
-            { model | changeUsernameForm = Just <| ChangeUsername.init (.id model.student) }
-                => Cmd.none
-                => session
+            ( ( { model | changeUsernameForm = Just <| ChangeUsername.init (.id model.student) }, Cmd.none ), session )
 
         ChangeUsernameMsg subMsg ->
             case Maybe.map (ChangeUsername.update session subMsg) model.changeUsernameForm of
@@ -102,14 +94,10 @@ update session msg model =
                     ( ( model, Cmd.none ), session )
 
                 Just ( ( subModel, subSubMsg ), ChangeUsername.NoOp ) ->
-                    { model | changeUsernameForm = Just subModel }
-                        => Cmd.map ChangeUsernameMsg subSubMsg
-                        => session
+                    ( ( { model | changeUsernameForm = Just subModel }, Cmd.map ChangeUsernameMsg subSubMsg ), session )
 
                 Just ( _, ChangeUsername.Completed ) ->
-                    { model | changeUsernameForm = Nothing }
-                        => Cmd.none
-                        => session
+                    ( ( { model | changeUsernameForm = Nothing }, Cmd.none ), session )
 
         ToggleHiddenStatus ->
             let
@@ -119,71 +107,63 @@ update session msg model =
                 newStudent =
                     { s | hidden = not s.hidden }
             in
-                model => sendUpdateStudent session newStudent => session
+                ( ( model, sendUpdateStudent session newStudent ), session )
 
         ToggleDeletedStatus ->
             case .deleted model.student of
                 Nothing ->
-                    { model | showConfirmDelete = True } => Cmd.none => session
+                    ( ( { model | showConfirmDelete = True }, Cmd.none ), session )
 
                 Just _ ->
                     let
                         s =
                             model.student
                     in
-                        model
-                            => (Api.postSchoolStudentsByStudentIdUndelete (authorization session) (.id model.student)
-                                    |> Http.send UndeleteResponse
-                               )
-                            => session
+                        ( ( model
+                          , (Api.postSchoolStudentsByStudentIdUndelete (authorization session) (.id model.student)
+                                |> Http.send UndeleteResponse
+                            )
+                          )
+                        , session
+                        )
 
         ConfirmDelete ->
-            model
-                => (Api.deleteSchoolStudentsByStudentId (authorization session) (.id model.student)
-                        |> Http.send UpdateStudentResponse
-                   )
-                => session
+            ( ( model
+              , (Api.deleteSchoolStudentsByStudentId (authorization session) (.id model.student)
+                    |> Http.send UpdateStudentResponse
+                )
+              )
+            , session
+            )
 
         UndeleteResponse (Ok _) ->
             let
                 student =
                     model.student
             in
-                { model | errors = [], student = { student | deleted = Nothing } }
-                    => Cmd.none
-                    => updateSession session student
+                ( ( { model | errors = [], student = { student | deleted = Nothing } }, Cmd.none ), updateSession session student )
 
         UndeleteResponse (Err e) ->
-            { model | errors = [ defaultHttpErrorMsg e ] }
-                => Cmd.none
-                => session
+            ( ( { model | errors = [ defaultHttpErrorMsg e ] }, Cmd.none ), session )
 
         UpdateStudentResponse (Ok student) ->
-            { model | errors = [], student = student, showConfirmDelete = False }
-                => Cmd.none
-                => updateSession session student
+            ( ( { model | errors = [], student = student, showConfirmDelete = False }, Cmd.none ), updateSession session student )
 
         UpdateStudentResponse (Err e) ->
-            { model | errors = [ defaultHttpErrorMsg e ] }
-                => Cmd.none
-                => session
+            ( ( { model | errors = [ defaultHttpErrorMsg e ] }, Cmd.none ), session )
 
         SetLevel newLevel ->
             if newLevel == (.level model.student) then
-                model => Cmd.none => session
+                ( ( model, Cmd.none ), session )
             else
                 let
                     s =
                         model.student
                 in
-                    model
-                        => sendUpdateStudent session { s | level = newLevel }
-                        => session
+                    ( ( model, sendUpdateStudent session { s | level = newLevel } ), session )
 
         DismissDialog ->
-            { model | changeUsernameForm = Nothing, changePasswordForm = Nothing, showConfirmDelete = False }
-                => Cmd.none
-                => session
+            ( ( { model | changeUsernameForm = Nothing, changePasswordForm = Nothing, showConfirmDelete = False }, Cmd.none ), session )
 
 
 updateSession : Session -> Api.Student -> Session

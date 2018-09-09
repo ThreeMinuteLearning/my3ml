@@ -11,7 +11,7 @@ import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
-import Util exposing ((=>), defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg)
 import Views.TeacherToolbar as TeacherToolbar
 
 
@@ -49,31 +49,33 @@ update : Session -> Msg -> Model -> ( Model, Cmd Msg )
 update session msg model =
     case msg of
         SetTableState state ->
-            { model | tableState = state } => Cmd.none
+            ( { model | tableState = state }, Cmd.none )
 
         ActivateAccount accId ->
-            model
-                => (Api.postSchoolTeachersByTeacherIdActivate (authorization session) accId
-                        |> Http.send ActivateAccountResponse
-                   )
+            ( model
+            , (Api.postSchoolTeachersByTeacherIdActivate (authorization session) accId
+                |> Http.send ActivateAccountResponse
+              )
+            )
 
         ActivateAccountResponse (Ok accId) ->
-            { model | teachers = List.map (markActivated accId) model.teachers } => Cmd.none
+            ( { model | teachers = List.map (markActivated accId) model.teachers }, Cmd.none )
 
         ActivateAccountResponse (Err e) ->
-            model => Cmd.none
+            ( model, Cmd.none )
 
         GenerateRegistrationCode ->
-            model
-                => (Api.getAccountRegisterCode (authorization session)
-                        |> Http.send GenerateRegistrationCodeResponse
-                   )
+            ( model
+            , (Api.getAccountRegisterCode (authorization session)
+                |> Http.send GenerateRegistrationCodeResponse
+              )
+            )
 
         GenerateRegistrationCodeResponse (Ok code) ->
-            { model | registrationCode = Just code } => Cmd.none
+            ( { model | registrationCode = Just code }, Cmd.none )
 
         GenerateRegistrationCodeResponse (Err _) ->
-            model => Cmd.none
+            ( model, Cmd.none )
 
 
 markActivated : String -> ( Api.Teacher, Bool ) -> ( Api.Teacher, Bool )

@@ -11,7 +11,7 @@ import Page.Errored exposing (PageLoadError, pageLoadError)
 import Route
 import Table
 import Task exposing (Task)
-import Util exposing ((=>), dialog, defaultHttpErrorMsg)
+import Util exposing (dialog, defaultHttpErrorMsg)
 import Views.TeacherToolbar as TeacherToolbar
 
 
@@ -35,8 +35,7 @@ init session =
             pageLoadError e ("Unable to load classes. " ++ defaultHttpErrorMsg e ++ ".")
 
         createModel session =
-            Model (Table.initialSort "Class Name") Nothing
-                => session
+            ( Model (Table.initialSort "Class Name") Nothing, session )
     in
         Session.loadClasses session
             |> Task.mapError handleLoadError
@@ -47,19 +46,13 @@ update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
 update session msg model =
     case msg of
         ShowAddClass ->
-            { model | addClassForm = Just AddClassForm.init }
-                => Cmd.none
-                => session
+            ( ( { model | addClassForm = Just AddClassForm.init }, Cmd.none ), session )
 
         DismissAddClass ->
-            { model | addClassForm = Nothing }
-                => Cmd.none
-                => session
+            ( ( { model | addClassForm = Nothing }, Cmd.none ), session )
 
         SetTableState state ->
-            { model | tableState = state }
-                => Cmd.none
-                => session
+            ( ( { model | tableState = state }, Cmd.none ), session )
 
         AddClassFormMsg subMsg ->
             case Maybe.map (AddClassForm.update session subMsg) model.addClassForm of
@@ -67,9 +60,7 @@ update session msg model =
                     ( ( model, Cmd.none ), session )
 
                 Just ( ( subModel, subSubMsg ), Nothing ) ->
-                    { model | addClassForm = Just subModel }
-                        => Cmd.map AddClassFormMsg subSubMsg
-                        => session
+                    ( ( { model | addClassForm = Just subModel }, Cmd.map AddClassFormMsg subSubMsg ), session )
 
                 Just ( _, Just newClass ) ->
                     let
@@ -82,9 +73,7 @@ update session msg model =
                         newSession =
                             { session | cache = { cache | classes = newClasses } }
                     in
-                        { model | addClassForm = Nothing }
-                            => Cmd.none
-                            => newSession
+                        ( ( { model | addClassForm = Nothing }, Cmd.none ), newSession )
 
 
 view : Session -> Model -> Html Msg

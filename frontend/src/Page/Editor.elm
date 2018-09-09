@@ -13,7 +13,7 @@ import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Set
 import Task exposing (Task)
 import Tuple exposing (second)
-import Util exposing ((=>), defaultHttpErrorMsg, onClickPreventDefault)
+import Util exposing (defaultHttpErrorMsg, onClickPreventDefault)
 import Views.Form as Form
 import Views.Story as StoryView
 import Window
@@ -104,24 +104,25 @@ update session msg model =
                 ( newStoryView, cmd ) =
                     StoryView.update svm model.storyView
             in
-                { model | storyView = newStoryView } => Cmd.map StoryViewMsg cmd
+                ( { model | storyView = newStoryView }, Cmd.map StoryViewMsg cmd )
 
         ContentInput newContent ->
-            { model | stories = Zipper.mapCurrent (\s -> { s | content = newContent }) model.stories }
-                => Cmd.none
+            ( { model | stories = Zipper.mapCurrent (\s -> { s | content = newContent }) model.stories }
+            , Cmd.none
+            )
 
         Save ->
-            model
-                => (Api.postStoriesByStoryId (authorization session) (.id <| Zipper.current model.stories) (Zipper.current model.stories)
-                        |> Http.send SaveResponse
-                   )
+            ( model
+            , (Api.postStoriesByStoryId (authorization session) (.id <| Zipper.current model.stories) (Zipper.current model.stories)
+                |> Http.send SaveResponse
+              )
+            )
 
         SaveResponse (Ok story) ->
-            { model | errors = [], stories = Zipper.mapCurrent (\_ -> story) model.stories } => Cmd.none
+            ( { model | errors = [], stories = Zipper.mapCurrent (\_ -> story) model.stories }, Cmd.none )
 
         SaveResponse (Err e) ->
-            { model | errors = [ defaultHttpErrorMsg e ] }
-                => Cmd.none
+            ( { model | errors = [ defaultHttpErrorMsg e ] }, Cmd.none )
 
         MSMsg sub ->
             let
@@ -134,13 +135,13 @@ update session msg model =
                 newZipper =
                     Zipper.mapCurrent (\s -> { s | tags = selected }) model.stories
             in
-                { model | tagsMultiselect = subModel, stories = newZipper } ! [ Cmd.map MSMsg subCmd ]
+                ( { model | tagsMultiselect = subModel, stories = newZipper }, Cmd.map MSMsg subCmd )
 
         Next ->
-            updateZipper Zipper.next model => Cmd.none
+            ( updateZipper Zipper.next model, Cmd.none )
 
         Previous ->
-            updateZipper Zipper.previous model => Cmd.none
+            ( updateZipper Zipper.previous model, Cmd.none )
 
 
 updateZipper : (InfiniteZipper Api.Story -> InfiniteZipper Api.Story) -> Model -> Model

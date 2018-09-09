@@ -12,7 +12,6 @@ import Html.Events exposing (on, onClick, onInput, onSubmit, targetValue)
 import Http
 import Json.Decode as Json
 import Regex
-import Util exposing ((=>))
 import Validate exposing (Validator, ifBlank, ifNothing, ifInvalid)
 import Views.Form as Form
 
@@ -65,59 +64,37 @@ update session msg model =
         SubmitForm ->
             case validate (trim model) of
                 [] ->
-                    { model | errors = [] }
-                        => submitAnswers session (trim model)
-                        => Nothing
+                    ( ( { model | errors = [] }, submitAnswers session (trim model) ), Nothing )
 
                 errors ->
-                    { model | errors = errors }
-                        => Cmd.none
-                        => Nothing
+                    ( ( { model | errors = errors }, Cmd.none ), Nothing )
 
         SetConnection connection ->
-            { model | connection = connection }
-                => Cmd.none
-                => Nothing
+            ( ( { model | connection = connection }, Cmd.none ), Nothing )
 
         SetQuestion question ->
-            { model | question = question }
-                => Cmd.none
-                => Nothing
+            ( ( { model | question = question }, Cmd.none ), Nothing )
 
         SetSummary summary ->
-            { model | summary = summary }
-                => Cmd.none
-                => Nothing
+            ( ( { model | summary = summary }, Cmd.none ), Nothing )
 
         SetClarification clarification ->
-            { model | clarification = clarification }
-                => Cmd.none
-                => Nothing
+            ( ( { model | clarification = clarification }, Cmd.none ), Nothing )
 
         SetClarifyMethod cm ->
-            { model | clarificationMethod = Dict.get cm clarificationOptions }
-                => Cmd.none
-                => Nothing
+            ( ( { model | clarificationMethod = Dict.get cm clarificationOptions }, Cmd.none ), Nothing )
 
         ToggleDrawer d ->
             if model.showDrawer == Just d then
-                { model | showDrawer = Nothing }
-                    => Cmd.none
-                    => Nothing
+                ( ( { model | showDrawer = Nothing }, Cmd.none ), Nothing )
             else
-                { model | showDrawer = Just d }
-                    => Cmd.none
-                    => Nothing
+                ( ( { model | showDrawer = Just d }, Cmd.none ), Nothing )
 
         SubmitAnswersResponse (Ok answer) ->
-            model
-                => Cmd.none
-                => Just answer
+            ( ( model, Cmd.none ), Just answer )
 
         SubmitAnswersResponse (Err _) ->
-            { model | errors = model.errors ++ [ (Form => "Server error while trying to submit answers") ] }
-                => Cmd.none
-                => Nothing
+            ( ( { model | errors = model.errors ++ [ ( Form, "Server error while trying to submit answers" ) ] }, Cmd.none ), Nothing )
 
 
 trim : Model -> Model

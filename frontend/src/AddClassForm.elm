@@ -8,7 +8,7 @@ import Html exposing (..)
 import Html.Attributes exposing (class, id, placeholder)
 import Html.Events exposing (onInput, onSubmit)
 import Http
-import Util exposing ((=>), defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg)
 import Validate exposing (Validator, ifBlank, ifInvalid)
 import Views.Form as Form
 
@@ -38,27 +38,27 @@ update session msg model =
         SubmitForm ->
             case validate model of
                 [] ->
-                    { model | errors = [] }
-                        => sendNewClassRequest session model
-                        => Nothing
+                    ( ( { model | errors = [] }
+                      , sendNewClassRequest session model
+                      )
+                    , Nothing
+                    )
 
                 errors ->
-                    { model | errors = errors }
-                        => Cmd.none
-                        => Nothing
+                    ( ( { model | errors = errors }
+                      , Cmd.none
+                      )
+                    , Nothing
+                    )
 
         SetName name ->
-            { model | name = name }
-                => Cmd.none
-                => Nothing
+            ( ( { model | name = name }, Cmd.none ), Nothing )
 
         SetDescription d ->
-            { model | description = d }
-                => Cmd.none
-                => Nothing
+            ( ( { model | description = d }, Cmd.none ), Nothing )
 
         AddClassResponse (Ok newClass) ->
-            ( model, Cmd.none ) => Just newClass
+            ( ( model, Cmd.none ), Just newClass )
 
         AddClassResponse (Err e) ->
             let
@@ -75,9 +75,7 @@ update session msg model =
                         _ ->
                             defaultHttpErrorMsg e
             in
-                { model | errors = [ (Form => errorMessage) ] }
-                    => Cmd.none
-                    => Nothing
+                ( ( { model | errors = [ ( Form, errorMessage ) ] }, Cmd.none ), Nothing )
 
 
 sendNewClassRequest : Session -> Model -> Cmd Msg
@@ -104,8 +102,8 @@ fieldError field errors =
 validate : Model -> List Error
 validate =
     Validate.all
-        [ .name >> ifInvalid (not << validName) (Name => "You must enter a valid name for the class")
-        , .description >> ifBlank (Description => "A description for the class is required")
+        [ .name >> ifInvalid (not << validName) ( Name, "You must enter a valid name for the class" )
+        , .description >> ifBlank ( Description, "A description for the class is required" )
         ]
 
 

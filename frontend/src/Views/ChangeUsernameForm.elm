@@ -7,7 +7,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
 import Http
 import Regex exposing (Regex)
-import Util exposing ((=>), defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg)
 import Validate exposing (Validator, ifInvalid)
 import Views.Form as Form
 
@@ -46,40 +46,34 @@ update session msg model =
         SubmitForm ->
             case validate model of
                 [] ->
-                    { model | errors = [] }
-                        => sendUsernameChangeRequest session model
-                        => NoOp
+                    ( ( { model | errors = [] }, sendUsernameChangeRequest session model ), NoOp )
 
                 errors ->
-                    { model | errors = errors }
-                        => Cmd.none
-                        => NoOp
+                    ( ( { model | errors = errors }, Cmd.none ), NoOp )
 
         SetUsername username ->
-            { model | username = username }
-                => Cmd.none
-                => NoOp
+            ( ( { model | username = username }, Cmd.none ), NoOp )
 
         UsernameUpdateResponse (Ok _) ->
-            model
-                => Cmd.none
-                => Completed
+            ( ( model, Cmd.none ), Completed )
 
         UsernameUpdateResponse (Err e) ->
-            (case e of
-                Http.BadStatus { status } ->
-                    case status.code of
-                        409 ->
-                            addError model ("This user name is already taken")
+            ( ( (case e of
+                    Http.BadStatus { status } ->
+                        case status.code of
+                            409 ->
+                                addError model ("This user name is already taken")
 
-                        _ ->
-                            addError model (defaultHttpErrorMsg e)
+                            _ ->
+                                addError model (defaultHttpErrorMsg e)
 
-                _ ->
-                    addError model (defaultHttpErrorMsg e)
+                    _ ->
+                        addError model (defaultHttpErrorMsg e)
+                )
+              , Cmd.none
+              )
+            , NoOp
             )
-                => Cmd.none
-                => NoOp
 
 
 addError : Model -> Error -> Model

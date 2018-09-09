@@ -10,7 +10,7 @@ import Http
 import Json.Decode as Decode exposing (Decoder, decodeValue, decodeString, field, string)
 import Ports
 import Route
-import Util exposing ((=>), defaultHttpErrorMsg, viewIf)
+import Util exposing (defaultHttpErrorMsg, viewIf)
 import Validate exposing (Validator, ifBlank, ifNothing, ifInvalidEmail)
 import Views.Form as Form
 
@@ -79,42 +79,35 @@ update session msg model =
         SubmitForm ->
             case validate model of
                 [] ->
-                    { model | status = AwaitingResponse, errors = [] }
-                        => (Api.postAccountRegister (authorization session) (Api.Registration model.email model.code model.schoolName model.teacherName model.password)
-                                |> Http.send RegisterResponse
-                           )
+                    ( { model | status = AwaitingResponse, errors = [] }
+                    , (Api.postAccountRegister (authorization session) (Api.Registration model.email model.code model.schoolName model.teacherName model.password)
+                        |> Http.send RegisterResponse
+                      )
+                    )
 
                 errors ->
-                    { model | errors = errors }
-                        => Cmd.none
+                    ( { model | errors = errors }, Cmd.none )
 
         SetEmail email ->
-            { model | email = email }
-                => Cmd.none
+            ( { model | email = email }, Cmd.none )
 
         SetCode code ->
-            { model | code = Just code, schoolName = code }
-                => Cmd.none
+            ( { model | code = Just code, schoolName = code }, Cmd.none )
 
         SetSchoolName name ->
-            { model | schoolName = name }
-                => Cmd.none
+            ( { model | schoolName = name }, Cmd.none )
 
         SetTeacherName name ->
-            { model | teacherName = name }
-                => Cmd.none
+            ( { model | teacherName = name }, Cmd.none )
 
         SetPassword password ->
-            { model | password = password }
-                => Ports.checkPassword password
+            ( { model | password = password }, Ports.checkPassword password )
 
         SetConfirmPassword password ->
-            { model | confirmPassword = password }
-                => Cmd.none
+            ( { model | confirmPassword = password }, Cmd.none )
 
         SetRegistrationType t ->
-            { model | registrationType = Just t }
-                => Cmd.none
+            ( { model | registrationType = Just t }, Cmd.none )
 
         RegisterResponse (Err error) ->
             let
@@ -134,21 +127,18 @@ update session msg model =
                         _ ->
                             [ defaultHttpErrorMsg error ]
             in
-                { model | status = NotSent, errors = List.map (\errorMessage -> Form => errorMessage) errorMessages }
-                    => Cmd.none
+                ( { model | status = NotSent, errors = List.map (\errorMessage -> ( Form, errorMessage )) errorMessages }, Cmd.none )
 
         RegisterResponse (Ok _) ->
-            { model | status = Completed }
-                => Cmd.none
+            ( { model | status = Completed }, Cmd.none )
 
         PasswordCheck json ->
             case decodeValue decodeZxcvbn json of
                 Ok zxcvbn ->
-                    { model | zxcvbn = Just zxcvbn } => Cmd.none
+                    ( { model | zxcvbn = Just zxcvbn }, Cmd.none )
 
                 Err e ->
-                    { model | errors = [ ( Form, "There was an error checking the password strength" ) ] }
-                        => Cmd.none
+                    ( { model | errors = [ ( Form, "There was an error checking the password strength" ) ] }, Cmd.none )
 
 
 view : Model -> Html Msg
@@ -323,9 +313,9 @@ type alias Error =
 validate : Model -> List Error
 validate =
     Validate.all
-        [ .schoolName >> ifBlank (SchoolName => "school name can't be blank.")
-        , .email >> ifInvalidEmail (Email => "please enter a valid.")
-        , .teacherName >> ifBlank (TeacherName => "name can't be blank.")
+        [ .schoolName >> ifBlank ( SchoolName, "school name can't be blank." )
+        , .email >> ifInvalidEmail ( Email, "please enter a valid." )
+        , .teacherName >> ifBlank ( TeacherName, "name can't be blank." )
         , validatePassword
         ]
 

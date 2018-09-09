@@ -11,7 +11,6 @@ import Json.Decode.Pipeline exposing (..)
 import Json.Encode as Encode
 import Ports
 import Task exposing (Task)
-import Util exposing ((=>))
 
 
 type alias User =
@@ -266,12 +265,12 @@ decodeSession json =
 encodeUser : User -> Encode.Value
 encodeUser user =
     Encode.object
-        [ "name" => Encode.string user.name
-        , "sub" => Encode.string user.sub
-        , "role" => encodeRole user.role
-        , "level" => Encode.int user.level
-        , "token" => encodeAccessToken user.token
-        , "settings" => Settings.encode user.settings
+        [ ( "name", Encode.string user.name )
+        , ( "sub", Encode.string user.sub )
+        , ( "role", encodeRole user.role )
+        , ( "level", Encode.int user.level )
+        , ( "token", encodeAccessToken user.token )
+        , ( "settings", Settings.encode user.settings )
         ]
 
 

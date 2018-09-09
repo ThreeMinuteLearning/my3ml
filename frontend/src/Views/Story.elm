@@ -12,7 +12,6 @@ import Json.Decode as JD
 import Markdown
 import Ports
 import Regex
-import Util exposing ((=>))
 import Window as Window
 
 
@@ -43,10 +42,10 @@ update msg ( picWidth, windowWidth ) =
             ( ( picWidth, windowWidth ), Ports.getImgWidth s )
 
         ImageWidth w ->
-            ( round w, windowWidth ) => Cmd.none
+            ( ( round w, windowWidth ), Cmd.none )
 
         Resize s ->
-            ( picWidth, s.width ) => Cmd.none
+            ( ( picWidth, s.width ), Cmd.none )
 
 
 view : Settings -> Story -> State -> Html Msg
