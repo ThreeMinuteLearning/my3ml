@@ -2,6 +2,7 @@ target
 data
 .stack-work
 .atomist.yml
+dist-newstyle
 dist
 elm-stuff
 assets/pix

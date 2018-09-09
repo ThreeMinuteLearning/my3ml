@@ -3,7 +3,7 @@ all: backend frontend
 
 .PHONY: backend
 backend: backend/Version.hs
-	cabal build
+	cabal new-build
 
 .PHONY: frontend
 frontend: assets/app.js assets/app.css
@@ -28,7 +28,7 @@ assets/app.css: assets/css/**
 	cat assets/css/my3ml.css assets/css/navbar.css assets/css/multiselect.css assets/css/spinner.css > assets/app.css
 
 frontend/src/Api.elm: code-generator/*.hs api/*.hs api/**/*.hs
-	mkdir -p $(@D) && cabal run code-generator
+	mkdir -p $(@D) && cabal new-run code-generator
 
 VERSION_FILE=backend/Version.hs
 
@@ -41,4 +41,4 @@ backend/Version.hs: .git/refs/heads/*
 
 .PHONY: serve
 serve:
-	cabal run backend
+	cabal new-run backend
