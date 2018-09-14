@@ -190,6 +190,8 @@ view model =
         [ h1 [] [ text (.name model.student) ]
         , viewToolbar model.userIsAdmin model.student
         , Form.viewErrorMsgs model.errors
+        , hr [] []
+        , h1 [] [ text "Completed Stories" ]
         , Answers.viewWithStories model.answers
         , Dialog.view (Maybe.map changePasswordDialog model.changePasswordForm)
         , Dialog.view (Maybe.map changeUsernameDialog model.changeUsernameForm)

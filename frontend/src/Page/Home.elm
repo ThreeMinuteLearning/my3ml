@@ -152,7 +152,7 @@ view session model =
         [ div [ class "container page" ]
             [ RobotPanel.view
             , div []
-                [ h2 []
+                [ h1 []
                     [ text (storiesTitle session)
                     ]
                 , StoryTiles.view False (List.take 24 model.stories)

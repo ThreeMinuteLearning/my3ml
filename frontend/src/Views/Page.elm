@@ -44,7 +44,8 @@ viewHeader page user isLoading =
             [ div [ class "container" ]
                 [ div [ class "navbar-header" ]
                     [ mobileToggleButton
-                    , a [ class "navbar-brand", tabindex -1, Route.href Route.Home ] [ text "3ml" ]
+                    , a [ class "navbar-left", tabindex -1, Route.href Route.Home ]
+                        [ img [ src "/img/logo.png", alt "The Three Minute Learning logo (3ml)"] []]
                     ]
                 , div [ id "navbar", class "navbar-collapse collapse" ]
                     [ ul [ class "nav navbar-nav navbar-right" ] <|
