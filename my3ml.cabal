@@ -106,7 +106,7 @@ test-suite test
 
 test-suite wd-test
   type:                exitcode-stdio-1.0
-  hs-source-dirs:      webdrive
+  hs-source-dirs:      webdriver
   main-is:             wdtest.hs
   build-depends:       base
                      , lifted-base
