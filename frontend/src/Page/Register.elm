@@ -11,7 +11,7 @@ import Json.Decode as Decode exposing (Decoder, decodeValue, decodeString, field
 import Ports
 import Route
 import Util exposing (defaultHttpErrorMsg, viewIf)
-import Validate exposing (Validator, ifBlank, ifNothing, ifInvalidEmail)
+import Validate exposing (Validator, validate, fromErrors, ifBlank, ifNothing, ifInvalidEmail)
 import Views.Form as Form
 
 
@@ -77,16 +77,15 @@ update : Session -> Msg -> Model -> ( Model, Cmd Msg )
 update session msg model =
     case msg of
         SubmitForm ->
-            case validate model of
-                [] ->
+            case validate validator model of
+                Err errors ->
+                    ( { model | errors = errors }, Cmd.none )
+                _ ->
                     ( { model | status = AwaitingResponse, errors = [] }
                     , (Api.postAccountRegister (authorization session) (Api.Registration model.email model.code model.schoolName model.teacherName model.password)
                         |> Http.send RegisterResponse
                       )
                     )
-
-                errors ->
-                    ( { model | errors = errors }, Cmd.none )
 
         SetEmail email ->
             ( { model | email = email }, Cmd.none )
@@ -141,33 +140,36 @@ update session msg model =
                     ( { model | errors = [ ( Form, "There was an error checking the password strength" ) ] }, Cmd.none )
 
 
-view : Model -> Html Msg
+view : Model -> { title: String, content: Html Msg }
 view model =
-    div [ class "container page" ]
-        [ div [ class "row" ]
-            [ div [ class "col-md-12" ]
-                [ h1 [ class "text-xs-center" ] [ text "Sign up" ]
-                , p []
-                    [ text (blurb model.registrationType)
+    { title = "Register with 3ml"
+    , content =
+        div [ class "container page" ]
+            [ div [ class "row" ]
+                [ div [ class "col-md-12" ]
+                    [ h1 [ class "text-xs-center" ] [ text "Sign up" ]
+                    , p []
+                        [ text (blurb model.registrationType)
+                        ]
+                    ]
+                ]
+            , div [ class "row" ]
+                [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
+                    [ p [ class "text-xs-center" ]
+                        [ a [ Route.href Route.Login ]
+                            [ text "Have an account already?" ]
+                        ]
+                    , Form.viewErrors model.errors
+                    , if model.registrationType == Nothing then
+                        viewRegistrationOptions
+                      else if model.status == Completed then
+                        p [] [ text "Registration complete. Your account should be activated within an hour and someone will contact you by email. Your can then sign in using your email and password. " ]
+                      else
+                        viewForm model
                     ]
                 ]
             ]
-        , div [ class "row" ]
-            [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
-                [ p [ class "text-xs-center" ]
-                    [ a [ Route.href Route.Login ]
-                        [ text "Have an account already?" ]
-                    ]
-                , Form.viewErrors model.errors
-                , if model.registrationType == Nothing then
-                    viewRegistrationOptions
-                  else if model.status == Completed then
-                    p [] [ text "Registration complete. Your account should be activated within an hour and someone will contact you by email. Your can then sign in using your email and password. " ]
-                  else
-                    viewForm model
-                ]
-            ]
-        ]
+    }
 
 
 blurb : Maybe RegistrationType -> String
@@ -267,7 +269,7 @@ viewForm model =
 passwordScore : Model -> String
 passwordScore model =
     Maybe.map .score model.zxcvbn
-        |> Maybe.map toString
+        |> Maybe.map String.fromInt
         |> Maybe.withDefault "0"
 
 
@@ -310,13 +312,13 @@ type alias Error =
     ( Field, String )
 
 
-validate : Model -> List Error
-validate =
+validator : Validator Error Model
+validator =
     Validate.all
-        [ .schoolName >> ifBlank ( SchoolName, "school name can't be blank." )
-        , .email >> ifInvalidEmail ( Email, "please enter a valid." )
-        , .teacherName >> ifBlank ( TeacherName, "name can't be blank." )
-        , validatePassword
+        [ ifBlank .schoolName ( SchoolName, "school name can't be blank." )
+        , ifInvalidEmail .email (\_ -> ( Email, "please enter a valid email." ))
+        , ifBlank .teacherName ( TeacherName, "name can't be blank." )
+        , fromErrors validatePassword
         ]
 
 

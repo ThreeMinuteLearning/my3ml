@@ -3,7 +3,7 @@ module Util exposing (onClickStopPropagation, onClickPreventDefault, viewIf, vie
 import Dialog
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onWithOptions, onClick, defaultOptions)
+import Html.Events exposing (onClick, stopPropagationOn, preventDefaultOn)
 import Http
 import Json.Decode as Decode
 
@@ -23,16 +23,12 @@ viewUnless condition content =
 
 onClickPreventDefault : msg -> Attribute msg
 onClickPreventDefault msg =
-    onWithOptions "click"
-        { defaultOptions | preventDefault = True }
-        (Decode.succeed msg)
+    preventDefaultOn "click" (Decode.succeed (msg, True))
 
 
 onClickStopPropagation : msg -> Attribute msg
 onClickStopPropagation msg =
-    onWithOptions "click"
-        { defaultOptions | stopPropagation = True }
-        (Decode.succeed msg)
+    stopPropagationOn "click" (Decode.succeed (msg, True))
 
 
 appendErrors : { model | errors : List error } -> List error -> { model | errors : List error }

@@ -2,7 +2,7 @@ module Views.Page exposing (frame, ActivePage(..))
 
 {-| The frame around a typical page - that is, the header and footer.
 -}
-
+import Browser exposing (Document)
 import Bootstrap exposing (closeBtn)
 import Data.Session as Session exposing (Alert(..), Session, User)
 import Html exposing (..)
@@ -28,30 +28,29 @@ type ActivePage
 
 {-| Take a page's Html and frame it with a header.
 -}
-frame : Bool -> Session -> (Alert -> msg) -> ActivePage -> Html msg -> Html msg
-frame isLoading session onAlertClose page content =
-    div [ class "page-frame" ]
+frame : Bool -> Session -> (Alert -> msg) -> ActivePage -> { title : String, content : Html msg } -> Document msg
+frame isLoading session onAlertClose page {title, content} =
+    { title = title
+    , body =
         [ viewHeader page session.user isLoading
         , viewAlerts session.alerts onAlertClose
         , content
         ]
-
+    }
 
 viewHeader : ActivePage -> Maybe User -> Bool -> Html msg
 viewHeader page user isLoading =
-    header []
-        [ nav [ class "navbar navbar-default" ]
-            [ div [ class "container" ]
-                [ div [ class "navbar-header" ]
-                    [ mobileToggleButton
-                    , a [ class "navbar-brand", tabindex -1, Route.href Route.Home ] [ text "3ml" ]
-                    ]
-                , div [ id "navbar", class "navbar-collapse collapse" ]
-                    [ ul [ class "nav navbar-nav navbar-right" ] <|
-                        lazy2 Util.viewIf isLoading spinner
-                            :: (navbarLink (page == Home) Route.Home [ text "Home" ])
-                            :: viewSignIn page user
-                    ]
+    nav [ class "navbar navbar-default" ]
+        [ div [ class "container" ]
+            [ div [ class "navbar-header" ]
+                [ mobileToggleButton
+                , a [ class "navbar-brand", tabindex -1, Route.href Route.Home ] [ text "3ml" ]
+                ]
+            , div [ id "navbar", class "navbar-collapse collapse" ]
+                [ ul [ class "nav navbar-nav navbar-right" ] <|
+                    lazy2 Util.viewIf isLoading spinner
+                        :: (navbarLink (page == Home) Route.Home [ text "Home" ])
+                        :: viewSignIn page user
                 ]
             ]
         ]
@@ -120,8 +119,8 @@ viewSignIn page user =
                 , navbarLink (page == Register) Route.Register [ text "Sign up" ]
                 ]
 
-            Just user ->
-                case user.role of
+            Just u ->
+                case u.role of
                     Session.Student ->
                         [ findStory, my3ml, leaderboard, logout ]
 

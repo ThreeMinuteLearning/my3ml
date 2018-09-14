@@ -2,6 +2,7 @@ module Page.Story exposing (Model, Msg, init, subscriptions, update, view)
 
 import AnswersForm
 import Api
+import Browser.Dom
 import Data.Session as Session exposing (Session, Cache, Role(..), authorization, findStoryById)
 import Data.Settings exposing (Settings, defaultSettings)
 import Dict
@@ -16,7 +17,6 @@ import Views.Answers as Answers
 import Views.RobotPanel as RobotPanel
 import Views.Story as StoryView
 import Views.Words as Words
-import Window
 
 
 type alias Model =
@@ -48,8 +48,8 @@ init originalSession slug =
         mkAnswersForm story answers =
             Maybe.andThen (createFormIfUnanswered story answers) user
 
-        createFormIfUnanswered story answers user =
-            if List.any (\a -> a.studentId == .sub user) answers then
+        createFormIfUnanswered story answers usr =
+            if List.any (\a -> a.studentId == .sub usr) answers then
                 Nothing
             else
                 Just (AnswersForm.init story)
@@ -58,11 +58,11 @@ init originalSession slug =
             case findStoryById session.cache slug of
                 Just story ->
                     Task.map2
-                        (\answers size ->
-                            ( Model Nothing story (StoryView.init size) answers (mkAnswersForm story answers), session )
+                        (\answers { viewport } ->
+                            ( Model Nothing story (StoryView.init (round viewport.width)) answers (mkAnswersForm story answers), session )
                         )
                         (lookupAnswers session story)
-                        Window.size
+                        Browser.Dom.getViewport
 
                 Nothing ->
                     Task.fail
@@ -100,23 +100,26 @@ subscriptions =
     Sub.batch [ Sub.map StoryViewMsg StoryView.subscriptions, Ports.dictLookup DictLookup ]
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title: String, content: Html Msg }
 view session m =
-    div [ class "container page" ]
-        [ RobotPanel.view
-        , viewIf (Session.isTeacher session) (printButton PrintWindow "Print this story")
-        , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) m.story m.storyView
-        , m.dictLookup
-            |> Maybe.map List.singleton
-            |> Maybe.withDefault []
-            |> Words.view session.cache.dict
-        , viewIf (Session.isStudent session) (viewAnswersForm m)
-        , viewIf (Session.isTeacher session) (viewPrintAnswerSections m.story)
-        , viewIf (m.answersForm == Nothing && not (List.isEmpty m.answers))
-            (div [ class "hidden-print" ]
-                (h2 [] [ text "Story answers" ] :: Answers.view m.story m.answers)
-            )
-        ]
+    { title = m.story.title
+    , content =
+        div [ class "container page" ]
+            [ RobotPanel.view
+            , viewIf (Session.isTeacher session) (printButton PrintWindow "Print this story")
+            , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) m.story m.storyView
+            , m.dictLookup
+                |> Maybe.map List.singleton
+                |> Maybe.withDefault []
+                |> Words.view session.cache.dict
+            , viewIf (Session.isStudent session) (viewAnswersForm m)
+            , viewIf (Session.isTeacher session) (viewPrintAnswerSections m.story)
+            , viewIf (m.answersForm == Nothing && not (List.isEmpty m.answers))
+                (div [ class "hidden-print" ]
+                    (h2 [] [ text "Story answers" ] :: Answers.view m.story m.answers)
+                )
+            ]
+    }
 
 
 viewAnswersForm : Model -> Html Msg

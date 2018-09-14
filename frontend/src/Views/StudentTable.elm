@@ -16,8 +16,8 @@ init =
 
 
 view : Table.Config ( Bool, Api.Student ) msg -> Table.State -> List Api.Student -> (Api.Student -> Bool) -> Html msg
-view config state students isChecked =
-    Table.view config state (List.map (\s -> ( isChecked s, s )) students)
+view cfg state students isChecked =
+    Table.view cfg state (List.map (\s -> ( isChecked s, s )) students)
 
 
 config : (Table.State -> msg) -> (Api.Student -> Bool -> msg) -> Table.Config ( Bool, Api.Student ) msg

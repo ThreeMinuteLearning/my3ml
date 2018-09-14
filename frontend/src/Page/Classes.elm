@@ -34,8 +34,8 @@ init session =
         handleLoadError e =
             pageLoadError e ("Unable to load classes. " ++ defaultHttpErrorMsg e ++ ".")
 
-        createModel session =
-            ( Model (Table.initialSort "Class Name") Nothing, session )
+        createModel sesh =
+            ( Model (Table.initialSort "Class Name") Nothing, sesh )
     in
         Session.loadClasses session
             |> Task.mapError handleLoadError
@@ -76,13 +76,16 @@ update session msg model =
                         ( ( { model | addClassForm = Nothing }, Cmd.none ), newSession )
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title: String, content: Html Msg }
 view session model =
-    div [ class "container page" ]
-        [ TeacherToolbar.view session subtools
-        , viewTable session model
-        , Dialog.view (Maybe.map addClassesDialog model.addClassForm)
-        ]
+    { title = "Classes"
+    , content =
+        div [ class "container page" ]
+            [ TeacherToolbar.view session subtools
+            , viewTable session model
+            , Dialog.view (Maybe.map addClassesDialog model.addClassForm)
+            ]
+    }
 
 
 viewTable : Session -> Model -> Html Msg

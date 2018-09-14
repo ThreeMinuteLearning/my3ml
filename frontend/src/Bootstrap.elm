@@ -1,4 +1,4 @@
-module Bootstrap exposing (errorClass, tableCustomizations, toolbar, btnGroup, btn, closeBtn, alert, Alert(..))
+module Bootstrap exposing (errorClass, tableCustomizations, toolbar, btnGroup, btn, closeBtn, alert, Alert(..), row, formGroup)
 
 import Html exposing (Html, button, div, span, text, tr)
 import Html.Attributes exposing (attribute, id, class, type_)
@@ -9,6 +9,15 @@ import Table
 type Alert
     = Success
     | Danger
+
+row : List (Html msg) -> Html msg
+row =
+    div [ class "row" ]
+
+
+formGroup : List (Html msg) -> Html msg
+formGroup =
+    div [ class "form-group" ]
 
 
 alert : Alert -> String -> msg -> Html msg

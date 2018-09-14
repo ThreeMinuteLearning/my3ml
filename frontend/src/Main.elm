@@ -1,9 +1,10 @@
 module Main exposing (main)
 
-import Data.Session as Session exposing (Session, Role(Teacher), User, decodeSession, storeSession)
+import Data.Session as Session exposing (Session, Role(..), User, decodeSession, storeSession)
+import Browser exposing (Document)
+import Browser.Navigation as Nav
 import Html exposing (..)
 import Json.Decode as Decode exposing (Value)
-import Navigation exposing (Location)
 import Page.Account as Account
 import Page.Class as Class
 import Page.Classes as Classes
@@ -22,7 +23,8 @@ import Page.Teachers as Teachers
 import Ports
 import Route exposing (Route)
 import Task
-import Time exposing (Time, inSeconds)
+import Time
+import Url exposing (Url)
 import Tuple exposing (second)
 import Views.Page as Page exposing (ActivePage)
 
@@ -53,21 +55,23 @@ type PageState
 
 type alias Model =
     { session : Session
-    , tick : Time
+    , tick : Time.Posix
     , pageState : PageState
+    , navKey : Nav.Key
     }
 
 
-init : Value -> Location -> ( Model, Cmd Msg )
-init value location =
-    setRoute (Route.fromLocation location)
+init : Value -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init value url navKey =
+    changeRouteTo (Route.fromUrl url)
         { pageState = Loaded Blank
         , session = decodeSession value
-        , tick = 0
+        , tick = Time.millisToPosix 0
+        , navKey = navKey
         }
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
     case model.pageState of
         Loaded page ->
@@ -77,14 +81,14 @@ view model =
             viewPage model.session True page
 
 
-viewPage : Session -> Bool -> Page -> Html Msg
+viewPage : Session -> Bool -> Page -> Document Msg
 viewPage session isLoading page =
     let
         frame =
             Page.frame isLoading session CloseAlert
 
-        mapMsg m =
-            Html.map (PageMsg << m)
+        mapMsg m { title, content} =
+            { title = title, content = Html.map (PageMsg << m) content }
     in
         case page of
             NotFound ->
@@ -92,7 +96,7 @@ viewPage session isLoading page =
                     |> frame Page.Other
 
             Blank ->
-                Html.text ""
+                { title = "", content = Html.text "" }
                     |> frame Page.Other
 
             Home subModel ->
@@ -165,10 +169,12 @@ viewPage session isLoading page =
 
 type Msg
     = SetRoute (Maybe Route)
+    | ChangedUrl Url
+    | ClickedLink Browser.UrlRequest
     | PageLoaded PageLoaded
     | PageMsg PageMsg
     | CloseAlert Session.Alert
-    | Tick Time
+    | Tick Time.Posix
 
 
 type PageLoaded
@@ -209,8 +215,8 @@ getPage pageState =
             page
 
 
-setRoute : Maybe Route -> Model -> ( Model, Cmd Msg )
-setRoute maybeRoute model =
+changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
+changeRouteTo maybeRoute model =
     let
         transition toMsg task =
             ( { model | pageState = TransitioningFrom (getPage model.pageState) }
@@ -274,7 +280,7 @@ setRoute maybeRoute model =
                         { session | user = Nothing }
                 in
                     ( { model | session = s }
-                    , Cmd.batch [ storeSession s, Route.modifyUrl Route.Home ]
+                    , Cmd.batch [ storeSession s, Route.modifyUrl model.navKey Route.Home ]
                     )
 
             Just (Route.FindStory) ->
@@ -305,7 +311,23 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SetRoute route ->
-            setRoute route model
+            changeRouteTo route model
+
+        ChangedUrl url ->
+            changeRouteTo (Route.fromUrl url) model
+
+        ClickedLink urlReq ->
+            case urlReq of
+                Browser.Internal url ->
+                    case url.fragment of
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                        Just _ ->
+                            ( model, Nav.pushUrl model.navKey (Url.toString url) )
+
+                Browser.External url ->
+                    ( model, Nav.load url )
 
         PageLoaded p ->
             pageLoaded p model
@@ -325,15 +347,15 @@ update msg model =
                     List.filter (not << second) session.alerts
 
                 interval =
-                    inSeconds t - model.tick
+                    Time.posixToMillis t - Time.posixToMillis model.tick
 
                 ( newAlerts, newTick ) =
-                    if interval < 3 then
+                    if interval < 3000 then
                         ( alerts, model.tick )
-                    else if interval > 10 then
-                        ( alerts, inSeconds t )
+                    else if interval > 10000 then
+                        ( alerts, t )
                     else
-                        ( List.map closeUnlessError alerts, inSeconds t )
+                        ( List.map closeUnlessError alerts, t )
 
                 closeUnlessError ( a, c ) =
                     case a of
@@ -459,7 +481,7 @@ updatePage page msg model =
                             ( { model | pageState = Loaded (Class pageModel) }, mapMsg ClassMsg cmd )
 
                         Class.Deleted newSession ->
-                            setRoute (Just (Route.Teacher Route.Classes))
+                            changeRouteTo (Just (Route.Teacher Route.Classes))
                                 { model | session = newSession }
 
                         Class.Updated newSession ->
@@ -475,7 +497,7 @@ updatePage page msg model =
                     ( newSession, cmd ) =
                         maybeLoggedIn
                             |> Maybe.map (Session.newLogin model.session)
-                            |> Maybe.map (\s -> ( s, Cmd.batch [ storeSession s, chooseStartPage s.user ] ))
+                            |> Maybe.map (\s -> ( s, Cmd.batch [ storeSession s, chooseStartPage model.navKey s.user ] ))
                             |> Maybe.withDefault ( model.session, Cmd.none )
                 in
                     ( { model | session = newSession, pageState = Loaded (Login pageModel) }
@@ -498,9 +520,9 @@ updatePage page msg model =
                 ( model, Cmd.none )
 
 
-chooseStartPage : Maybe User -> Cmd msg
-chooseStartPage user =
-    Route.modifyUrl <|
+chooseStartPage : Nav.Key -> Maybe User -> Cmd msg
+chooseStartPage navKey user =
+    Route.modifyUrl navKey <|
         case Maybe.map .role user of
             Just (Teacher _) ->
                 Route.Teacher Route.Students
@@ -523,7 +545,7 @@ sessionSubscriptions s =
             Sub.none
 
         _ ->
-            Time.every Time.second Tick
+            Time.every 1000 Tick
 
 
 pageSubscriptions : Page -> Sub PageMsg
@@ -547,9 +569,11 @@ pageSubscriptions page =
 
 main : Program Value Model Msg
 main =
-    Navigation.programWithFlags (Route.fromLocation >> SetRoute)
+    Browser.application
         { init = init
         , subscriptions = subscriptions
         , update = update
         , view = view
+        , onUrlRequest = ClickedLink
+        , onUrlChange = ChangedUrl
         }

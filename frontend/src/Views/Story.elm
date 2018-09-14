@@ -4,6 +4,7 @@ module Views.Story exposing (State, Msg, init, view, subscriptions, update)
 -}
 
 import Api exposing (Story)
+import Browser.Events exposing (onResize)
 import Data.Settings exposing (Settings, toStyle)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -12,7 +13,6 @@ import Json.Decode as JD
 import Markdown
 import Ports
 import Regex
-import Window as Window
 
 
 type alias State =
@@ -22,17 +22,17 @@ type alias State =
 type Msg
     = GetImgWidth String
     | ImageWidth Float
-    | Resize Window.Size
+    | Resize Int Int
 
 
-init : Window.Size -> State
-init size =
-    ( 0, size.width )
+init : Int -> State
+init width =
+    ( 0, width )
 
 
 subscriptions : Sub Msg
 subscriptions =
-    Sub.batch [ Ports.imgWidth ImageWidth, Window.resizes Resize ]
+    Sub.batch [ Ports.imgWidth ImageWidth, onResize Resize ]
 
 
 update : Msg -> State -> ( State, Cmd Msg )
@@ -44,8 +44,8 @@ update msg ( picWidth, windowWidth ) =
         ImageWidth w ->
             ( ( round w, windowWidth ), Cmd.none )
 
-        Resize s ->
-            ( ( picWidth, s.width ), Cmd.none )
+        Resize width _ ->
+            ( ( picWidth, width ), Cmd.none )
 
 
 view : Settings -> Story -> State -> Html Msg
@@ -59,9 +59,9 @@ view settings story state =
                 )
                 []
             ]
-        , Markdown.toHtml [ id "storycontent", toStyle settings ] (storyContent story)
+        , Markdown.toHtml ((id "storycontent") :: toStyle settings) (storyContent story)
         , div [ id "storyfooter", class "hidden-print" ]
-            [ p [] [ text (String.join ", " (tagList story)), br [] [], text ("Level: " ++ toString story.level) ]
+            [ p [] [ text (String.join ", " (tagList story)), br [] [], text ("Level: " ++ String.fromInt story.level) ]
             ]
         ]
 
@@ -89,7 +89,7 @@ picStyle ( picWidth, windowWidth ) =
 imgStyle : State -> List (Html.Attribute msg)
 imgStyle ( picWidth, windowWidth ) =
     if picWidth > thresholdWidth windowWidth then
-        [ style [ ( "width", "100%" ) ] ]
+        [ style  "width" "100%" ]
     else
         []
 
@@ -105,10 +105,10 @@ storyContent s =
         replace m =
             "*" ++ (String.dropRight 1 m.match) ++ "*" ++ (String.right 1 m.match)
 
-        re w =
-            Regex.regex ((Regex.escape w.word) ++ "[^a-zA-z\\-]")
+        re w = Maybe.withDefault Regex.never <|
+            Regex.fromString (w.word ++ "[^a-zA-z\\-]")
 
         replaceWord w content =
-            Regex.replace Regex.All (re w) replace content
+            Regex.replace (re w) replace content
     in
         List.foldl replaceWord s.content s.words

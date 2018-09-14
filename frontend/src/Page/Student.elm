@@ -3,13 +3,14 @@ module Page.Student exposing (Model, Msg, init, update, view)
 import Api
 import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Dialog
-import Exts.Html.Bootstrap exposing (row)
+import Bootstrap exposing (row)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Http
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
+import Tuple exposing (pair)
 import Util exposing (dialog, defaultHttpErrorMsg)
 import Views.Answers as Answers
 import Views.ChangePasswordForm as ChangePassword
@@ -59,7 +60,7 @@ init session_ slug =
                 |> Http.toTask
 
         zipWithStory session a =
-            Maybe.map ((,) a) (findStoryById session.cache a.storyId)
+            Maybe.map (pair a) (findStoryById session.cache a.storyId)
 
         mkModel newSession student answers =
             ( Model [] student (List.filterMap (zipWithStory newSession) answers) Nothing Nothing False False (Session.isSchoolAdmin newSession), newSession )
@@ -184,23 +185,25 @@ sendUpdateStudent session student =
         |> Http.send UpdateStudentResponse
 
 
-view : Model -> Html Msg
+view : Model -> { title : String, content : Html Msg }
 view model =
-    div [ class "container page" ]
-        [ h1 [] [ text (.name model.student) ]
-        , viewToolbar model.userIsAdmin model.student
-        , Form.viewErrorMsgs model.errors
-        , Answers.viewWithStories model.answers
-        , Dialog.view (Maybe.map changePasswordDialog model.changePasswordForm)
-        , Dialog.view (Maybe.map changeUsernameDialog model.changeUsernameForm)
-        , Dialog.view
-            (if model.showConfirmDelete then
-                Just confirmDeleteDialog
-             else
-                Nothing
-            )
-        ]
-
+    { title = "Student"
+    , content =
+        div [ class "container page" ]
+            [ h1 [] [ text (.name model.student) ]
+            , viewToolbar model.userIsAdmin model.student
+            , Form.viewErrorMsgs model.errors
+            , Answers.viewWithStories model.answers
+            , Dialog.view (Maybe.map changePasswordDialog model.changePasswordForm)
+            , Dialog.view (Maybe.map changeUsernameDialog model.changeUsernameForm)
+            , Dialog.view
+                (if model.showConfirmDelete then
+                    Just confirmDeleteDialog
+                else
+                    Nothing
+                )
+            ]
+    }
 
 viewToolbar : Bool -> Api.Student -> Html Msg
 viewToolbar isAdmin student =

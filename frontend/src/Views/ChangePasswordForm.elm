@@ -7,7 +7,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
 import Http
 import Util exposing (defaultHttpErrorMsg)
-import Validate exposing (Validator, ifInvalid)
+import Validate exposing (Validator, validate, ifTrue)
 import Views.Form as Form
 
 
@@ -41,12 +41,13 @@ update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), ExternalMsg )
 update session msg model =
     case msg of
         SubmitForm ->
-            case validate model of
-                [] ->
+            case validate (validator model.minLength) model of
+                Err errors ->
+                    ( ( { model | errors = errors }, Cmd.none ), NoOp )
+
+                _ ->
                     ( ( { model | errors = [] }, sendPasswordChangeRequest session model ), NoOp )
 
-                errors ->
-                    ( ( { model | errors = errors }, Cmd.none ), NoOp )
 
         SetPassword password ->
             ( ( { model | password = password }, Cmd.none ), NoOp )
@@ -71,20 +72,13 @@ type alias Error =
     String
 
 
-validate : Model -> List Error
-validate =
-    Validate.all
-        [ \m ->
-            (ifNotLongEnough m.minLength)
-                ("Password must be at least " ++ toString m.minLength ++ " characters")
-                m.password
-        , ifInvalid (\m -> m.password /= m.confirmPassword) ("Passwords don't match")
+validator : Int -> Validator Error Model
+validator min =
+    Validate.firstError
+        [ ifTrue (\m -> String.length m.password < min)
+                ("Password must be at least " ++ String.fromInt min ++ " characters")
+        , ifTrue (\m -> m.password /= m.confirmPassword) ("Passwords don't match")
         ]
-
-
-ifNotLongEnough : Int -> Error -> String -> List Error
-ifNotLongEnough l =
-    ifInvalid (\s -> String.length s < l)
 
 
 view : Model -> Html Msg

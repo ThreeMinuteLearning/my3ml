@@ -1,7 +1,7 @@
 module Data.Zxcvbn exposing (Zxcvbn, ZxcvbnFeedback, decodeZxcvbn)
 
 import Json.Decode exposing (field)
-import Json.Decode.Pipeline exposing (decode, required)
+import Json.Decode.Pipeline exposing (required)
 
 
 type alias Zxcvbn =
@@ -42,7 +42,7 @@ type alias ZxcvbnFeedback =
 
 decodeZxcvbn : Json.Decode.Decoder Zxcvbn
 decodeZxcvbn =
-    decode Zxcvbn
+    Json.Decode.succeed Zxcvbn
         |> required "password" (Json.Decode.string)
         -- |> required "guesses" (Json.Decode.float)
         -- |> required "guesses_log10" (Json.Decode.float)

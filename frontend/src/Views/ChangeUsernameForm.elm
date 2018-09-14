@@ -8,7 +8,7 @@ import Html.Events exposing (onInput, onSubmit)
 import Http
 import Regex exposing (Regex)
 import Util exposing (defaultHttpErrorMsg)
-import Validate exposing (Validator, ifInvalid)
+import Validate exposing (Validator, validate, ifTrue)
 import Views.Form as Form
 
 
@@ -44,12 +44,12 @@ update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), ExternalMsg )
 update session msg model =
     case msg of
         SubmitForm ->
-            case validate model of
-                [] ->
+            case validate validator model of
+                Err errors ->
+                    ( ( { model | errors = errors }, Cmd.none ), NoOp )
+                _ ->
                     ( ( { model | errors = [] }, sendUsernameChangeRequest session model ), NoOp )
 
-                errors ->
-                    ( ( { model | errors = errors }, Cmd.none ), NoOp )
 
         SetUsername username ->
             ( ( { model | username = username }, Cmd.none ), NoOp )
@@ -93,24 +93,16 @@ type alias Error =
 
 spaceChars : Regex
 spaceChars =
-    Regex.regex "\\s+"
+    Maybe.withDefault Regex.never (Regex.fromString "\\s+")
 
 
-validate : Model -> List Error
-validate =
+validator : Validator Error Model
+validator =
     Validate.all
-        [ .username
-            >> (ifNotLongEnough minLength)
-                ("Username must be at least " ++ toString minLength ++ " characters")
-        , .username
-            >> ifInvalid (Regex.contains spaceChars) "Username can't contain spaces"
+        [ ifTrue (\m -> String.length m.username < minLength)
+                ("Username must be at least " ++ String.fromInt minLength ++ " characters")
+        , ifTrue (Regex.contains spaceChars << .username) "Username can't contain spaces"
         ]
-
-
-ifNotLongEnough : Int -> Error -> String -> List Error
-ifNotLongEnough l =
-    ifInvalid (\s -> String.length s < l)
-
 
 view : Model -> Html Msg
 view model =

@@ -3,13 +3,13 @@ module AddClassForm exposing (Model, Msg, init, update, view)
 import Api
 import Bootstrap exposing (errorClass)
 import Data.Session exposing (Session, authorization)
-import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (class, id, placeholder)
 import Html.Events exposing (onInput, onSubmit)
 import Http
+import List.Extra
 import Util exposing (defaultHttpErrorMsg)
-import Validate exposing (Validator, ifBlank, ifInvalid)
+import Validate exposing (Validator, validate, ifBlank, ifFalse)
 import Views.Form as Form
 
 
@@ -36,17 +36,17 @@ update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Maybe Api.Class )
 update session msg model =
     case msg of
         SubmitForm ->
-            case validate model of
-                [] ->
-                    ( ( { model | errors = [] }
-                      , sendNewClassRequest session model
+            case validate validator model of
+                Err errors ->
+                    ( ( { model | errors = errors }
+                      , Cmd.none
                       )
                     , Nothing
                     )
 
-                errors ->
-                    ( ( { model | errors = errors }
-                      , Cmd.none
+                _ ->
+                    ( ( { model | errors = [] }
+                      , sendNewClassRequest session model
                       )
                     , Nothing
                     )
@@ -96,14 +96,14 @@ type alias Error =
 
 fieldError : Field -> List Error -> Maybe Error
 fieldError field errors =
-    firstMatch (\e -> Tuple.first e == field) errors
+    List.Extra.find (\e -> Tuple.first e == field) errors
 
 
-validate : Model -> List Error
-validate =
+validator : Validator Error Model
+validator =
     Validate.all
-        [ .name >> ifInvalid (not << validName) ( Name, "You must enter a valid name for the class" )
-        , .description >> ifBlank ( Description, "A description for the class is required" )
+        [ ifFalse (validName << .name) ( Name, "You must enter a valid name for the class" )
+        , ifBlank .description ( Description, "A description for the class is required" )
         ]
 
 

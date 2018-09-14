@@ -5,14 +5,14 @@ import Bootstrap exposing (errorClass)
 import Data.Session exposing (Session, authorization)
 import Dict exposing (Dict)
 import Drawer exposing (DrawerType)
-import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onClick, onInput, onSubmit, targetValue)
 import Http
 import Json.Decode as Json
+import List.Extra
 import Regex
-import Validate exposing (Validator, ifBlank, ifNothing, ifInvalid)
+import Validate exposing (Validator, fromErrors, validate, ifBlank, ifNothing, ifTrue)
 import Views.Form as Form
 
 
@@ -20,6 +20,14 @@ type ClarifyMethod
     = ReadAround
     | BreakDown
     | Substitution
+
+
+toString : ClarifyMethod -> String
+toString c =
+    case c of
+        ReadAround -> "ReadAround"
+        BreakDown -> "BreakDown"
+        Substitution -> " Substitution"
 
 
 type Msg
@@ -62,12 +70,13 @@ update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Maybe Api.Answer )
 update session msg model =
     case msg of
         SubmitForm ->
-            case validate (trim model) of
-                [] ->
+            case validate validator (trim model) of
+                Err errors ->
+                    ( ( { model | errors = errors }, Cmd.none ), Nothing )
+
+                _ ->
                     ( ( { model | errors = [] }, submitAnswers session (trim model) ), Nothing )
 
-                errors ->
-                    ( ( { model | errors = errors }, Cmd.none ), Nothing )
 
         SetConnection connection ->
             ( ( { model | connection = connection }, Cmd.none ), Nothing )
@@ -130,66 +139,66 @@ type Field
     | ClarificationMethod
 
 
+fieldToString : Field -> String
+fieldToString f =
+    case f of
+        Form -> "Form"
+        Connection -> "Connection"
+        Question -> "Question"
+        Summary -> "Summary"
+        Clarification -> "Clarification"
+        ClarificationMethod -> "ClarificationMethod"
+
+
 type alias Error =
     ( Field, String )
 
 
 fieldError : Field -> List Error -> Maybe Error
 fieldError field errors =
-    firstMatch (\e -> Tuple.first e == field) errors
+    List.Extra.find (\e -> Tuple.first e == field) errors
 
 
-validate : Model -> List Error
-validate =
+validator : Validator Error Model
+validator =
     Validate.all
-        [ .connection
-            >> Validate.all
-                [ ifBlank ( Connection, "Please fill in your connection with the story" )
-                , ifNotSentence ( Connection, "Please write a sentence for your connection with the story" )
-                , ifTooLong Connection
-                ]
-        , .question
-            >> Validate.all
-                [ ifBlank ( Question, "Please enter a question about the story" )
-                , ifNotSentence ( Question, "Please write a sentence for your question" )
-                , ifTooLong Question
-                ]
-        , .summary
-            >> Validate.all
-                [ ifBlank ( Summary, "Please write your summary sentence for the story" )
-                , ifNotSentence ( Summary, "Please the summary as a sentence" )
-                , ifTooLong Summary
-                ]
-        , .clarification
-            >> Validate.all
-                [ ifBlank ( Clarification, "Please fill in the meaning of the word" )
-                , ifNotSentence ( Clarification, "Please write a sentence for the meaning of the word" )
-                ]
-        , .clarificationMethod >> ifNothing ( ClarificationMethod, "Please select the clarification method you used" )
-        , naughtyWordsCheck
+        [ ifBlank .connection ( Connection, "Please fill in your connection with the story" )
+        , ifNotSentence .connection ( Connection, "Please write a sentence for your connection with the story" )
+        , ifTooLong .connection Connection
+        , ifBlank .question ( Question, "Please enter a question about the story" )
+        , ifNotSentence .question( Question, "Please write a sentence for your question" )
+        , ifTooLong .question Question
+        , ifBlank .summary ( Summary, "Please write your summary sentence for the story" )
+        , ifNotSentence .summary ( Summary, "Please the summary as a sentence" )
+        , ifTooLong .summary Summary
+        , ifBlank .clarification ( Clarification, "Please fill in the meaning of the word" )
+        , ifNotSentence .clarification ( Clarification, "Please write a sentence for the meaning of the word" )
+        , ifNothing .clarificationMethod ( ClarificationMethod, "Please select the clarification method you used" )
+        , fromErrors naughtyWordsCheck
         ]
 
 
-ifTooLong : Field -> Validator Error String
-ifTooLong f =
-    ifInvalid (\s -> String.length s > 250) ( f, "The answer can't be longer than 250 characters" )
+ifTooLong : (Model -> String) -> Field -> Validator Error Model
+ifTooLong f field =
+    ifTrue (\m -> String.length (f m) > 250) ( field, "The answer can't be longer than 250 characters" )
 
 
-ifNotSentence : Error -> Validator Error String
-ifNotSentence =
+ifNotSentence : (Model -> String) -> Error -> Validator Error Model
+ifNotSentence f =
     let
         notSentence =
-            Regex.regex "^\\s*\\S+\\s*$"
+            Regex.fromString "^\\s*\\S+\\s*$"
+                |> Maybe.withDefault Regex.never
     in
-        ifInvalid (Regex.contains notSentence)
+        ifTrue (\m -> Regex.contains notSentence (f m))
 
 
 naughtyWordsCheck : Model -> List Error
 naughtyWordsCheck m =
     let
         naughtyWord =
-            Regex.regex "fuc*k+|bastard|bugger\\b|\\bshite*\\b"
-                |> Regex.caseInsensitive
+            Regex.fromStringWith { caseInsensitive = True, multiline = False } "fuc*k+|bastard|bugger\\b|\\bshite*\\b"
+                |> Maybe.withDefault Regex.never
 
         hasNaughtyWord =
             List.map (Regex.contains naughtyWord) [ m.connection, m.question, m.summary, m.clarification ]
@@ -215,13 +224,13 @@ viewForm model =
     let
         answerField field msg lbl tx =
             div [ class (errorClass (fieldError field model.errors)) ]
-                [ label [ for (toString field ++ "Input") ] lbl
-                , Form.textarea [ class "form-control", id (toString field ++ "Input"), onInput msg, tabindex tx ] []
+                [ label [ for (fieldToString field ++ "Input") ] lbl
+                , Form.textarea [ class "form-control", id (fieldToString field ++ "Input"), onInput msg, tabindex tx ] []
                 ]
 
         mkOption ( v, txt ) =
             Html.option
-                [ selected (toString model.clarificationMethod == v)
+                [ selected (Maybe.map toString model.clarificationMethod == Just v)
                 , value v
                 ]
                 [ text txt ]

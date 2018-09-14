@@ -10,6 +10,7 @@ import Html.Events exposing (onInput, onSubmit)
 import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Task exposing (Task)
+import Tuple exposing (pair)
 import Util exposing (defaultHttpErrorMsg)
 import Views.Answers as Answers
 
@@ -41,7 +42,7 @@ init origSession =
                 |> Maybe.withDefault defaultSettings
 
         zipWithStory session a =
-            Maybe.map ((,) a) (findStoryById session.cache a.storyId)
+            Maybe.map (pair a) (findStoryById session.cache a.storyId)
 
         mkModel sesh =
             sesh.cache.answers
@@ -95,20 +96,23 @@ updateSessionSettings session newSettings =
         |> Maybe.withDefault session
 
 
-view : Model -> Html Msg
+view : Model -> { title: String, content: Html Msg }
 view { settings, answers } =
-    div [ class "page container" ]
-        [ viewSettings settings
-        , h1 [] [ text "My story answers" ]
-        , Answers.viewWithStories answers
-        ]
+    { title = "My 3ml"
+    , content =
+        div [ class "page container" ]
+            [ viewSettings settings
+            , h1 [] [ text "My story answers" ]
+            , Answers.viewWithStories answers
+            ]
+    }
 
 
 viewSettings : Settings -> Html Msg
 viewSettings settings =
     div []
         [ h1 [] [ text "Story display settings" ]
-        , div [ toStyle settings ]
+        , div ( toStyle settings )
             [ p [] [ text "You may wish to change the way your stories are displayed." ]
             , p [] [ text "Use the buttons below to make changes and then save the settings." ]
             , p [] [ text "You can change the background and text colour." ]

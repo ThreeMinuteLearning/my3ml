@@ -1,9 +1,10 @@
-module Route exposing (Route(..), TeacherSubRoute(..), href, modifyUrl, fromLocation, routeToString)
+module Route exposing (Route(..), TeacherSubRoute(..), href, modifyUrl, fromUrl, routeToString)
 
+import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
-import Navigation exposing (Location)
-import UrlParser as Url exposing (parseHash, s, (</>), string, int, oneOf, Parser)
+import Url exposing (Url)
+import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, int, string)
 
 
 -- ROUTING --
@@ -31,31 +32,31 @@ type TeacherSubRoute
     | Class String
 
 
-route : Parser (Route -> a) a
-route =
+parser : Parser (Route -> a) a
+parser =
     oneOf
-        [ Url.map Home (s "")
-        , Url.map Login (s "login")
-        , Url.map Register (s "register")
-        , Url.map Logout (s "logout")
-        , Url.map Account (s "account")
-        , Url.map Story (s "stories" </> int)
-        , Url.map FindStory (s "stories")
-        , Url.map Trails (s "trails")
-        , Url.map Teacher (s "teacher" </> teacherSubRoute)
-        , Url.map LeaderBoard (s "leaderboard")
-        , Url.map Editor (s "editor" </> int)
+        [ Parser.map Home Parser.top
+        , Parser.map Login (s "login")
+        , Parser.map Register (s "register")
+        , Parser.map Logout (s "logout")
+        , Parser.map Account (s "account")
+        , Parser.map Story (s "stories" </> int)
+        , Parser.map FindStory (s "stories")
+        , Parser.map Trails (s "trails")
+        , Parser.map Teacher (s "teacher" </> teacherSubRoute)
+        , Parser.map LeaderBoard (s "leaderboard")
+        , Parser.map Editor (s "editor" </> int)
         ]
 
 
 teacherSubRoute : Parser (TeacherSubRoute -> a) a
 teacherSubRoute =
     oneOf
-        [ Url.map Student (s "students" </> string)
-        , Url.map Students (s "students")
-        , Url.map Class (s "classes" </> string)
-        , Url.map Classes (s "classes")
-        , Url.map Teachers (s "teachers")
+        [ Parser.map Student (s "students" </> string)
+        , Parser.map Students (s "students")
+        , Parser.map Class (s "classes" </> string)
+        , Parser.map Classes (s "classes")
+        , Parser.map Teachers (s "teachers")
         ]
 
 
@@ -84,7 +85,7 @@ routeToString page =
                     [ "account" ]
 
                 Story slug ->
-                    [ "stories", toString slug ]
+                    [ "stories", String.fromInt slug ]
 
                 FindStory ->
                     [ "stories" ]
@@ -111,7 +112,7 @@ routeToString page =
                     [ "trails" ]
 
                 Editor slug ->
-                    [ "editor", toString slug ]
+                    [ "editor", String.fromInt slug ]
     in
         "#/" ++ (String.join "/" pieces)
 
@@ -125,14 +126,12 @@ href route =
     Attr.href (routeToString route)
 
 
-modifyUrl : Route -> Cmd msg
-modifyUrl =
-    routeToString >> Navigation.modifyUrl
+modifyUrl : Nav.Key -> Route -> Cmd msg
+modifyUrl key route =
+    Nav.replaceUrl key (routeToString route)
 
 
-fromLocation : Location -> Maybe Route
-fromLocation location =
-    if String.isEmpty location.hash then
-        Just Home
-    else
-        parseHash route location
+fromUrl : Url -> Maybe Route
+fromUrl url =
+    { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
+        |> Parser.parse parser

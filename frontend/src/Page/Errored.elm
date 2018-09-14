@@ -31,21 +31,24 @@ pageLoadError err msg =
             PageLoadError msg
 
 
-view : Session -> PageLoadError -> Html msg
+view : Session -> PageLoadError -> { title: String, content: Html msg }
 view session error =
-    main_ [ id "content", class "container", tabindex -1 ]
-        (case error of
-            PageLoadError msg ->
-                [ div [ class "row" ]
-                    [ h3 [] [ text "Error Loading Page" ]
-                    , p [] [ text msg ]
+    { title = "Error loading page"
+    , content =
+        main_ [ id "content", class "container", tabindex -1 ]
+            (case error of
+                PageLoadError msg ->
+                    [ div [ class "row" ]
+                        [ h3 [] [ text "Error Loading Page" ]
+                        , p [] [ text msg ]
+                        ]
                     ]
-                ]
 
-            AuthenticationRequired ->
-                [ div [ class "row" ]
-                    [ h3 [] [ text "Login Required" ]
-                    , p [] [ text "It looks like your session may have expired. Please ", a [ Route.href Route.Login ] [ text "log back in." ] ]
+                AuthenticationRequired ->
+                    [ div [ class "row" ]
+                        [ h3 [] [ text "Login Required" ]
+                        , p [] [ text "It looks like your session may have expired. Please ", a [ Route.href Route.Login ] [ text "log back in." ] ]
+                        ]
                     ]
-                ]
-        )
+            )
+    }

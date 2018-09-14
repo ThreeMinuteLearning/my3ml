@@ -37,23 +37,26 @@ initialModel =
 -- VIEW --
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title: String, content: Html Msg }
 view session model =
-    div [ class "auth-page" ]
-        [ div [ class "container page" ]
-            [ div [ class "row" ]
-                [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
-                    [ h1 [ class "text-xs-center" ] [ text "Sign in" ]
-                    , p [ class "text-xs-center" ]
-                        [ a [ Route.href Route.Register ]
-                            [ text "Need an account?" ]
+    { title = "Log in to 3ml"
+    , content =
+        div [ class "auth-page" ]
+            [ div [ class "container page" ]
+                [ div [ class "row" ]
+                    [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
+                        [ h1 [ class "text-xs-center" ] [ text "Sign in" ]
+                        , p [ class "text-xs-center" ]
+                            [ a [ Route.href Route.Register ]
+                                [ text "Need an account?" ]
+                            ]
+                        , Form.viewErrors model.errors
+                        , viewForm
                         ]
-                    , Form.viewErrors model.errors
-                    , viewForm
                     ]
                 ]
             ]
-        ]
+    }
 
 
 viewForm : Html Msg
@@ -93,16 +96,16 @@ update : Msg -> Model -> ( ( Model, Cmd Msg ), Maybe Api.Login )
 update msg model =
     case msg of
         SubmitForm ->
-            case validate model of
-                [] ->
+            case validate validator model of
+                Err errors ->
+                    ( ( { model | errors = errors }, Cmd.none ), Nothing )
+                _ ->
                     ( ( { model | errors = [] }
                       , Http.send LoginCompleted (Api.postAuthenticate (Api.LoginRequest (String.trim (.username model)) (.password model)))
                       )
                     , Nothing
                     )
 
-                errors ->
-                    ( ( { model | errors = errors }, Cmd.none ), Nothing )
 
         SetUsername username ->
             ( ( { model | username = username }, Cmd.none ), Nothing )
@@ -151,9 +154,9 @@ type alias Error =
     ( Field, String )
 
 
-validate : Model -> List Error
-validate =
+validator : Validator Error Model
+validator =
     Validate.all
-        [ .username >> ifBlank ( Email, "You must enter a username" )
-        , .password >> ifBlank ( Password, "You must enter a password" )
+        [ ifBlank .username ( Email, "You must enter a username" )
+        , ifBlank .password ( Password, "You must enter a password" )
         ]

@@ -32,9 +32,9 @@ specs :: [Spec]
 specs =
     [ Spec ["Api"]
         (
-            [  "import Dict exposing (Dict)"
-            ,  "import Exts.Json.Encode exposing (tuple2)"
-            ,  defElmImports
+            [ "import Dict exposing (Dict)"
+            , "import Tuple"
+            , defElmImports
             ]
            <> typeSources
            <> [ toElmTypeSource (Proxy :: Proxy NoContent)]

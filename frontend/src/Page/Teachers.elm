@@ -86,13 +86,16 @@ markActivated accId teacher =
         teacher
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title: String, content: Html Msg }
 view session model =
-    div [ class "container page" ]
-        [ TeacherToolbar.view session [ newRegistrationCodeButton ]
-        , viewCode model.registrationCode
-        , viewTable model
-        ]
+    { title = "Teachers"
+    , content =
+        div [ class "container page" ]
+            [ TeacherToolbar.view session [ newRegistrationCodeButton ]
+            , viewCode model.registrationCode
+            , viewTable model
+            ]
+    }
 
 
 viewTable : Model -> Html Msg

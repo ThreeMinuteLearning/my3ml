@@ -4,7 +4,7 @@ import Api
 import Data.Settings as Settings exposing (Settings)
 import Data.Words exposing (WordDict)
 import Dict exposing (Dict)
-import Exts.List exposing (firstMatch)
+import List.Extra
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (..)
@@ -222,7 +222,7 @@ loadAnthologies =
 
 
 loadToCache : (Cache -> Bool) -> (String -> Http.Request a) -> (a -> Cache -> Cache) -> Session -> Task Http.Error Session
-loadToCache isDirty mkAuthorizedRequest updateCache session =
+loadToCache isDirty mkAuthorizedRequest mkCache session =
     let
         cache =
             session.cache
@@ -230,14 +230,14 @@ loadToCache isDirty mkAuthorizedRequest updateCache session =
         if isDirty cache then
             mkAuthorizedRequest (authorization session)
                 |> Http.toTask
-                |> Task.map (\a -> { session | cache = updateCache a cache })
+                |> Task.map (\a -> { session | cache = mkCache a cache })
         else
             Task.succeed session
 
 
 findStoryById : Cache -> Int -> Maybe Api.Story
 findStoryById cache storyId =
-    firstMatch (\s -> s.id == storyId) cache.stories
+    List.Extra.find (\s -> s.id == storyId) cache.stories
 
 
 storeSession : Session -> Cmd msg
@@ -276,7 +276,7 @@ encodeUser user =
 
 userDecoder : Decoder User
 userDecoder =
-    decode User
+    Decode.succeed User
         |> required "name" Decode.string
         |> required "sub" Decode.string
         |> required "role" roleDecoder

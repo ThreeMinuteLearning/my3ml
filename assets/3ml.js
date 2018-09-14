@@ -1,5 +1,5 @@
-var node = document.getElementById('app');
-var app = Elm.Main.embed(node, sessionStorage.session || null);
+var flags = sessionStorage.session || null;
+var app = Elm.Main.init({flags: flags});
 
 app.ports.getImgWidth.subscribe(function(selector) {
     getWidth(selector, 0, function (result) {
