@@ -32,9 +32,11 @@ frame : Bool -> Session -> (Alert -> msg) -> ActivePage -> { title : String, con
 frame isLoading session onAlertClose page {title, content} =
     { title = title
     , body =
-        [ viewHeader page session.user isLoading
-        , viewAlerts session.alerts onAlertClose
-        , content
+        [ div [ id "app" ]
+            [ viewHeader page session.user isLoading
+            , viewAlerts session.alerts onAlertClose
+            , content
+            ]
         ]
     }
 
