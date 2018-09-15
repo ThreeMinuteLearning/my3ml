@@ -102,21 +102,14 @@ selectConfig =
     Select.newConfig OnSelect identity
         |> Select.withOnRemoveItem OnRemoveItem
         |> Select.withCutoff 12
-        |> Select.withInputId "input-id"
         |> Select.withInputWrapperStyles
             [ ( "padding", "0.4rem" ) ]
-        |> Select.withItemClass "p-1 border-b border-grey text-grey-darker"
         |> Select.withItemStyles [ ( "font-size", "1rem" ) ]
-        |> Select.withMenuClass "border border-grey-darker"
         |> Select.withMenuStyles [ ( "background", "white" ) ]
         |> Select.withNotFound "No matches"
-        |> Select.withNotFoundClass "red"
         |> Select.withNotFoundStyles [ ( "padding", "0 2rem" ) ]
-        |> Select.withHighlightedItemClass "bg-grey"
         |> Select.withHighlightedItemStyles []
-        |> Select.withPrompt "Select a color"
-        |> Select.withPromptClass "text-grey-darker"
-        |> Select.withUnderlineClass "underline"
+        |> Select.withPrompt "Select a tag"
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )

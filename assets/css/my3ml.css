@@ -264,6 +264,26 @@ th span {
     }
 }
 
+/* Styling for elm-select */
+
+.elm-select-input-control {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.elm-select-menu {
+    border: 1px solid #ccc;
+    border-top: 0;
+    color: #444;
+    padding: 0.2em 0.8em;
+
+}
+
+.elm-select-multi-input-item {
+    padding: 0.3em;
+}
+
+
 /* Alerts */
 
 #alerts {

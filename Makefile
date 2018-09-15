@@ -25,7 +25,7 @@ assets/app.js: frontend/src/** frontend/src/Api.elm
 	mkdir -p $(@D) && elm make frontend/src/Main.elm --output $@
 
 assets/app.css: assets/css/**
-	cat assets/css/my3ml.css assets/css/navbar.css assets/css/multiselect.css assets/css/spinner.css > assets/app.css
+	cat assets/css/my3ml.css assets/css/navbar.css assets/css/spinner.css > assets/app.css
 
 frontend/src/Api.elm: code-generator/*.hs api/*.hs api/**/*.hs
 	mkdir -p $(@D) && cabal new-run code-generator
