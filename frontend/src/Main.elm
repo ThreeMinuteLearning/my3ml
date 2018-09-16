@@ -323,6 +323,9 @@ update msg model =
                         Nothing ->
                             ( model, Cmd.none )
 
+                        Just "" ->
+                            ( model, Cmd.none )
+
                         Just _ ->
                             ( model, Nav.pushUrl model.navKey (Url.toString url) )
 

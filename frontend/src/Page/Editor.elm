@@ -14,7 +14,7 @@ import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Set
 import Task exposing (Task)
 import Tuple exposing (pair, second)
-import Util exposing (defaultHttpErrorMsg, onClickPreventDefault)
+import Util exposing (defaultHttpErrorMsg)
 import Views.Form as Form
 import Views.Story as StoryView
 
@@ -209,8 +209,8 @@ view model =
         div [ id "editor", class "container page" ]
             [ nav [ class "row" ]
                 [ ul [ class "pager" ]
-                    [ li [ class "previous" ] [ a [ href "#", onClickPreventDefault Previous ] [ text "Prev" ] ]
-                    , li [ class "next" ] [ a [ class "pull-right", href "#", onClickPreventDefault Next ] [ text "Next" ] ]
+                    [ li [ class "previous" ] [ a [ href "#", onClick Previous ] [ text "Prev" ] ]
+                    , li [ class "next" ] [ a [ class "pull-right", href "#", onClick Next ] [ text "Next" ] ]
                     ]
                 ]
             , div [ class "row" ]

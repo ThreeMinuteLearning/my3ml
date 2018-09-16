@@ -20,7 +20,7 @@ import Table
 import Task exposing (Task)
 import Tuple exposing (first)
 import Views.Form as Form
-import Util exposing (onClickPreventDefault, viewIf, viewUnless, defaultHttpErrorMsg)
+import Util exposing (viewIf, viewUnless, defaultHttpErrorMsg)
 import Views.Story as StoryView
 import Views.StoryTiles as StoryTiles
 
@@ -388,12 +388,12 @@ viewBrowserToolbar : Session -> Api.Story -> List Api.Story -> Html Msg
 viewBrowserToolbar session s selected =
     nav []
         [ ul [ class "pager" ]
-            [ li [ class "previous" ] [ a [ href "#", onClickPreventDefault Previous ] [ text "Prev" ] ]
+            [ li [ class "previous" ] [ a [ href "#", onClick Previous ] [ text "Prev" ] ]
             , viewIf (isEditor session) <| li [] [ a [ href (Route.routeToString (Route.Editor s.id)) ] [ text "Edit" ] ]
-            , li [] [ a [ href "#", onClickPreventDefault CloseBrowser ] [ text "Back to stories" ] ]
-            , viewUnless (Session.isStudent session || List.member s selected) <| li [] [ a [ href "#", onClickPreventDefault (SelectStory s) ] [ text "Add to basket" ] ]
+            , li [] [ a [ href "#", onClick CloseBrowser ] [ text "Back to stories" ] ]
+            , viewUnless (Session.isStudent session || List.member s selected) <| li [] [ a [ href "#", onClick (SelectStory s) ] [ text "Add to basket" ] ]
             , viewIf (Session.isStudent session) <| li [] [ a [ href (Route.routeToString (Route.Story s.id)) ] [ text "Work on story" ] ]
-            , li [ class "next" ] [ a [ class "pull-right", href "#", onClickPreventDefault Next ] [ text "Next" ] ]
+            , li [ class "next" ] [ a [ class "pull-right", href "#", onClick Next ] [ text "Next" ] ]
             ]
         ]
 
@@ -453,7 +453,7 @@ viewToggleDisabledStoriesOnly m =
             else
                 "Hide enabled stories"
     in
-        a [ href "#", onClickPreventDefault ToggleShowDisabledOnly ] [ text txt ]
+        a [ href "#", onClick ToggleShowDisabledOnly ] [ text txt ]
 
 
 viewStoriesTable : Model -> Html Msg
@@ -531,7 +531,7 @@ tableConfig =
 
 viewStoryLink : Api.Story -> Html Msg
 viewStoryLink s =
-    Html.a [ href "#", onClickPreventDefault (BrowseFrom s.id) ] [ text s.title ]
+    Html.a [ href "#", onClick (BrowseFrom s.id) ] [ text s.title ]
 
 
 viewStoryBasket : Model -> List Api.Story -> Html Msg
