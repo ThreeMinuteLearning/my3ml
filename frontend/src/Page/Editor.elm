@@ -8,7 +8,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 import Http
-import List.InfiniteZipper as Zipper exposing (InfiniteZipper)
+import List.Zipper.Infinite as Zipper exposing (Zipper)
 import Select
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Set
@@ -21,7 +21,7 @@ import Views.Story as StoryView
 
 type alias Model =
     { errors : List String
-    , stories : InfiniteZipper Api.Story
+    , stories : Zipper Api.Story
     , storyView : StoryView.State
     , sqaTags : List String
     , allTags : List String
@@ -78,7 +78,7 @@ init originalSession slug =
                 )
 
 
-makeZipper : List Api.Story -> Int -> Maybe (InfiniteZipper Api.Story)
+makeZipper : List Api.Story -> Int -> Maybe (Zipper Api.Story)
 makeZipper stories storyId =
     Zipper.fromList stories
         |> Maybe.andThen (Zipper.findFirst (\s -> s.id == storyId))
@@ -181,7 +181,7 @@ updateTags model newTags =
         ( { model | selectedTags = newTags, stories = newZipper }, Cmd.none )
 
 
-updateZipper : (InfiniteZipper Api.Story -> InfiniteZipper Api.Story) -> Model -> Model
+updateZipper : (Zipper Api.Story -> Zipper Api.Story) -> Model -> Model
 updateZipper f model =
     let
         newStories =

@@ -11,7 +11,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick, onSubmit)
 import Http
 import List.Extra
-import List.InfiniteZipper as Zipper exposing (InfiniteZipper)
+import List.Zipper.Infinite as Zipper exposing (Zipper)
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
 import Regex
@@ -31,7 +31,7 @@ type alias Model =
     , showDisabledStoriesOnly : Bool
     , stories : List Api.Story
     , tableState : Table.State
-    , browser : Maybe (InfiniteZipper Api.Story)
+    , browser : Maybe (Zipper Api.Story)
     , storyView : StoryView.State
     , viewType : ViewType
     , windowSize : (Int, Int)
@@ -341,7 +341,7 @@ loadMore m =
             ( m, Cmd.none )
 
 
-zipperFrom : Int -> List Api.Story -> Maybe (InfiniteZipper Api.Story)
+zipperFrom : Int -> List Api.Story -> Maybe (Zipper Api.Story)
 zipperFrom storyId stories =
     Zipper.fromList stories
         |> Maybe.andThen (Zipper.findFirst (\s -> s.id == storyId))
