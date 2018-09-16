@@ -74,13 +74,5 @@ c =
     Table.defaultCustomizations
 
 
-headWithTr =
-    c.thead
-        >> .children
-        >> tr []
-        >> List.singleton
-        >> Table.HtmlDetails []
-
-
 tableCustomizations =
-    { c | thead = headWithTr, tableAttrs = [ class "table table-striped" ] }
+    { c | tableAttrs = [ class "table table-striped" ] }
