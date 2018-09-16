@@ -8,8 +8,8 @@ mkDerivation {
   version = "0.6.0.1";
   src = fetchgit {
     url = "https://github.com/tekul/elm-export.git";
-    sha256 = "12r3mjfy4912vbn75zv9n6rj4kq08hhn78ik2v7jxjfi4i2v3fh6";
-    rev = "91326dce9fb4e7a087e3ca7bf97c4f2022585e60";
+    sha256 = "0wb7skmf2p60gg13skvjcvd38c7069zy81b9d90xmlsa4qa454rq";
+    rev = "eba32f4f881728fd98575bfa91d8bee60279641c";
   };
   libraryHaskellDepends = [
     aeson base bytestring containers directory formatting mtl text time
@@ -19,6 +19,8 @@ mkDerivation {
     base bytestring containers Diff hspec hspec-core HUnit QuickCheck
     quickcheck-instances text time
   ];
+  doHaddock = false;
+  doCheck = false;
   homepage = "http://github.com/krisajenkins/elm-export";
   description = "A library to generate Elm types from Haskell source";
   license = "unknown";

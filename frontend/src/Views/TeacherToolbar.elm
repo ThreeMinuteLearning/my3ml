@@ -1,8 +1,7 @@
 module Views.TeacherToolbar exposing (view)
 
-import Bootstrap exposing (toolbar, btnGroup)
+import Bootstrap exposing (toolbar, btnGroup, formGroup, row)
 import Data.Session exposing (Session, isSchoolAdmin)
-import Exts.Html.Bootstrap exposing (formGroup, row)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Route

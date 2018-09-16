@@ -4,7 +4,7 @@ import Api
 import Data.Session as Session exposing (Session, authorization)
 import Dialog
 import Dict exposing (Dict)
-import Exts.Html.Bootstrap exposing (row)
+import Bootstrap exposing (row)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
@@ -147,22 +147,25 @@ deleteFromCache _ session =
         { session | cache = { cache | classes = [] } }
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title: String, content: Html Msg }
 view session model =
-    div [ class "container page" ]
-        [ h3 [] [ text (.name model.class) ]
-        , h4 [] [ text (Maybe.withDefault "" (.description model.class)) ]
-        , viewToolbar model
-        , Form.viewErrorMsgs model.errors
-        , h4 [] [ text "Class members" ]
-        , viewTable session.cache model
-        , Dialog.view
-            (if model.showConfirmDelete then
-                Just (confirmDeleteDialog (userIsOwner session.user model.class))
-             else
-                Nothing
-            )
-        ]
+    { title = "Class " ++ model.class.name
+    , content =
+        div [ class "container page" ]
+            [ h3 [] [ text (.name model.class) ]
+            , h4 [] [ text (Maybe.withDefault "" (.description model.class)) ]
+            , viewToolbar model
+            , Form.viewErrorMsgs model.errors
+            , h4 [] [ text "Class members" ]
+            , viewTable session.cache model
+            , Dialog.view
+                (if model.showConfirmDelete then
+                    Just (confirmDeleteDialog (userIsOwner session.user model.class))
+                else
+                    Nothing
+                )
+            ]
+    }
 
 
 viewTable : Session.Cache -> Model -> Html Msg

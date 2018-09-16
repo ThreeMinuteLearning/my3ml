@@ -8,6 +8,7 @@ import Html.Attributes exposing (class)
 import List.Extra as List
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
+import Tuple exposing (pair, first)
 import Views.RobotPanel as RobotPanel
 import Views.StoryTiles as StoryTiles
 
@@ -31,13 +32,16 @@ init session =
 
 initModel : Session -> ( Model, Session )
 initModel session =
-    (flip (,) session) <|
-        case Maybe.map (\u -> ( u.role, u.level )) session.user of
-            Just ( Student, level ) ->
-                Model (pickStories session level)
+    let
+        model =
+            case Maybe.map (\u -> ( u.role, u.level )) session.user of
+                Just ( Student, level ) ->
+                    Model (pickStories session level)
 
-            _ ->
-                Model session.cache.stories
+                _ ->
+                    Model session.cache.stories
+    in
+        (model, session)
 
 
 isBeginner : Session -> Bool
@@ -73,7 +77,7 @@ pickStories session level =
                         takeLevel l n acc rem
 
         storiesPerLevel =
-            List.indexedMap (,) <|
+            List.indexedMap pair <|
                 case level of
                     0 ->
                         [ 25, 5, 0, 0, 0, 0 ]
@@ -115,12 +119,15 @@ answerLevels session answers =
             Session.findStoryById session.cache a.storyId
                 |> Maybe.map .level
                 |> Maybe.withDefault 0
+
+        answersCompletedForLevel (_, l)
+            = 1 + List.length l
     in
         List.map answerLevel (Dict.values answers)
             |> List.sort
             |> List.group
             |> \l ->
-                List.map2 (,) (List.filterMap List.head l) (List.map List.length l)
+                List.map2 pair (List.map first l) (List.map answersCompletedForLevel l)
                     |> Dict.fromList
 
 
@@ -146,9 +153,10 @@ update session model =
     ( model, Cmd.none )
 
 
-view : Session -> Model -> Html msg
+view : Session -> Model -> { title: String, content: Html msg }
 view session model =
-    div [ class "home-page" ]
+    { title = "Home"
+    , content = div [ class "home-page" ]
         [ div [ class "container page" ]
             [ RobotPanel.view
             , div []
@@ -159,6 +167,7 @@ view session model =
                 ]
             ]
         ]
+    }
 
 
 storiesTitle : Session -> String

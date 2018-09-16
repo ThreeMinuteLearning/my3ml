@@ -7,6 +7,7 @@ import Html.Attributes exposing (..)
 import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Task exposing (Task)
+import Tuple exposing (pair)
 import Util exposing (defaultHttpErrorMsg)
 
 
@@ -25,29 +26,32 @@ init session =
             |> Task.mapError handleLoadError
 
 
-view : Model -> Html msg
+view : Model -> { title: String, content: Html msg }
 view model =
-    div [ class "container page" ]
-        [ table [ class "table" ]
-            [ thead []
-                [ tr []
-                    [ th [] [ text "Position" ]
-                    , th [] [ text "Name" ]
-                    , th [] [ text "Score" ]
-                    , th [] [ text "Overall 3ml Position" ]
+    { title = "Leaderboard"
+    , content =
+        div [ class "container page" ]
+            [ table [ class "table" ]
+                [ thead []
+                    [ tr []
+                        [ th [] [ text "Position" ]
+                        , th [] [ text "Name" ]
+                        , th [] [ text "Score" ]
+                        , th [] [ text "Overall 3ml Position" ]
+                        ]
                     ]
+                , tbody []
+                    (List.map tableRow (List.indexedMap pair model))
                 ]
-            , tbody []
-                (List.map tableRow (List.indexedMap (,) model))
             ]
-        ]
+    }
 
 
 tableRow : ( Int, Api.LeaderBoardEntry ) -> Html msg
 tableRow ( pos, entry ) =
     tr []
-        [ td [] [ text (toString (pos + 1)) ]
+        [ td [] [ text (String.fromInt (pos + 1)) ]
         , td [] [ text entry.name ]
-        , td [] [ text (toString entry.score) ]
-        , td [] [ text (toString entry.position) ]
+        , td [] [ text (String.fromInt entry.score) ]
+        , td [] [ text (String.fromInt entry.position) ]
         ]

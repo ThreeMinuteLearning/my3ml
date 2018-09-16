@@ -1,26 +1,28 @@
 module Page.FindStory exposing (Model, Msg, init, view, subscriptions, update)
 
 import Api
+import Browser.Dom exposing (getViewport)
+import Browser.Events exposing (onResize)
 import Bootstrap exposing (closeBtn)
 import Data.Session as Session exposing (Session, Cache, authorization, findStoryById, isEditor, updateCache)
 import Data.Settings exposing (Settings, defaultSettings)
-import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick, onSubmit)
 import Http
-import List.InfiniteZipper as Zipper exposing (InfiniteZipper)
+import List.Extra
+import List.Zipper.Infinite as Zipper exposing (Zipper)
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
 import Regex
 import Route
 import Table
 import Task exposing (Task)
+import Tuple exposing (first)
 import Views.Form as Form
-import Util exposing (onClickPreventDefault, viewIf, viewUnless, defaultHttpErrorMsg)
+import Util exposing (viewIf, viewUnless, defaultHttpErrorMsg)
 import Views.Story as StoryView
 import Views.StoryTiles as StoryTiles
-import Window
 
 
 type alias Model =
@@ -29,10 +31,10 @@ type alias Model =
     , showDisabledStoriesOnly : Bool
     , stories : List Api.Story
     , tableState : Table.State
-    , browser : Maybe (InfiniteZipper Api.Story)
+    , browser : Maybe (Zipper Api.Story)
     , storyView : StoryView.State
     , viewType : ViewType
-    , windowSize : Window.Size
+    , windowSize : (Int, Int)
     , anthologyForm : Maybe AnthologyForm
     }
 
@@ -51,7 +53,7 @@ type Msg
     | Next
     | Previous
     | Scroll Bool
-    | Resize Window.Size
+    | Resize Int Int
     | CloseBrowser
     | ToggleShowDisabledOnly
     | ClearSelectedStories
@@ -76,14 +78,17 @@ type ViewType
     | Anthologies
 
 
-initialModel : Session -> Window.Size -> ( Model, Session )
-initialModel session size =
+initialModel : Session -> Browser.Dom.Viewport -> ( Model, Session )
+initialModel session { viewport }=
     let
         sortColumn =
             if Session.isStudent session then
                 ""
             else
                 "Title"
+
+        size =
+            ( round viewport.width, round viewport.height )
 
         stories =
             session.cache.stories
@@ -94,7 +99,7 @@ initialModel session size =
             else
                 Table
     in
-        ( Model [] "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init size) viewType size Nothing, session )
+        ( Model [] "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init (first size)) viewType size Nothing, session )
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -108,7 +113,7 @@ init session =
                 |> Task.andThen Session.loadAnthologies
                 |> Task.mapError handleLoadError
     in
-        Task.map2 initialModel loadData Window.size
+        Task.map2 initialModel loadData getViewport
 
 
 subscriptions : Model -> Sub Msg
@@ -117,7 +122,7 @@ subscriptions m =
         Nothing ->
             case m.viewType of
                 Tiles _ ->
-                    Sub.batch [ Window.resizes Resize, Ports.scroll Scroll, Ports.lastEltVisible Scroll ]
+                    Sub.batch [ onResize Resize, Ports.scroll Scroll, Ports.lastEltVisible Scroll ]
 
                 _ ->
                     Sub.none
@@ -161,8 +166,8 @@ update session msg model =
             else
                 ( ( model, Cmd.none ), session )
 
-        Resize s ->
-            ( ( { model | windowSize = s }, Cmd.none ), session )
+        Resize w h ->
+            ( ( { model | windowSize = (w, h) }, Cmd.none ), session )
 
         CloseBrowser ->
             ( ( { model | browser = Nothing }, Cmd.none ), session )
@@ -328,7 +333,7 @@ loadMore m =
             if n >= List.length m.stories then
                 ( m, Cmd.none )
             else
-                ( { m | viewType = Tiles (n + (2 * (StoryTiles.tilesPerRow m.windowSize))) }
+                ( { m | viewType = Tiles (n + (2 * (StoryTiles.tilesPerRow (first m.windowSize)))) }
                 , Ports.isLastEltVisible ("storytiles")
                 )
 
@@ -336,39 +341,41 @@ loadMore m =
             ( m, Cmd.none )
 
 
-zipperFrom : Int -> List Api.Story -> Maybe (InfiniteZipper Api.Story)
+zipperFrom : Int -> List Api.Story -> Maybe (Zipper Api.Story)
 zipperFrom storyId stories =
     Zipper.fromList stories
         |> Maybe.andThen (Zipper.findFirst (\s -> s.id == storyId))
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title: String, content: Html Msg }
 view session m =
-    div [ class "container page" ]
-        [ case m.browser of
-            Nothing ->
-                div []
-                    [ viewStoriesFilter session m
-                    , Form.viewErrorMsgs m.errors
-                    , viewUnless (Session.isStudent session) <| viewStoryBasket m session.cache.selectedStories
-                    , case m.viewType of
-                        Tiles n ->
-                            StoryTiles.view False (List.take n m.stories)
+    { title = "Find a Story"
+    , content =
+        div [ class "container page" ]
+            [ case m.browser of
+                Nothing ->
+                    div []
+                        [ viewStoriesFilter session m
+                        , Form.viewErrorMsgs m.errors
+                        , viewUnless (Session.isStudent session) <| viewStoryBasket m session.cache.selectedStories
+                        , case m.viewType of
+                            Tiles n ->
+                                StoryTiles.view False (List.take n m.stories)
 
-                        Table ->
-                            viewStoriesTable m
+                            Table ->
+                                viewStoriesTable m
 
-                        Anthologies ->
-                            viewAnthologies session
-                    ]
+                            Anthologies ->
+                                viewAnthologies session
+                        ]
 
-            Just b ->
-                div []
-                    [ viewBrowserToolbar session (Zipper.current b) (session.cache.selectedStories)
-                    , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) (Zipper.current b) m.storyView
-                    ]
-        ]
-
+                Just b ->
+                    div []
+                        [ viewBrowserToolbar session (Zipper.current b) (session.cache.selectedStories)
+                        , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) (Zipper.current b) m.storyView
+                        ]
+            ]
+    }
 
 settingsFromSession : Session -> Settings
 settingsFromSession session =
@@ -381,12 +388,12 @@ viewBrowserToolbar : Session -> Api.Story -> List Api.Story -> Html Msg
 viewBrowserToolbar session s selected =
     nav []
         [ ul [ class "pager" ]
-            [ li [ class "previous" ] [ a [ href "#", onClickPreventDefault Previous ] [ text "Prev" ] ]
+            [ li [ class "previous" ] [ a [ href "#", onClick Previous ] [ text "Prev" ] ]
             , viewIf (isEditor session) <| li [] [ a [ href (Route.routeToString (Route.Editor s.id)) ] [ text "Edit" ] ]
-            , li [] [ a [ href "#", onClickPreventDefault CloseBrowser ] [ text "Back to stories" ] ]
-            , viewUnless (Session.isStudent session || List.member s selected) <| li [] [ a [ href "#", onClickPreventDefault (SelectStory s) ] [ text "Add to basket" ] ]
+            , li [] [ a [ href "#", onClick CloseBrowser ] [ text "Back to stories" ] ]
+            , viewUnless (Session.isStudent session || List.member s selected) <| li [] [ a [ href "#", onClick (SelectStory s) ] [ text "Add to basket" ] ]
             , viewIf (Session.isStudent session) <| li [] [ a [ href (Route.routeToString (Route.Story s.id)) ] [ text "Work on story" ] ]
-            , li [ class "next" ] [ a [ class "pull-right", href "#", onClickPreventDefault Next ] [ text "Next" ] ]
+            , li [ class "next" ] [ a [ class "pull-right", href "#", onClick Next ] [ text "Next" ] ]
             ]
         ]
 
@@ -402,8 +409,8 @@ viewStoriesFilter session m =
             , id "storyfilter"
             ]
             []
-        , label [ style [ ( "margin-left", "5px" ) ], for "storyfilter" ]
-            [ text (" " ++ toString (List.length m.stories) ++ " matching stories ")
+        , label [ style "margin-left" "5px", for "storyfilter" ]
+            [ text (" " ++ String.fromInt (List.length m.stories) ++ " matching stories ")
             ]
         , viewIf (isEditor session) (viewToggleDisabledStoriesOnly m)
         , text "  "
@@ -446,7 +453,7 @@ viewToggleDisabledStoriesOnly m =
             else
                 "Hide enabled stories"
     in
-        a [ href "#", onClickPreventDefault ToggleShowDisabledOnly ] [ text txt ]
+        a [ href "#", onClick ToggleShowDisabledOnly ] [ text txt ]
 
 
 viewStoriesTable : Model -> Html Msg
@@ -462,10 +469,12 @@ filterStories storyFilter stories =
     else
         let
             r =
-                Regex.caseInsensitive (Regex.regex storyFilter)
+                Regex.fromStringWith { caseInsensitive = True, multiline = False } storyFilter
+                    |> Maybe.withDefault Regex.never
+
 
             tagMatch tags =
-                (firstMatch (Regex.contains r) tags) /= Nothing
+                (List.Extra.find (Regex.contains r) tags) /= Nothing
 
             qualMatch q =
                 Maybe.map (Regex.contains r) q == Just True
@@ -490,7 +499,7 @@ tableConfig =
         levelColumn =
             Table.veryCustomColumn
                 { name = "Level"
-                , viewData = \s -> Table.HtmlDetails [ style [ ( "width", "6em" ) ] ] [ Html.text (toString s.level) ]
+                , viewData = \s -> Table.HtmlDetails [ style "width" "6em" ] [ Html.text (String.fromInt s.level) ]
                 , sorter = Table.increasingOrDecreasingBy .level
                 }
 
@@ -507,7 +516,7 @@ tableConfig =
                 ]
     in
         Table.customConfig
-            { toId = toString << .id
+            { toId = String.fromInt << .id
             , toMsg = SetTableState
             , columns =
                 [ storyTitleColumn
@@ -522,7 +531,7 @@ tableConfig =
 
 viewStoryLink : Api.Story -> Html Msg
 viewStoryLink s =
-    Html.a [ href "#", onClickPreventDefault (BrowseFrom s.id) ] [ text s.title ]
+    Html.a [ href "#", onClick (BrowseFrom s.id) ] [ text s.title ]
 
 
 viewStoryBasket : Model -> List Api.Story -> Html Msg

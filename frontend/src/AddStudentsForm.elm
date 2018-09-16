@@ -3,14 +3,12 @@ module AddStudentsForm exposing (Model, Msg, init, update, view)
 import Api
 import Bootstrap exposing (errorClass)
 import Data.Session exposing (Session, authorization)
-import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (class, id, disabled, selected)
 import Html.Events exposing (onInput, onSubmit)
 import Http
 import Regex
 import Util exposing (defaultHttpErrorMsg)
-import Validate exposing (Validator, ifBlank, ifInvalid)
 import Views.Form as Form
 import Views.SelectLevel as SelectLevel
 
@@ -95,7 +93,7 @@ validate : Model -> Result (List Error) (List String)
 validate model =
     let
         parsedNames =
-            Regex.split Regex.All (Regex.regex "[,\\r\\n]+") model.names
+            Regex.split (Maybe.withDefault Regex.never (Regex.fromString "[,\\r\\n]+")) model.names
                 |> List.map String.trim
                 |> List.filter (not << String.isEmpty)
 

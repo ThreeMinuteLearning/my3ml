@@ -2,16 +2,15 @@ module Page.Students exposing (Model, Msg, init, update, view)
 
 import AddStudentsForm
 import Api
-import Bootstrap
+import Bootstrap exposing (formGroup, row)
 import Data.Session as Session exposing (Session, authorization, updateCache)
 import Dialog
 import Dict exposing (Dict)
-import Exts.Html.Bootstrap exposing (formGroup, row)
-import Exts.List exposing (firstMatch)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
+import List.Extra
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
 import Regex
@@ -62,8 +61,8 @@ init session =
         handleLoadError e =
             pageLoadError e ("Unable to load student data. " ++ defaultHttpErrorMsg e ++ ".")
 
-        createModel session =
-            ( Model NoMsg StudentTable.init Dict.empty Nothing ( "", Nothing ), session )
+        createModel sesh =
+            ( Model NoMsg StudentTable.init Dict.empty Nothing ( "", Nothing ), sesh )
     in
         Session.loadStudents session
             |> Task.andThen (\newSession -> Session.loadClasses newSession)
@@ -168,16 +167,19 @@ clearNotification m =
     { m | notification = NoMsg }
 
 
-view : Session -> Model -> Html Msg
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
-    div [ class "container page" ]
-        [ TeacherToolbar.view session (subtools session)
-        , viewNotification model.notification
-        , row [ NewAccounts.view PrintWindow ClearNewAccounts session.cache.newAccounts ]
-        , viewStudentsFilter session.cache model
-        , viewTable session.cache model
-        , Dialog.view (Maybe.map addStudentsDialog model.addStudentsForm)
-        ]
+    { title = "Students"
+    , content =
+        div [ class "container page" ]
+            [ TeacherToolbar.view session (subtools session)
+            , viewNotification model.notification
+            , row [ NewAccounts.view PrintWindow ClearNewAccounts session.cache.newAccounts ]
+            , viewStudentsFilter session.cache model
+            , viewTable session.cache model
+            , Dialog.view (Maybe.map addStudentsDialog model.addStudentsForm)
+            ]
+    }
 
 
 subtools : Session -> List (Html Msg)
@@ -236,7 +238,7 @@ filterStudents cache model =
 
 findStudentsInClass : Session.Cache -> String -> Maybe (List String)
 findStudentsInClass cache classId =
-    firstMatch (\c -> c.id == classId) cache.classes
+    List.Extra.find (\c -> c.id == classId) cache.classes
         |> Maybe.map .students
 
 
@@ -247,7 +249,8 @@ filterByStudentIds students ids =
 
 filterStudentsByName : String -> List Api.Student -> List Api.Student
 filterStudentsByName nameFilter students =
-    Regex.caseInsensitive (Regex.regex nameFilter)
+    (Regex.fromStringWith { caseInsensitive = True, multiline = False } nameFilter)
+        |> Maybe.withDefault Regex.never
         |> \r -> List.filter (\s -> Regex.contains r s.name) students
 
 

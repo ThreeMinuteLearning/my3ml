@@ -3,7 +3,7 @@ module Data.Settings exposing (Settings, defaultSettings, decoder, encode, toSty
 import Html exposing (Attribute)
 import Html.Attributes exposing (style)
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline as Pipeline exposing (decode, required)
+import Json.Decode.Pipeline as Pipeline exposing (required)
 import Json.Encode as Encode
 
 
@@ -20,14 +20,18 @@ defaultSettings =
     Settings "#ffffff" "#000000" "\"Helvetica Neue\",Helvetica,Arial,sans-serif" "20px"
 
 
-toStyle : Settings -> Attribute msg
+toStyle : Settings -> List (Attribute msg)
 toStyle { background, colour, size, font } =
-    style [ ( "background", background ), ( "color", colour ), ( "font-size", size ), ( "font-family", font ) ]
+    [ style "background" background
+    , style "color" colour
+    , style "font-size" size
+    , style "font-family" font
+    ]
 
 
 decoder : Decoder Settings
 decoder =
-    decode Settings
+    Decode.succeed Settings
         |> required "background" Decode.string
         |> required "colour" Decode.string
         |> required "font" Decode.string

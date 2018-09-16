@@ -10,7 +10,7 @@ view : (Int -> msg) -> Int -> Html msg
 view toMsg current =
     let
         mkOption l =
-            option [ selected (current == l), value (toString l) ] [ text ("Level " ++ toString l) ]
+            option [ selected (current == l), value (String.fromInt l) ] [ text ("Level " ++ String.fromInt l) ]
 
         intMsg =
             Json.at [ "target", "value" ] Json.string
@@ -19,11 +19,11 @@ view toMsg current =
 
         toInt s =
             case String.toInt s of
-                Ok i ->
+                Just i ->
                     Json.succeed i
 
-                Err e ->
-                    Json.fail e
+                Nothing ->
+                    Json.fail "Failed to convert selected level to Int"
     in
         select [ class "form-control", (on "input" intMsg) ]
             (List.map mkOption (List.range 0 9))

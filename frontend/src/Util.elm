@@ -1,9 +1,9 @@
-module Util exposing (onClickStopPropagation, onClickPreventDefault, viewIf, viewUnless, appendErrors, dialog, printButton, defaultHttpErrorMsg)
+module Util exposing (viewIf, viewUnless, appendErrors, dialog, printButton, defaultHttpErrorMsg)
 
 import Dialog
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onWithOptions, onClick, defaultOptions)
+import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Decode
 
@@ -19,20 +19,6 @@ viewIf condition content =
 viewUnless : Bool -> Html msg -> Html msg
 viewUnless condition content =
     viewIf (not condition) content
-
-
-onClickPreventDefault : msg -> Attribute msg
-onClickPreventDefault msg =
-    onWithOptions "click"
-        { defaultOptions | preventDefault = True }
-        (Decode.succeed msg)
-
-
-onClickStopPropagation : msg -> Attribute msg
-onClickStopPropagation msg =
-    onWithOptions "click"
-        { defaultOptions | stopPropagation = True }
-        (Decode.succeed msg)
 
 
 appendErrors : { model | errors : List error } -> List error -> { model | errors : List error }

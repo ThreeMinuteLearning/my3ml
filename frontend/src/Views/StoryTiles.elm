@@ -6,14 +6,13 @@ import Api exposing (Story)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Route
-import Window
 
 
 view : Bool -> List Story -> Html msg
 view useSmallTiles stories =
     let
         storyStyle s =
-            style [ ( "background", "url(pix/" ++ s.img ++ ")" ), ( "background-size", "cover" ) ]
+            [ style "background" ("url(pix/" ++ s.img ++ ")" ), style "background-size" "cover"  ]
 
         tileClass =
             if useSmallTiles then
@@ -22,7 +21,8 @@ view useSmallTiles stories =
                 "storytile"
 
         attributes s =
-            [ class tileClass, storyStyle s, Html.Attributes.href (Route.routeToString (Route.Story s.id)) ]
+            [ class tileClass, Html.Attributes.href (Route.routeToString (Route.Story s.id)) ]
+                ++ (storyStyle s)
                 ++ if useSmallTiles then
                     [ title s.title ]
                    else
@@ -35,13 +35,13 @@ view useSmallTiles stories =
         div [ id "storytiles" ] (List.map storyTile stories)
 
 
-tilesPerPage : Window.Size -> Int
-tilesPerPage { width, height } =
+tilesPerPage : (Int, Int)-> Int
+tilesPerPage (width, height) =
     Basics.min 42 ((toFloat width / 160) * (toFloat height / 145))
         |> round
 
 
-tilesPerRow : Window.Size -> Int
-tilesPerRow { width } =
+tilesPerRow : Int -> Int
+tilesPerRow width =
     Basics.min 6 (toFloat width / 160)
         |> round
