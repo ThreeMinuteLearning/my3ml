@@ -131,7 +131,7 @@ viewSignIn page user =
                         [ findStory, my3ml, logout ]
 
                     Session.Teacher _ ->
-                        (navbarLink (page == Teacher) (Route.Teacher Route.Students) [ text "Teacher" ])
+                        (navbarLink (page == Teacher) (Route.Teacher Route.Students) [ text "Admin" ])
                             :: [ findStory, my3ml, leaderboard, logout ]
 
 
