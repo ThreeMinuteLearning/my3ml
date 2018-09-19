@@ -15,4 +15,5 @@ token_key.json
 *.profiterole.html
 *.profiterole.txt
 *.prof
+.ghc.environment*
 node_modules
