@@ -4,14 +4,14 @@ import AddClassForm
 import Api
 import Bootstrap
 import Data.Session as Session exposing (Session, authorization)
-import Dialog
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Modal
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Route
 import Table
 import Task exposing (Task)
-import Util exposing (dialog, defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg, maybeView)
 import Views.TeacherToolbar as TeacherToolbar
 
 
@@ -83,7 +83,7 @@ view session model =
         div [ class "container page" ]
             [ TeacherToolbar.view session subtools
             , viewTable session model
-            , Dialog.view (Maybe.map addClassesDialog model.addClassForm)
+            , maybeView addClassesDialog model.addClassForm
             ]
     }
 
@@ -130,14 +130,11 @@ subtools =
     [ Bootstrap.btn "add-class-button" ShowAddClass [ text "Add Class" ] ]
 
 
-addClassesDialog : AddClassForm.Model -> Dialog.Config Msg
+addClassesDialog : AddClassForm.Model -> Html Msg
 addClassesDialog form =
-    dialog
-        DismissAddClass
-        (Just (h3 [] [ text "Add Class" ]))
-        (div []
+    Modal.view "Add Class" DismissAddClass
+        ( div []
             [ p [] [ text "Enter the new class name and a description" ]
-            , AddClassForm.view form
-                |> Html.map AddClassFormMsg
+            , Html.map AddClassFormMsg (AddClassForm.view form)
             ]
         )

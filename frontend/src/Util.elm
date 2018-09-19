@@ -1,6 +1,5 @@
-module Util exposing (viewIf, viewUnless, appendErrors, dialog, printButton, defaultHttpErrorMsg)
+module Util exposing (viewIf, viewUnless, appendErrors, printButton, defaultHttpErrorMsg, maybeView)
 
-import Dialog
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
@@ -21,19 +20,16 @@ viewUnless condition content =
     viewIf (not condition) content
 
 
+maybeView : (a -> Html msg) -> Maybe a -> Html msg
+maybeView f a_ =
+    case a_ of
+        Just a -> f a
+        Nothing -> text ""
+
+
 appendErrors : { model | errors : List error } -> List error -> { model | errors : List error }
 appendErrors model errors =
     { model | errors = model.errors ++ errors }
-
-
-dialog : msg -> Maybe (Html msg) -> Html msg -> Dialog.Config msg
-dialog closeMsg hdr body =
-    { closeMessage = Just closeMsg
-    , containerClass = Nothing
-    , header = hdr
-    , body = Just body
-    , footer = Nothing
-    }
 
 
 printButton : msg -> String -> Html msg

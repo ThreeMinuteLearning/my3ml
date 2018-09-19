@@ -4,20 +4,20 @@ import AddStudentsForm
 import Api
 import Bootstrap exposing (formGroup, row)
 import Data.Session as Session exposing (Session, authorization, updateCache)
-import Dialog
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
 import List.Extra
+import Modal
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
 import Regex
 import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
-import Util exposing (viewIf, dialog, defaultHttpErrorMsg)
+import Util exposing (viewIf, defaultHttpErrorMsg, maybeView)
 import Views.ClassSelect as ClassSelect
 import Views.NewAccounts as NewAccounts
 import Views.StudentTable as StudentTable
@@ -177,7 +177,7 @@ view session model =
             , row [ NewAccounts.view PrintWindow ClearNewAccounts session.cache.newAccounts ]
             , viewStudentsFilter session.cache model
             , viewTable session.cache model
-            , Dialog.view (Maybe.map addStudentsDialog model.addStudentsForm)
+            , maybeView addStudentsDialog model.addStudentsForm
             ]
     }
 
@@ -296,14 +296,11 @@ viewStudentsFilter cache model =
             ]
 
 
-addStudentsDialog : AddStudentsForm.Model -> Dialog.Config Msg
+addStudentsDialog : AddStudentsForm.Model -> Html Msg
 addStudentsDialog form =
-    dialog
-        DismissAddStudents
-        (Just (h3 [] [ text "Add Students" ]))
-        (div []
+    Modal.view "Add Students" DismissAddStudents
+        ( div []
             [ p [] [ text "Enter the names of the students you want to add accounts for, separated by commas or on separate lines. You can enter up to 100 names." ]
-            , AddStudentsForm.view form
-                |> Html.map AddStudentsFormMsg
+            , Html.map AddStudentsFormMsg (AddStudentsForm.view form)
             ]
         )

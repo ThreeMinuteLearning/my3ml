@@ -2,17 +2,17 @@ module Page.Class exposing (Model, Msg, ExternalMsg(..), init, update, view)
 
 import Api
 import Data.Session as Session exposing (Session, authorization)
-import Dialog
 import Dict exposing (Dict)
 import Bootstrap exposing (row)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Http
+import Modal
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Table
 import Task exposing (Task)
-import Util exposing (dialog, viewIf, defaultHttpErrorMsg)
+import Util exposing (viewIf, defaultHttpErrorMsg)
 import Views.Form as Form
 import Views.StudentTable as StudentTable
 
@@ -158,12 +158,8 @@ view session model =
             , Form.viewErrorMsgs model.errors
             , h4 [] [ text "Class members" ]
             , viewTable session.cache model
-            , Dialog.view
-                (if model.showConfirmDelete then
-                    Just (confirmDeleteDialog (userIsOwner session.user model.class))
-                else
-                    Nothing
-                )
+            , viewIf model.showConfirmDelete
+                (confirmDeleteDialog (userIsOwner session.user model.class))
             ]
     }
 
@@ -216,10 +212,9 @@ viewToolbar model =
             ]
 
 
-confirmDeleteDialog : Bool -> Dialog.Config Msg
+confirmDeleteDialog : Bool -> Html Msg
 confirmDeleteDialog isOwner =
-    dialog DismissDialog
-        Nothing
+    Modal.view "Delete class" DismissDialog
         (div []
             [ p [] [ text "Are you sure you want to delete this class? Only the class information will be removed (none of the student accounts will be affected)." ]
             , viewIf (not isOwner) <|

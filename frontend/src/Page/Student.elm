@@ -2,16 +2,16 @@ module Page.Student exposing (Model, Msg, init, update, view)
 
 import Api
 import Data.Session as Session exposing (Session, authorization, findStoryById)
-import Dialog
 import Bootstrap exposing (row)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Http
+import Modal
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
 import Tuple exposing (pair)
-import Util exposing (dialog, defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg, maybeView, viewIf)
 import Views.Answers as Answers
 import Views.ChangePasswordForm as ChangePassword
 import Views.ChangeUsernameForm as ChangeUsername
@@ -196,14 +196,9 @@ view model =
             , hr [] []
             , h1 [] [ text "Completed Stories" ]
             , Answers.viewWithStories model.answers
-            , Dialog.view (Maybe.map changePasswordDialog model.changePasswordForm)
-            , Dialog.view (Maybe.map changeUsernameDialog model.changeUsernameForm)
-            , Dialog.view
-                (if model.showConfirmDelete then
-                    Just confirmDeleteDialog
-                else
-                    Nothing
-                )
+            , maybeView changePasswordDialog model.changePasswordForm
+            , maybeView changeUsernameDialog model.changeUsernameForm
+            , viewIf model.showConfirmDelete confirmDeleteDialog
             ]
     }
 
@@ -251,35 +246,28 @@ viewToolbar isAdmin student =
             ]
 
 
-changePasswordDialog : ChangePassword.Model -> Dialog.Config Msg
+changePasswordDialog : ChangePassword.Model -> Html Msg
 changePasswordDialog form =
-    dialog
-        DismissDialog
-        (Just (h3 [] [ text "Change password" ]))
-        (div []
-            [ ChangePassword.view form
-                |> Html.map ChangePasswordMsg
+    Modal.view "Change password" DismissDialog
+        ( div []
+            [ Html.map ChangePasswordMsg (ChangePassword.view form)
             ]
         )
 
 
-changeUsernameDialog : ChangeUsername.Model -> Dialog.Config Msg
+changeUsernameDialog : ChangeUsername.Model -> Html Msg
 changeUsernameDialog form =
-    dialog
-        DismissDialog
-        (Just (h3 [] [ text "Change username" ]))
-        (div []
-            [ ChangeUsername.view form
-                |> Html.map ChangeUsernameMsg
+    Modal.view "Change username" DismissDialog
+        ( div []
+            [ Html.map ChangeUsernameMsg (ChangeUsername.view form)
             ]
         )
 
 
-confirmDeleteDialog : Dialog.Config Msg
+confirmDeleteDialog : Html Msg
 confirmDeleteDialog =
-    dialog DismissDialog
-        Nothing
-        (div []
+    Modal.view "Delete Student" DismissDialog
+        ( div []
             [ p [] [ text "Are you sure you want to delete this student account? It will be marked for deletion and removed automatically at a later date (you can un-delete it if you change your mind)." ]
             , button [ class "btn btn-danger", onClick ConfirmDelete ]
                 [ text "Delete student"
