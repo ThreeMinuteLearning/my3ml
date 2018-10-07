@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators        #-}
 
 module Main where
@@ -43,8 +44,6 @@ import qualified Version
 type SiteApi = "api" :> Api
     :<|> Raw
 
-siteApi :: Proxy SiteApi
-siteApi = Proxy
 
 server :: forall db. DB db => Config db -> FilePath -> ServerT SiteApi Handler
 server config assets = hoistServerWithContext (Proxy :: Proxy Api) ctx transform Api.server
@@ -107,7 +106,7 @@ main = do
     starterStories <- getStarterStories db >>= newMVar
     let cfg = Config db tokenKey_ starterStories (fmap mkRollbarSettings rollbarToken) rootKey_
         my3mlServer = server cfg assets
-        app = serveWithContext siteApi (authServerContext tokenKey_) my3mlServer
+        app = serveWithContext (Proxy @SiteApi) (authServerContext tokenKey_) my3mlServer
 
     run port app
 
