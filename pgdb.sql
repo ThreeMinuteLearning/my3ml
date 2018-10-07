@@ -36,10 +36,11 @@ CREATE TABLE story
     , tags text[] NOT NULL
     , content text NOT NULL CHECK (length(content) > 0)
     , words dict_entry[] NOT NULL
-    , clarify_word text NOT NULL CHECK (length(clarify_word) > 0)
+    , clarify_word text NOT NULL
     , enabled boolean DEFAULT false
     , archived boolean DEFAULT false
     , created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
+    , CONSTRAINT clarify_word_check CHECK (length(clarify_word) > 1 AND (position(lower(clarify_word) in lower(content)) > 0 OR position(lower(clarify_word) in lower(title)) > 0 OR position(' ' in clarify_word) > 0))
     );
 
 CREATE TABLE school
