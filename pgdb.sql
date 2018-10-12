@@ -167,3 +167,33 @@ BEGIN
     RETURN;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_story_activity_history(period interval, granularity text)
+  RETURNS json AS
+$$
+  WITH story_activity AS (
+    SELECT s.name AS school_name
+         , d.dt
+         , count(sa.story_id)
+      FROM school s
+      CROSS JOIN generate_series(date_trunc(granularity, now() - period)
+                               , date_trunc(granularity, now())
+                               , (1 || granularity)::interval) d (dt)
+      LEFT JOIN story_answer sa
+        ON sa.school_id = s.id
+        AND sa.created_at >= d.dt
+        AND sa.created_at < d.dt + (1 || granularity)::interval
+    GROUP BY s.name, d.dt
+    ORDER BY s.name, d.dt
+  ), story_activity_by_school AS (
+    SELECT school_name, array_agg(count) AS story_activity FROM story_activity GROUP BY school_name
+  )
+  SELECT json_agg(t) FROM story_activity_by_school t WHERE (array_sum(t.story_activity) > 0)
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION array_sum(numeric[]) returns numeric AS
+$$
+  SELECT sum(unnest) FROM (select unnest($1)) AS blah
+$$
+LANGUAGE sql;
