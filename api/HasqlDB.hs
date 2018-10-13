@@ -13,7 +13,7 @@ import           Contravariant.Extras.Contrazip
 import           Crypto.Random (getRandomBytes)
 import qualified Data.Aeson as JSON
 import           Data.Array.IO (IOArray, readArray, writeArray, newListArray)
-import           Data.ByteArray.Encoding (convertToBase, Base(Base16))
+import           Data.ByteArray.Encoding (convertToBase, convertFromBase, Base(Base16))
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BC
 import           Data.Functor.Contravariant
@@ -387,16 +387,21 @@ activateTeacherAccount = Q.Statement sql encode D.unit False
 selectAccountByUsername :: Statement Text (Maybe Account)
 selectAccountByUsername = Q.Statement sql evText (D.rowMaybe decode) True
   where
-    sql = "SELECT login.id, username, password, user_type :: text, level, active, last_login, settings \
+    sql = "SELECT login.id, username, password, otp_key, user_type :: text, level, active, last_login, settings \
           \ FROM login \
           \ LEFT JOIN student \
           \ ON login.id = student.id \
           \ WHERE username = lower($1) AND locked = false"
 
+    decodeOtpKey k = case convertFromBase Base16 (TE.encodeUtf8 k) of
+        Left _ -> error "Invalid OTP key in database"
+        Right key -> key
+
     decode = Account
         <$> dvSubjectId
         <*> dvText
         <*> dvText
+        <*> (fmap decodeOtpKey <$> D.nullableColumn D.text)
         <*> userTypeValue
         <*> (maybe 10 fromIntegral <$> D.nullableColumn D.int2)
         <*> D.column D.bool

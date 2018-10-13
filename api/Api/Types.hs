@@ -93,6 +93,7 @@ data Student = Student
 data LoginRequest = LoginRequest
     { username :: Text
     , password :: Text
+    , otp :: Maybe Int
     } deriving (Show, Generic, FromJSON)
 
 data Anthology = Anthology
@@ -111,6 +112,7 @@ data Account = Account
     { id :: SubjectId
     , username :: Text
     , password :: Text
+    , otpKey :: Maybe ByteString
     , role :: UserType
     , level :: Int
     , active :: Bool

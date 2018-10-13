@@ -23,6 +23,7 @@ import           Crypto.Cipher.AES
 import           Crypto.Cipher.Types
 import           Crypto.KDF.Argon2 (Options(..), defaultOptions, hash)
 import           Crypto.Error
+import qualified Crypto.OTP as OTP
 import           Crypto.Random (getRandomBytes)
 import qualified Data.Aeson as JSON
 import qualified Data.ByteArray as BA
@@ -36,6 +37,7 @@ import           Data.List (scanl', last, uncons)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Text.Encoding (encodeUtf8, decodeUtf8)
+import           Data.Time.Clock.POSIX
 import           Data.UUID (toText)
 import           Data.UUID.V4 (nextRandom)
 import           Jose.Jwt hiding (encode, decode)
@@ -44,7 +46,7 @@ import           Jose.Jwk
 import qualified Jose.Jwe as Jwe
 import           Jose.Internal.Crypto (keyWrap, keyUnwrap)
 import           Prelude hiding (id, words)
-import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr, Handler, NoContent(..), err400, err401, err403, err409, err404, err500, errBody)
+import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr(..), Handler, NoContent(..), err400, err401, err403, err409, err404, err500, errBody)
 
 import           Api.Auth (AccessScope(..), TenantKey(..), mkAccessToken, scopeSubjectId)
 import           Api.Types hiding (AccessToken)
@@ -116,8 +118,13 @@ loginServer authReq = do
     case user of
         Nothing -> logInfoN ("User not found: " <> uName) >> throwError err401
         Just a@Account {..} -> do
-            unless (validatePassword submittedPassword (encodeUtf8 password))
-                (logInfoN ("Wrong password for user " <> uName) >> throwError err401)
+            when (isJust otpKey && isNothing (otp authReq)) (throwError err462)
+            otpTime <- liftIO getOTPTime
+            let passwordOK = validatePassword submittedPassword (encodeUtf8 password)
+                otpOK = validateOTP (fromIntegral <$> otp authReq) otpKey otpTime
+            unless passwordOK $ logInfoN ("Wrong password for user " <> uName)
+            unless otpOK $ logInfoN ("Wrong otp code for user " <> uName)
+            unless (passwordOK && otpOK) $ throwError err401
             -- new account which hasn't been enabled yet
             unless active (logInfoN ("Account " <> uName <> " has not been activated yet") >> throwError err403)
             let firstLogin = isNothing lastLogin
@@ -140,6 +147,20 @@ loginServer authReq = do
               else pure $ decryptSchoolKey pbeKey esk
 
         just (pbeKey, sk)
+
+    -- 462 is an arbitrarily chosen code to tell our client an OTP is required for the user
+    err462 = ServantErr
+        { errHTTPCode = 462
+        , errReasonPhrase = "OTP Auth Required"
+        , errBody = ""
+        , errHeaders = []
+        }
+
+    getOTPTime = getPOSIXTime >>= \t -> pure (floor t :: OTP.OTPTime)
+
+    validateOTP Nothing Nothing _ = True
+    validateOTP (Just otp) (Just key) t = OTP.totpVerify OTP.defaultTOTPParams key t otp
+    validateOTP _ _ _ = error "Invalid OTP combination"
 
     uName = T.toLower . T.strip $ username (authReq :: LoginRequest)
 

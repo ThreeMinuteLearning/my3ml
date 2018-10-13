@@ -14,13 +14,12 @@ import Validate exposing (..)
 import Views.Form as Form
 
 
--- MODEL --
-
-
 type alias Model =
     { errors : List Error
     , username : String
     , password : String
+    , otp : Maybe String
+    , otpRequired : Bool
     }
 
 
@@ -29,14 +28,12 @@ initialModel =
     { errors = []
     , username = ""
     , password = ""
+    , otp = Nothing
+    , otpRequired = False
     }
 
 
-
--- VIEW --
-
-
-view : Model -> { title: String, content: Html Msg }
+view : Model -> { title: String, content: Html (Msg a) }
 view model =
     { title = "Log in to 3ml"
     , content =
@@ -50,7 +47,7 @@ view model =
                                 [ text "Need an account?" ]
                             ]
                         , Form.viewErrors model.errors
-                        , viewForm
+                        , if model.otpRequired then viewOtpForm model else viewForm
                         ]
                     ]
                 ]
@@ -58,11 +55,13 @@ view model =
     }
 
 
-viewForm : Html Msg
+viewForm : Html (Msg a)
 viewForm =
-    Html.form [ onSubmit SubmitForm ]
+    Html.form [ id "login-form", onSubmit SubmitForm ]
         [ Form.input
             [ class "form-control-lg"
+            , id "username"
+            , name "username"
             , placeholder "Username or email"
             , tabindex 1
             , onInput SetUsername
@@ -70,6 +69,7 @@ viewForm =
             []
         , Form.password
             [ class "form-control-lg"
+            , id "password"
             , placeholder "Password"
             , tabindex 2
             , onInput SetPassword
@@ -80,19 +80,34 @@ viewForm =
         ]
 
 
+viewOtpForm : Model -> Html (Msg a)
+viewOtpForm model =
+    Html.form [ id "otp-form", onSubmit SubmitForm ]
+        [ Form.input
+            [ class "form-control-lg"
+            , id "otp-code"
+            , name "otp-code"
+            , value (Maybe.withDefault "" model.otp)
+            , placeholder "One-time password code"
+            , tabindex 1
+            , onInput SetOTP
+            ]
+            []
+        , button [ class "btn btn-lg btn-primary pull-xs-right", tabindex 3 ]
+            [ text "Sign in" ]
+        ]
 
--- UPDATE --
 
-
-type Msg
+type Msg a
     = SubmitForm
     | SetUsername String
     | SetPassword String
-    | LoginCompleted (Result Http.Error Api.Login)
+    | SetOTP String
+    | LoginCompleted (Result Http.Error a)
 
 
-update : Msg -> Model -> ( ( Model, Cmd Msg ), Maybe Api.Login )
-update msg model =
+update : Msg a -> Model -> (String -> String -> Maybe Int -> Http.Request a) -> ( ( Model, Cmd (Msg a) ), Maybe a )
+update msg model loginRequest =
     case msg of
         SubmitForm ->
             case validate validator model of
@@ -100,11 +115,10 @@ update msg model =
                     ( ( { model | errors = errors }, Cmd.none ), Nothing )
                 _ ->
                     ( ( { model | errors = [] }
-                      , Http.send LoginCompleted (Api.postAuthenticate (Api.LoginRequest (String.trim (.username model)) (.password model)))
+                      , Http.send LoginCompleted (loginRequest (String.trim model.username) model.password (Maybe.andThen String.toInt model.otp))
                       )
                     , Nothing
                     )
-
 
         SetUsername username ->
             ( ( { model | username = username }, Cmd.none ), Nothing )
@@ -112,41 +126,43 @@ update msg model =
         SetPassword password ->
             ( ( { model | password = password }, Cmd.none ), Nothing )
 
+        SetOTP otp ->
+            ( ( { model | otp = Just otp }, Cmd.none ), Nothing )
+
+        LoginCompleted (Err (Http.BadStatus response as error)) ->
+            case response.status.code of
+                401 ->
+                    loginError "Login failed. Check your username and password" model
+
+                403 ->
+                    loginError "Please wait till your account is enabled before signing in" model
+
+                429 ->
+                    loginError "The login server is a bit busy. Please try again" model
+
+                462 ->
+                    ( ( { model | otpRequired = True }, Cmd.none), Nothing )
+
+                _ ->
+                    loginError ( defaultHttpErrorMsg error ) model
+
         LoginCompleted (Err error) ->
-            let
-                errorMessages =
-                    case error of
-                        Http.BadStatus response ->
-                            case response.status.code of
-                                401 ->
-                                    [ "Username or password is incorrect" ]
-
-                                403 ->
-                                    [ "Please wait till your account is enabled before signing in" ]
-
-                                429 ->
-                                    [ "The login server is a bit busy. Please try again" ]
-
-                                _ ->
-                                    [ defaultHttpErrorMsg error ]
-
-                        _ ->
-                            [ defaultHttpErrorMsg error ]
-            in
-                ( ( { model | errors = List.map (\errorMessage -> ( Form, errorMessage )) errorMessages }, Cmd.none ), Nothing )
+            loginError ( defaultHttpErrorMsg error ) model
 
         LoginCompleted (Ok user) ->
             ( ( model, Cmd.none ), Just user )
 
 
-
--- VALIDATION --
+loginError : String -> Model -> ( ( Model, Cmd (Msg a) ), Maybe a )
+loginError errorMsg model =
+    ( ( { model | errors = [( Form, errorMsg )], otp = Nothing, otpRequired = False }, Cmd.none ), Nothing )
 
 
 type Field
     = Form
     | Email
     | Password
+    | OTP
 
 
 type alias Error =
@@ -158,4 +174,5 @@ validator =
     Validate.all
         [ ifBlank .username ( Email, "You must enter a username" )
         , ifBlank .password ( Password, "You must enter a password" )
+        , ifTrue (\m -> m.otpRequired && Maybe.andThen String.toInt m.otp == Nothing) (OTP, "You must enter a number for the one-time password")
         ]

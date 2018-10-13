@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Api
 import Data.Session as Session exposing (Session, Role(..), User, decodeSession, storeSession)
 import Browser exposing (Document)
 import Browser.Navigation as Nav
@@ -193,7 +194,7 @@ type PageLoaded
 
 type PageMsg
     = StoryMsg Story.Msg
-    | LoginMsg Login.Msg
+    | LoginMsg (Login.Msg Api.Login)
     | FindStoryMsg FindStory.Msg
     | StudentsMsg Students.Msg
     | StudentMsg Student.Msg
@@ -494,8 +495,10 @@ updatePage page msg model =
 
             ( LoginMsg subMsg, Login subModel ) ->
                 let
+                    loginRequest username password otp = Api.postAuthenticate (Api.LoginRequest username password otp)
+
                     ( ( pageModel, loginCmd ), maybeLoggedIn ) =
-                        Login.update subMsg subModel
+                        Login.update subMsg subModel loginRequest
 
                     ( newSession, cmd ) =
                         maybeLoggedIn
