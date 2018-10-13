@@ -118,7 +118,7 @@ viewPage session isLoading page =
                     |> frame Page.FindStory
 
             Login subModel ->
-                Login.view session subModel
+                Login.view subModel
                     |> mapMsg LoginMsg
                     |> frame Page.Other
 

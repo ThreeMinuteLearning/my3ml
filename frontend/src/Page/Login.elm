@@ -4,7 +4,6 @@ module Page.Login exposing (view, update, Model, Msg, initialModel)
 -}
 
 import Api
-import Data.Session as Session exposing (Session, User)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -37,8 +36,8 @@ initialModel =
 -- VIEW --
 
 
-view : Session -> Model -> { title: String, content: Html Msg }
-view session model =
+view : Model -> { title: String, content: Html Msg }
+view model =
     { title = "Log in to 3ml"
     , content =
         div [ class "auth-page" ]
