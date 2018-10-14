@@ -33,11 +33,7 @@ frontend/src/Api.elm: code-generator/*.hs api/*.hs api/**/*.hs
 VERSION_FILE=backend/Version.hs
 
 backend/Version.hs: .git/refs/heads/*
-	echo "{-# LANGUAGE OverloadedStrings #-}" > $(VERSION_FILE)
-	echo "module Version where" >> $(VERSION_FILE)
-	echo "import Data.Text (Text)" >> $(VERSION_FILE)
-	git rev-parse HEAD | awk ' BEGIN {print ""}{print "revision = \"" $$0 "\" :: Text"} END {}' >> $(VERSION_FILE)
-	git describe --always | awk ' BEGIN {print ""}{print "version = \"" $$0 "\" :: Text"} END {}' >> $(VERSION_FILE)
+	printf "{-# LANGUAGE OverloadedStrings #-}\nmodule Version where\nimport Data.Text(Text)\n\nrevision :: Text\nrevision = \"$(shell git rev-parse HEAD)\"\n\nversion :: Text\nversion = \"$(shell git describe --always)\"" > $(VERSION_FILE)
 
 .PHONY: serve
 serve:
