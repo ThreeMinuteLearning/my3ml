@@ -243,6 +243,8 @@ instance DB HasqlDB where
 
     updateAccountSettings = runStatement updateAccountSettings_
 
+    getDashboard = runStatement selectDashboard ()
+
 shuffle :: [a] -> IO [a]
 shuffle xs = do
     ar <- newArr xs
@@ -877,3 +879,7 @@ updateAccountSettings_ = Q.Statement sql encode D.unit True
     sql = "UPDATE login SET settings=$2 where id = $1 :: uuid"
     encode = contramap fst evSubjectId
         <> contramap snd (E.param E.jsonb)
+
+-- Admin
+selectDashboard :: Statement () JSON.Value
+selectDashboard = Q.Statement "SELECT dashboard()" E.unit (D.singleRow (D.column D.json)) True

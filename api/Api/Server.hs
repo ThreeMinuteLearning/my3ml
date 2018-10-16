@@ -71,7 +71,7 @@ runDB :: MonadReader (Config b) m => (b -> m b1) -> m b1
 runDB f = ask >>= f . database
 
 server :: DB db => ApiServer Api db
-server = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> anthologiesServer :<|> loginServer :<|> accountServer
+server = storyServer :<|> dictServer :<|> schoolsServer :<|> schoolServer :<|> anthologiesServer :<|> loginServer :<|> accountServer :<|> adminServer
 
 newUUID :: HandlerT db Text
 newUUID = liftIO (toText <$> nextRandom)
@@ -180,6 +180,7 @@ loginServer authReq = do
 
             "SchoolAdmin" -> getTeacher subId True userKey
             "Editor" -> return (EditorScope subId, "Anonymous")
+            "Admin" -> pure (AdminScope subId, uName)
         jwk <- fmap tokenKey ask
         token_ <- mkAccessToken jwk scope
         return (token_, nm)
@@ -327,6 +328,7 @@ schoolsServer :: DB db => ApiServer SchoolsApi db
 schoolsServer Nothing = throwAll err401
 schoolsServer (Just scp@(AdminScope _)) = runDB DB.getSchools :<|> specificSchoolServer scp
 schoolsServer _ = throwAll err403
+
 
 
 schoolServer :: DB db => ApiServer SchoolApi db
@@ -527,6 +529,13 @@ leaderBoardServer sid =
 dictServer :: DB db => ApiServer DictApi db
 dictServer =
     runDB DB.getDictionary :<|> runDB . DB.lookupWord
+
+
+adminServer :: DB db => ApiServer AdminApi db
+adminServer (Just (AdminScope _)) = runDB DB.getDashboard
+adminServer Nothing  = throwAll err401
+adminServer _ = throwAll err403
+
 
 -- ThrowAll idea taken from servant-auth
 class ThrowAll a where

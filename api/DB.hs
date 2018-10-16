@@ -109,6 +109,8 @@ class DB db where
 
     updateAccountSettings :: DBFn m => (SubjectId, Value) -> db -> m ()
 
+    getDashboard :: DBFn m => db -> m Value
+
 data InMemoryDB = InMemoryDB
     { stories :: Map.Map StoryId Story
     , sampleStories :: [Story]

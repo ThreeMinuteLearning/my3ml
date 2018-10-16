@@ -1,3 +1,4 @@
+-- -*- mode: sql; sql-product: postgres; -*-
 CREATE TYPE user_type AS ENUM ('Student', 'Teacher', 'SchoolAdmin', 'Editor', 'Admin');
 
 CREATE TYPE dict_entry AS (word text, index smallint);
@@ -161,12 +162,8 @@ CREATE UNIQUE INDEX ON leaderboard (student_id, school_id);
 CREATE OR REPLACE FUNCTION refresh_leaderboard() RETURNS void
 SECURITY DEFINER
 AS $$
-BEGIN
-    REFRESH MATERIALIZED VIEW leaderboard with data;
-
-    RETURN;
-END;
-$$ LANGUAGE plpgsql;
+  REFRESH MATERIALIZED VIEW leaderboard with data;
+$$ LANGUAGE sql;
 
 
 CREATE OR REPLACE FUNCTION get_story_activity_history(period interval, granularity text)
@@ -197,3 +194,20 @@ $$
   SELECT sum(unnest) FROM (select unnest($1)) AS blah
 $$
 LANGUAGE sql;
+
+
+CREATE OR REPLACE FUNCTION dashboard()
+  RETURNS json AS
+$$
+  WITH m AS (
+    SELECT get_story_activity_history(interval '24 months', 'month') AS story_activity_monthly
+  ), d AS (
+    SELECT get_story_activity_history(interval '8 weeks', 'day') AS story_activity_daily
+  ), tm AS (
+    SELECT round(extract(epoch from now())) AS sample_time
+  )
+  SELECT row_to_json(t)
+  FROM (
+    SELECT * FROM m, d, tm
+  ) t
+$$ LANGUAGE sql;

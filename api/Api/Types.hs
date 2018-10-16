@@ -181,6 +181,11 @@ type AccessTokenAuth = AuthProtect "access-token"
 type LoginApi =
     "authenticate" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] Login
 
+type AdminApi =
+    "admin" :> AccessTokenAuth :>
+        ( "stats" :> Get '[JSON] Value
+        )
+
 type AccountApi =
     "account" :> AccessTokenAuth :>
         (    "settings" :> ReqBody '[JSON] Value :> Post '[JSON] NoContent
@@ -281,4 +286,4 @@ type AnthologiesApi =
             )
         )
 
-type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> AnthologiesApi :<|> LoginApi :<|> AccountApi
+type Api = StoriesApi :<|> DictApi :<|> SchoolsApi :<|> SchoolApi :<|> AnthologiesApi :<|> LoginApi :<|> AccountApi :<|> AdminApi
