@@ -166,6 +166,13 @@ AS $$
 $$ LANGUAGE sql;
 
 
+CREATE OR REPLACE FUNCTION array_sum(numeric[]) returns numeric AS
+$$
+  SELECT sum(unnest) FROM (select unnest($1)) AS blah
+$$
+LANGUAGE sql;
+
+
 CREATE OR REPLACE FUNCTION get_story_activity_history(period interval, granularity text)
   RETURNS json AS
 $$
@@ -188,12 +195,6 @@ $$
   )
   SELECT json_agg(t) FROM story_activity_by_school t WHERE (array_sum(t.story_activity) > 0)
 $$ LANGUAGE sql;
-
-CREATE OR REPLACE FUNCTION array_sum(numeric[]) returns numeric AS
-$$
-  SELECT sum(unnest) FROM (select unnest($1)) AS blah
-$$
-LANGUAGE sql;
 
 
 CREATE OR REPLACE FUNCTION dashboard()
