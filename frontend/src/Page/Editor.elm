@@ -39,6 +39,7 @@ type Msg
     | StoryViewMsg StoryView.Msg
     | Save
     | SaveResponse (Result Http.Error Api.Story)
+    | CancelChanges
     | TagSelectMsg (Select.Msg String)
     | CurriculumSelectMsg (Select.Msg String)
     | QualificationSelectMsg (Select.Msg String)
@@ -145,6 +146,9 @@ update session msg model =
                     StoryView.update svm model.storyView
             in
                 ( { model | storyView = newStoryView }, Cmd.map StoryViewMsg cmd )
+
+        CancelChanges ->
+            ( { model | story = Zipper.current model.stories, errors = [] }, Cmd.none )
 
         ToggleEnabled ->
             updateStory (\s -> { s | enabled = not s.enabled } ) model
@@ -274,22 +278,21 @@ view model =
                               model.story.tags
                         )
                     ]
-                , div [ class "col-md-6" ]
+                , div [ class "col-md-3" ]
                     [ button
                         [ class "btn btn-default"
                         , onClick Save
                         , disabled (model.story == Zipper.current model.stories)
                         ]
                         [ text "Save Changes" ]
-                    , text " "
-                    , button [ class "btn", onClick ToggleEnabled ]
-                        [ text
-                            (if model.story.enabled then
-                                "Enabled"
-                            else
-                                "Disabled"
-                            )
+                    ]
+                , div [ class "col-md-3" ]
+                    [ button
+                        [ class "btn btn-default"
+                        , onClick CancelChanges
+                        , disabled (model.story == Zipper.current model.stories)
                         ]
+                        [ text "Cancel Changes" ]
                     ]
                 ]
             , div [ class "row" ]
@@ -329,12 +332,22 @@ view model =
                         ]
                         []
                     ]
-                , div [ class "col-md-3", style "display" "flex", style "align-items" "center"]
-                    [ button [ onClick DecrementLevel ] [ text "-" ]
+                , div [ class "col-md-1", style "display" "flex", style "align-items" "center"]
+                    [ button [ class "btn btn-small",  onClick DecrementLevel ] [ text "-" ]
                     , div [ style "padding-left" "0.5em", style "padding-right" "0.5em"]
                         [ text (String.fromInt model.story.level)
                         ]
-                    , button [ onClick IncrementLevel ] [ text "+" ]
+                    , button [ class "btn btn-small", onClick IncrementLevel ] [ text "+" ]
+                    ]
+                , div [ class "col-md-2" ]
+                    [ button [ class "btn pull-right", onClick ToggleEnabled ]
+                        [ text
+                            (if model.story.enabled then
+                                "Enabled"
+                            else
+                                "Disabled"
+                            )
+                        ]
                     ]
                 ]
             , div [ class "row panes" ]
