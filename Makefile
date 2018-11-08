@@ -1,28 +1,32 @@
 .PHONY: all
-all: backend frontend
+all: backend frontend admin
 
 .PHONY: backend
 backend: backend/Version.hs
 	cabal new-build
 
 .PHONY: frontend
-frontend: assets/app.js assets/app.css
+frontend: app assets/app.css
+
+.PHONY: app
+app: frontend/shared/src/Api.elm
+	$(MAKE) -C frontend/app
+	cp frontend/app/output/app.js assets/app.js
+
+.PHONY: admin
+admin: frontend/shared/src/Api.elm
+	$(MAKE) -C frontend/admin
+	cp frontend/admin/output/admin.js assets/admin.js
 
 .PHONY: clean
 clean:
-	rm assets/app.js || true
-	rm -R elm-stuff || true
+	$(MAKE) -C frontend/app clean
+	$(MAKE) -C frontend/admin clean
 
 .PHONY: deep-clean
 deep-clean: clean
-	rm -R dist || true
+	rm -R dist-newstyle || true
 
-.PHONY: debug
-debug:
-	mkdir -p $(@D) && elm make frontend/app/src/Main.elm --debug --output assets/app.js
-
-assets/app.js: frontend/app/src/** frontend/shared/src/**
-	mkdir -p $(@D) && elm make frontend/app/src/Main.elm --output $@
 
 assets/app.css: assets/css/**
 	cat assets/css/my3ml.css assets/css/navbar.css assets/css/spinner.css > assets/app.css

@@ -97,4 +97,4 @@ instance ElmType NominalDiffTime where
     toElmType _ = toElmType (Proxy :: Proxy Double)
 
 main :: IO ()
-main = specsToDir specs "frontend/src"
+main = specsToDir specs "frontend/shared/src"
