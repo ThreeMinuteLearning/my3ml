@@ -1,7 +1,9 @@
 {
     "type": "application",
     "source-directories": [
-        "frontend/src"
+        "frontend/app/src",
+        "frontend/shared/src",
+        "frontend/admin/src"
     ],
     "elm-version": "0.19.0",
     "dependencies": {

@@ -1,4 +1,4 @@
-module Data.Zxcvbn exposing (Zxcvbn, ZxcvbnFeedback, decodeZxcvbn)
+module Zxcvbn exposing (Zxcvbn, ZxcvbnFeedback, decodeZxcvbn)
 
 import Json.Decode exposing (field)
 import Json.Decode.Pipeline exposing (required)

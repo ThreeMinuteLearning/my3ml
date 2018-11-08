@@ -1,3 +1,6 @@
+-- module Dashboard exposing (Stats, decodeStats, view)
+
+
 module Dashboard exposing (Stats, decodeStats, view)
 
 import Axis
@@ -5,7 +8,7 @@ import Color exposing (Color)
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (style)
-import Json.Decode as Json exposing (Decoder, float, int, list, string, nullable)
+import Json.Decode as Json exposing (Decoder, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import List.Extra as List
 import Path exposing (Path)
@@ -29,6 +32,7 @@ type alias Teacher =
     , lastLogin : Maybe Time.Posix
     }
 
+
 type alias School =
     { name : String
     , teachers : List Teacher
@@ -44,9 +48,11 @@ type alias Stats =
     , sampleTime : Time.Posix
     }
 
+
 epochTimeDecoder : Decoder Time.Posix
 epochTimeDecoder =
-    (Json.map ((*) 1000 >> Time.millisToPosix) int)
+    Json.map ((*) 1000 >> Time.millisToPosix) int
+
 
 decodeStats : Decoder Stats
 decodeStats =
@@ -71,6 +77,7 @@ decodeSchoolData =
         |> required "teachers" (list decodeTeacher)
         |> required "number_of_students" int
         |> required "created_at" epochTimeDecoder
+
 
 decodeTeacher : Decoder Teacher
 decodeTeacher =
@@ -114,14 +121,14 @@ view { storyActivityDaily, storyActivityMonthly, sampleTime, schools } =
             , order = List.sortBy (Tuple.second >> List.sum >> negate)
             }
     in
-        { title = "Admin Dashboard"
-        , content =
-              div [ style "max-width" "1000px", style "margin" "auto" ]
-                  [ viewStackedBars (Shape.stack { config | data = storyActivityDaily })
-                  , viewStack ( startMonth, endMonth ) (Shape.stack { config | data = storyActivityMonthly })
-                  , viewSchools schools
-                  ]
-       }
+    { title = "Admin Dashboard"
+    , content =
+        div [ style "max-width" "1000px", style "margin" "auto" ]
+            [ viewStackedBars (Shape.stack { config | data = storyActivityDaily })
+            , viewStack ( startMonth, endMonth ) (Shape.stack { config | data = storyActivityMonthly })
+            , viewSchools schools
+            ]
+    }
 
 
 viewSchools : List School -> Html msg
@@ -131,7 +138,7 @@ viewSchools schools =
             div []
                 [ h1 [] [ text s.name ]
                 , p [] [ text (String.fromInt s.numberOfStudents ++ " students.") ]
-                , table [ ]
+                , table []
                     [ thead []
                         [ tr []
                             [ th [] [ text "Name" ]
@@ -148,7 +155,7 @@ viewSchools schools =
                 , td [] [ text t.email ]
                 ]
     in
-    div [] ( List.map viewSchool schools )
+    div [] (List.map viewSchool schools)
 
 
 viewStack : ( Time.Posix, Time.Posix ) -> StackResult String -> Html msg

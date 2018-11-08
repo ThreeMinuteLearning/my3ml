@@ -2,7 +2,7 @@ module Page.Register exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
 import Data.Session as Session exposing (Session, authorization)
-import Data.Zxcvbn as Zxcvbn exposing (Zxcvbn, decodeZxcvbn)
+import Zxcvbn as Zxcvbn exposing (Zxcvbn, decodeZxcvbn)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onSubmit, onClick, onInput)

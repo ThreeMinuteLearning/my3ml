@@ -119,8 +119,9 @@ viewPage session isLoading page =
                     |> frame Page.FindStory
 
             Login subModel ->
-                Login.view subModel
-                    |> mapMsg LoginMsg
+                { title = "Login to 3ml"
+                , content = Html.map (PageMsg << LoginMsg) (Login.view subModel (Just (Route.href Route.Register)))
+                }
                     |> frame Page.Other
 
             Students subModel ->

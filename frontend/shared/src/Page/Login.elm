@@ -3,12 +3,10 @@ module Page.Login exposing (view, update, Model, Msg, initialModel)
 {-| The login page.
 -}
 
-import Api
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
-import Route exposing (Route)
 import Util exposing (defaultHttpErrorMsg)
 import Validate exposing (..)
 import Views.Form as Form
@@ -33,26 +31,27 @@ initialModel =
     }
 
 
-view : Model -> { title: String, content: Html (Msg a) }
-view model =
-    { title = "Log in to 3ml"
-    , content =
-        div [ class "auth-page" ]
-            [ div [ class "container page" ]
-                [ div [ class "row" ]
-                    [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
-                        [ h1 [ class "text-xs-center" ] [ text "Sign in" ]
-                        , p [ class "text-xs-center" ]
-                            [ a [ Route.href Route.Register ]
-                                [ text "Need an account?" ]
-                            ]
-                        , Form.viewErrors model.errors
-                        , if model.otpRequired then viewOtpForm model else viewForm
-                        ]
+view : Model -> Maybe (Attribute (Msg a)) -> Html (Msg a)
+view model regLink =
+    div [ class "auth-page" ]
+        [ div [ class "container page" ]
+            [ div [ class "row" ]
+                [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
+                    [ h1 [ class "text-xs-center" ] [ text "Sign in" ]
+                    , case regLink of
+                          Just ref ->
+                              p [ class "text-xs-center" ]
+                                  [ a [ ref ]
+                                      [ text "Need an account?" ]
+                                  ]
+                          Nothing ->
+                              text ""
+                    , Form.viewErrors model.errors
+                    , if model.otpRequired then viewOtpForm model else viewForm
                     ]
                 ]
             ]
-    }
+        ]
 
 
 viewForm : Html (Msg a)
