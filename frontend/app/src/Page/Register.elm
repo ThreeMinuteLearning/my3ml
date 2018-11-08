@@ -2,17 +2,17 @@ module Page.Register exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
 import Data.Session as Session exposing (Session, authorization)
-import Zxcvbn as Zxcvbn exposing (Zxcvbn, decodeZxcvbn)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onSubmit, onClick, onInput)
+import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
-import Json.Decode as Decode exposing (Decoder, decodeValue, decodeString, field, string)
+import Json.Decode as Decode exposing (Decoder, decodeString, decodeValue, field, string)
 import Ports
 import Route
 import Util exposing (defaultHttpErrorMsg, viewIf)
-import Validate exposing (Validator, validate, fromErrors, ifBlank, ifNothing, ifInvalidEmail)
+import Validate exposing (Validator, fromErrors, ifBlank, ifInvalidEmail, ifNothing, validate)
 import Views.Form as Form
+import Zxcvbn as Zxcvbn exposing (Zxcvbn, decodeZxcvbn)
 
 
 type alias Model =
@@ -80,11 +80,11 @@ update session msg model =
             case validate validator model of
                 Err errors ->
                     ( { model | errors = errors }, Cmd.none )
+
                 _ ->
                     ( { model | status = AwaitingResponse, errors = [] }
-                    , (Api.postAccountRegister (authorization session) (Api.Registration model.email model.code model.schoolName model.teacherName model.password)
+                    , Api.postAccountRegister (authorization session) (Api.Registration model.email model.code model.schoolName model.teacherName model.password)
                         |> Http.send RegisterResponse
-                      )
                     )
 
         SetEmail email ->
@@ -126,7 +126,7 @@ update session msg model =
                         _ ->
                             [ defaultHttpErrorMsg error ]
             in
-                ( { model | status = NotSent, errors = List.map (\errorMessage -> ( Form, errorMessage )) errorMessages }, Cmd.none )
+            ( { model | status = NotSent, errors = List.map (\errorMessage -> ( Form, errorMessage )) errorMessages }, Cmd.none )
 
         RegisterResponse (Ok _) ->
             ( { model | status = Completed }, Cmd.none )
@@ -140,7 +140,7 @@ update session msg model =
                     ( { model | errors = [ ( Form, "There was an error checking the password strength" ) ] }, Cmd.none )
 
 
-view : Model -> { title: String, content: Html Msg }
+view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Register with 3ml"
     , content =
@@ -162,8 +162,21 @@ view model =
                     , Form.viewErrors model.errors
                     , if model.registrationType == Nothing then
                         viewRegistrationOptions
+
                       else if model.status == Completed then
-                        p [] [ text "Registration complete. Your account should be activated within an hour. You can then sign in using your email and password. " ]
+                        div []
+                            [ p [] [ text "Registration complete." ]
+                            , p []
+                                [ case model.registrationType of
+                                    Just WithCode ->
+                                        text "Your school admin should let you know when they have activated your account."
+
+                                    _ ->
+                                        text "Your account should be activated within an hour."
+                                ]
+                            , p [] [ text "You can then sign in using your email and password." ]
+                            ]
+
                       else
                         viewForm model
                     ]
@@ -286,14 +299,14 @@ passwordSuggestions model =
         formatSuggestion s =
             li [] [ text s ]
     in
-        case model.zxcvbn of
-            Nothing ->
-                div [] []
+    case model.zxcvbn of
+        Nothing ->
+            div [] []
 
-            Just z ->
-                div [ id "password-strength-suggestions" ]
-                    [ ul [] (List.map formatSuggestion z.feedback.suggestions)
-                    ]
+        Just z ->
+            div [ id "password-strength-suggestions" ]
+                [ ul [] (List.map formatSuggestion z.feedback.suggestions)
+                ]
 
 
 
@@ -331,8 +344,10 @@ validatePassword { password, confirmPassword, zxcvbn } =
         _ ->
             if password /= confirmPassword then
                 [ ( Form, "the passwords must be the same" ) ]
+
             else if String.length password < 8 then
                 [ ( Password, "password must be at least 8 characters" ) ]
+
             else
                 validateZxcvbn password zxcvbn
 
@@ -346,5 +361,6 @@ validateZxcvbn password zxcvbn =
         Just z ->
             if z.password == password && z.score < 3 then
                 [ ( Password, "password is too weak" ) ]
+
             else
                 []
