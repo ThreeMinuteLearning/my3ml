@@ -163,7 +163,7 @@ view model =
                     , if model.registrationType == Nothing then
                         viewRegistrationOptions
                       else if model.status == Completed then
-                        p [] [ text "Registration complete. Your account should be activated within an hour and someone will contact you by email. Your can then sign in using your email and password. " ]
+                        p [] [ text "Registration complete. Your account should be activated within an hour. You can then sign in using your email and password. " ]
                       else
                         viewForm model
                     ]
