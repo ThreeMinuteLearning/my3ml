@@ -3,10 +3,10 @@ module Dashboard exposing (Stats, decodeStats, view)
 import Axis
 import Color exposing (Color)
 import Dict exposing (Dict)
-import Html exposing (Html, div, text)
+import Html exposing (..)
 import Html.Attributes exposing (style)
-import Json.Decode as Json exposing (Decoder, float, int, list, string)
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode as Json exposing (Decoder, float, int, list, string, nullable)
+import Json.Decode.Pipeline exposing (optional, required)
 import List.Extra as List
 import Path exposing (Path)
 import Scale exposing (BandScale, ContinuousScale, OrdinalScale, Scale, defaultBandConfig)
@@ -22,18 +22,38 @@ import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (Fill(..), Transform(..))
 
 
+type alias Teacher =
+    { name : String
+    , email : String
+    , createdAt : Time.Posix
+    , lastLogin : Maybe Time.Posix
+    }
+
+type alias School =
+    { name : String
+    , teachers : List Teacher
+    , numberOfStudents : Int
+    , createdAt : Time.Posix
+    }
+
+
 type alias Stats =
     { storyActivityDaily : List ( String, List Float )
     , storyActivityMonthly : List ( String, List Float )
+    , schools : List School
     , sampleTime : Time.Posix
     }
 
+epochTimeDecoder : Decoder Time.Posix
+epochTimeDecoder =
+    (Json.map ((*) 1000 >> Time.millisToPosix) int)
 
 decodeStats : Decoder Stats
 decodeStats =
     Json.succeed Stats
         |> required "story_activity_daily" (list decodeSchoolActivity)
         |> required "story_activity_monthly" (list decodeSchoolActivity)
+        |> required "schools" (list decodeSchoolData)
         |> required "sample_time" (Json.map ((*) 1000 >> Time.millisToPosix) int)
 
 
@@ -42,6 +62,23 @@ decodeSchoolActivity =
     Json.succeed pair
         |> required "school_name" string
         |> required "story_activity" (list float)
+
+
+decodeSchoolData : Decoder School
+decodeSchoolData =
+    Json.succeed School
+        |> required "name" string
+        |> required "teachers" (list decodeTeacher)
+        |> required "number_of_students" int
+        |> required "created_at" epochTimeDecoder
+
+decodeTeacher : Decoder Teacher
+decodeTeacher =
+    Json.succeed Teacher
+        |> required "name" string
+        |> required "email" string
+        |> required "created_at" epochTimeDecoder
+        |> required "last_login" (nullable epochTimeDecoder)
 
 
 w : Float
@@ -60,7 +97,7 @@ fromCalendarDate year month day =
 
 
 view : Stats -> { title : String, content : Html msg }
-view { storyActivityDaily, storyActivityMonthly, sampleTime } =
+view { storyActivityDaily, storyActivityMonthly, sampleTime, schools } =
     let
         now =
             posixToParts Time.utc sampleTime
@@ -82,8 +119,36 @@ view { storyActivityDaily, storyActivityMonthly, sampleTime } =
               div [ style "max-width" "1000px", style "margin" "auto" ]
                   [ viewStackedBars (Shape.stack { config | data = storyActivityDaily })
                   , viewStack ( startMonth, endMonth ) (Shape.stack { config | data = storyActivityMonthly })
+                  , viewSchools schools
                   ]
-        }
+       }
+
+
+viewSchools : List School -> Html msg
+viewSchools schools =
+    let
+        viewSchool s =
+            div []
+                [ h1 [] [ text s.name ]
+                , p [] [ text (String.fromInt s.numberOfStudents ++ " students.") ]
+                , table [ ]
+                    [ thead []
+                        [ tr []
+                            [ th [] [ text "Name" ]
+                            , th [] [ text "Email" ]
+                            ]
+                        ]
+                    , tbody [] (List.map teacherRow s.teachers)
+                    ]
+                ]
+
+        teacherRow t =
+            tr []
+                [ td [] [ text t.name ]
+                , td [] [ text t.email ]
+                ]
+    in
+    div [] ( List.map viewSchool schools )
 
 
 viewStack : ( Time.Posix, Time.Posix ) -> StackResult String -> Html msg

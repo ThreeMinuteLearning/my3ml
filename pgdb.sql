@@ -1,6 +1,8 @@
 -- -*- mode: sql; sql-product: postgres; -*-
 CREATE TYPE user_type AS ENUM ('Student', 'Teacher', 'SchoolAdmin', 'Editor', 'Admin');
 
+CREATE TYPE event_type AS ENUM ('LoginSuccess', 'LoginFailure');
+
 CREATE TYPE dict_entry AS (word text, index smallint);
 
 CREATE EXTENSION "uuid-ossp";
@@ -166,11 +168,17 @@ AS $$
 $$ LANGUAGE sql;
 
 
-CREATE OR REPLACE FUNCTION array_sum(numeric[]) returns numeric AS
+CREATE OR REPLACE FUNCTION array_sum(integer[]) RETURNS bigint AS
 $$
   SELECT sum(unnest) FROM (select unnest($1)) AS blah
 $$
 LANGUAGE sql;
+
+
+CREATE OR REPLACE FUNCTION to_epoch(timestamptz) RETURNS integer AS
+$$
+  SELECT round(extract(epoch FROM $1)) :: integer
+$$ LANGUAGE SQL;
 
 
 CREATE OR REPLACE FUNCTION get_story_activity_history(period interval, granularity text)
@@ -197,6 +205,36 @@ $$
 $$ LANGUAGE sql;
 
 
+CREATE OR REPLACE FUNCTION school_data()
+  RETURNS json AS
+$$
+  WITH teachers AS (
+    SELECT s.id AS school_id, json_build_object('name', t.name, 'email', l.username, 'last_login', to_epoch(l.last_login), 'created_at', to_epoch(l.created_at)) AS teacher_data
+    FROM login l
+    INNER JOIN teacher t
+    ON t.id = l.id
+    INNER JOIN school s
+    ON s.id = t.school_id
+  ), teachers_per_school AS (
+    SELECT school_id, json_agg(teacher_data) AS teachers
+    FROM teachers
+    GROUP BY school_id
+  ), student_counts AS (
+    SELECT s.id AS school_id, s.name AS school_name, s.created_at AS created_at, count(student.id) AS number_of_students
+    FROM school s
+    LEFT JOIN student
+    ON s.id = student.school_id
+    GROUP BY s.id, s.name, s.created_at
+  )
+  SELECT json_agg(row_to_json(tmp))
+  FROM (
+    SELECT sc.school_name AS name, to_epoch(sc.created_at) AS created_at, t.teachers, sc.number_of_students
+    FROM teachers_per_school t
+    INNER JOIN student_counts sc
+    ON t.school_id = sc.school_id
+  ) tmp
+$$ LANGUAGE SQL;
+
 CREATE OR REPLACE FUNCTION dashboard()
   RETURNS json AS
 $$
@@ -205,10 +243,12 @@ $$
   ), d AS (
     SELECT get_story_activity_history(interval '8 weeks', 'day') AS story_activity_daily
   ), tm AS (
-    SELECT round(extract(epoch from now())) AS sample_time
+    SELECT to_epoch(now()) AS sample_time
+  ), school_data AS (
+    SELECT school_data() as schools
   )
-  SELECT row_to_json(t)
+  SELECT row_to_json(t, true)
   FROM (
-    SELECT * FROM m, d, tm
+    SELECT * FROM tm, m, d, school_data
   ) t
 $$ LANGUAGE sql;
