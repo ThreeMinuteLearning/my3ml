@@ -9,6 +9,7 @@ import Html exposing (..)
 import Http
 import Page.Login as Login
 import Json.Decode as Decode exposing (Value)
+import Util exposing (defaultHttpErrorMsg)
 
 
 type alias Model =
@@ -19,6 +20,7 @@ type alias Model =
 type Page
     = Login Login.Model
     | Stats ( Maybe Dashboard.Stats )
+    | Error String
 
 
 
@@ -51,10 +53,13 @@ update msg model =
             ( { model | accessToken = Maybe.map .token maybeLoggedIn, page = newPage }, newCmd )
 
         ( Stats _, StatsLoaded (Ok json) ) ->
-            let
-                stats = Result.toMaybe (Decode.decodeValue Dashboard.decodeStats json)
-            in
-            ( { model | page = Stats stats }, Cmd.none )
+            case Decode.decodeValue Dashboard.decodeStats json of
+                Ok stats ->
+                    ( { model | page = Stats (Just stats) }, Cmd.none )
+                Err e ->
+                    ( { model | page = Error (Decode.errorToString e) }, Cmd.none )
+        ( Stats _, StatsLoaded (Err err) ) ->
+            ( { model | page = Error (defaultHttpErrorMsg err) }, Cmd.none )
 
         (_, _ ) ->
             ( model, Cmd.none )
@@ -81,7 +86,10 @@ view m =
                 Dashboard.view s
 
             Stats (Nothing) ->
-                { title = "Ooops", content =  text "Couldn't load stats" }
+                { title = "Loading Dashboard", content =  text "Loading dashboard ..." }
+
+            Error err ->
+                { title = "Error loading dashboard", content = text err }
 
             Login subModel ->
                 Login.view subModel
