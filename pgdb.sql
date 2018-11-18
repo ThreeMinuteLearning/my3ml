@@ -186,8 +186,9 @@ CREATE OR REPLACE FUNCTION get_story_activity_history(period interval, granulari
 $$
   WITH story_activity AS (
     SELECT s.name AS school_name
+         , s.id AS school_id
          , d.dt
-         , count(sa.story_id)
+         , count(sa.story_id) AS stories
       FROM school s
       CROSS JOIN generate_series(date_trunc(granularity, now() - period)
                                , date_trunc(granularity, now())
@@ -196,12 +197,14 @@ $$
         ON sa.school_id = s.id
         AND sa.created_at >= d.dt
         AND sa.created_at < d.dt + (1 || granularity)::interval
-    GROUP BY s.name, d.dt
-    ORDER BY s.name, d.dt
+    GROUP BY s.id, s.name, d.dt
+    ORDER BY s.id, s.name, d.dt
+  ), schools_with_data AS (
+    SELECT school_id, sum(stories) FROM story_activity GROUP BY school_id HAVING sum(stories) > 0
   ), story_activity_by_school AS (
-    SELECT school_name, array_agg(count) AS story_activity FROM story_activity GROUP BY school_name
+    SELECT school_name, stories, dt as date FROM story_activity sa INNER JOIN schools_with_data swd ON sa.school_id = swd.school_id
   )
-  SELECT json_agg(t) FROM story_activity_by_school t WHERE (array_sum(t.story_activity) > 0)
+  SELECT json_agg(t) FROM story_activity_by_school t
 $$ LANGUAGE sql;
 
 

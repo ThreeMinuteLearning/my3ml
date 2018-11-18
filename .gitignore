@@ -8,6 +8,7 @@ dist
 elm-stuff
 assets/pix
 assets/app.js
+assets/admin.js
 assets/app.css
 frontend/src/Api.elm
 backend/Version.hs

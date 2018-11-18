@@ -57,7 +57,7 @@ update msg model =
         ( Stats _, StatsLoaded (Ok json) ) ->
             case Decode.decodeValue Dashboard.decodeStats json of
                 Ok stats ->
-                    ( { model | page = Stats (Just stats) }, Cmd.none )
+                    ( { model | page = Stats (Just stats) }, Dashboard.elmToVega (Dashboard.vegaSpec stats) )
 
                 Err e ->
                     ( { model | page = Error (Decode.errorToString e) }, Cmd.none )

@@ -20,6 +20,7 @@
             "elm-community/typed-svg": "4.0.0",
             "folkertdev/one-true-path-experiment": "4.0.1",
             "gampleman/elm-visualization": "2.0.0",
+            "gicentre/elm-vegalite": "1.0.5",
             "justinmimbs/time-extra": "1.1.0",
             "rtfeldman/elm-validate": "4.0.1",
             "wernerdegroot/listzipper": "3.1.1"
@@ -36,12 +37,13 @@
             "ianmackenzie/elm-interval": "1.0.1",
             "ianmackenzie/elm-triangular-mesh": "1.0.2",
             "justinmimbs/date": "3.1.2",
-            "ryannhg/date-format": "2.0.1",
-            "tripokey/elm-fuzzy": "5.2.1"
+            "ryannhg/date-format": "2.0.1"
         }
     },
     "test-dependencies": {
         "direct": {},
-        "indirect": {}
+        "indirect": {
+            "tripokey/elm-fuzzy": "5.2.1"
+        }
     }
 }
