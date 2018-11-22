@@ -754,7 +754,7 @@ insertAnthology = Q.Statement sql anthologyEncoder D.unit True
 updateAnthology_ :: Statement Anthology ()
 updateAnthology_ = Q.Statement sql anthologyEncoder D.unit True
   where
-    sql = "UPDATE anthology SET name=$2, stories=$4, hidden=$5 WHERE id=$1 :: uuid"
+    sql = "UPDATE anthology SET name=$2, stories=$6, hidden=$7 WHERE id=$1 :: uuid"
 
 deleteAnthologyById :: Statement (AnthologyId, Maybe SchoolId) Int64
 deleteAnthologyById = Q.Statement sql encode D.rowsAffected True
