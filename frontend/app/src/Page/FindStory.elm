@@ -1,14 +1,14 @@
-module Page.FindStory exposing (Model, Msg, init, view, subscriptions, update)
+module Page.FindStory exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
+import Bootstrap exposing (closeBtn)
 import Browser.Dom exposing (getViewport)
 import Browser.Events exposing (onResize)
-import Bootstrap exposing (closeBtn)
-import Data.Session as Session exposing (Session, Cache, authorization, findStoryById, isEditor, updateCache)
+import Data.Session as Session exposing (Cache, Session, authorization, findStoryById, isEditor, updateCache)
 import Data.Settings exposing (Settings, defaultSettings)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput, onClick, onSubmit)
+import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
 import List.Extra
 import List.Zipper.Infinite as Zipper exposing (Zipper)
@@ -19,8 +19,8 @@ import Route
 import Table
 import Task exposing (Task)
 import Tuple exposing (first)
+import Util exposing (defaultHttpErrorMsg, viewIf, viewUnless)
 import Views.Form as Form
-import Util exposing (viewIf, viewUnless, defaultHttpErrorMsg)
 import Views.Story as StoryView
 import Views.StoryTiles as StoryTiles
 
@@ -84,6 +84,7 @@ initialModel session { viewport }=
         sortColumn =
             if Session.isStudent session then
                 ""
+
             else
                 "Title"
 
@@ -96,6 +97,7 @@ initialModel session { viewport }=
         viewType =
             if Session.isStudent session then
                 Tiles (StoryTiles.tilesPerPage size)
+
             else
                 Table
     in
@@ -163,6 +165,7 @@ update session msg model =
         Scroll atBottom ->
             if atBottom then
                 ( loadMore model, session )
+
             else
                 ( ( model, Cmd.none ), session )
 
@@ -180,6 +183,7 @@ update session msg model =
                 newStories =
                     if flag then
                         List.filter (\s -> not s.enabled) model.stories
+
                     else
                         filterStories model.storyFilter session.cache.stories
             in
@@ -216,10 +220,9 @@ update session msg model =
                     case validateAnthologyForm f of
                         [] ->
                             ( ( { model | errors = [], anthologyForm = Nothing }
-                              , (Api.postAnthologies (authorization session) (Api.Anthology "" f.name f.description "" (Just "") (List.map .id session.cache.selectedStories) False)
+                              , Api.postAnthologies (authorization session) (Api.Anthology "" f.name f.description "" (Just "") (List.map .id session.cache.selectedStories) False)
                                     |> Http.send CreateAnthologyResponse
                                 )
-                              )
                             , session
                             )
 
@@ -233,7 +236,7 @@ update session msg model =
             ( ( { model | anthologyForm = Nothing, viewType = Anthologies }
               , Cmd.none
               )
-            , (updateAnthologies (\anthologies -> newAnthology :: anthologies) session)
+            , updateAnthologies (\anthologies -> newAnthology :: anthologies) session
                 |> updateCache (\c -> { c | selectedStories = [] })
                 |> Session.success "New anthology created."
             )
@@ -246,31 +249,28 @@ update session msg model =
 
         DeleteAnthology aid ->
             ( ( model
-              , (Api.deleteAnthologiesByAnthologyId (authorization session) aid
+              , Api.deleteAnthologiesByAnthologyId (authorization session) aid
                     |> Http.send DeleteAnthologyResponse
                 )
-              )
             , session
             )
 
         DeleteAnthologyResponse (Ok aid) ->
             ( ( model, Cmd.none )
-            , (updateAnthologies (List.filter (\a -> a.id /= aid)) session
+            , updateAnthologies (List.filter (\a -> a.id /= aid)) session
                 |> Session.success "Anthology deleted."
               )
-            )
 
         DeleteAnthologyResponse (Err e) ->
             ( ( model, Cmd.none )
-            , Session.error ("Couldn't delete the anthology" ++ defaultHttpErrorMsg e) session
+            , Session.error ("Couldn't delete the anthology: " ++ defaultHttpErrorMsg e) session
             )
 
         SetStarterStories aid ->
             ( ( model
-              , (Api.postAnthologiesByAnthologyIdStarter_stories (authorization session) aid
+              , Api.postAnthologiesByAnthologyIdStarter_stories (authorization session) aid
                     |> Http.send SetStarterStoriesResponse
                 )
-              )
             , session
             )
 
@@ -284,10 +284,9 @@ update session msg model =
 
         UpdateAnthology a ->
             ( ( model
-              , (Api.postAnthologiesByAnthologyId (authorization session) a.id a
+              , Api.postAnthologiesByAnthologyId (authorization session) a.id a
                     |> Http.send UpdateAnthologyResponse
                 )
-              )
             , session
             )
 
@@ -298,6 +297,7 @@ update session msg model =
                     (\a ->
                         if a.id == newA.id then
                             newA
+
                         else
                             a
                     )
@@ -322,6 +322,7 @@ validateAnthologyForm : AnthologyForm -> List Error
 validateAnthologyForm f =
     if String.length f.name <= 3 then
         [ "The anthology name must be more than 3 characters long" ]
+
     else
         []
 
@@ -332,9 +333,10 @@ loadMore m =
         Tiles n ->
             if n >= List.length m.stories then
                 ( m, Cmd.none )
+
             else
-                ( { m | viewType = Tiles (n + (2 * (StoryTiles.tilesPerRow (first m.windowSize)))) }
-                , Ports.isLastEltVisible ("storytiles")
+                ( { m | viewType = Tiles (n + (2 * StoryTiles.tilesPerRow (first m.windowSize))) }
+                , Ports.isLastEltVisible "storytiles"
                 )
 
         _ ->
@@ -371,11 +373,12 @@ view session m =
 
                 Just b ->
                     div []
-                        [ viewBrowserToolbar session (Zipper.current b) (session.cache.selectedStories)
+                        [ viewBrowserToolbar session (Zipper.current b) session.cache.selectedStories
                         , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) (Zipper.current b) m.storyView
                         ]
             ]
     }
+
 
 settingsFromSession : Session -> Settings
 settingsFromSession session =
@@ -432,6 +435,7 @@ viewCycleDisplayButton session m =
                 Tiles _ ->
                     if List.isEmpty session.cache.anthologies then
                         viewTable
+
                     else
                         ( Anthologies, "Switch view (anthologies)" )
 
@@ -450,6 +454,7 @@ viewToggleDisabledStoriesOnly m =
         txt =
             if m.showDisabledStoriesOnly then
                 "Show all stories"
+
             else
                 "Hide enabled stories"
     in
@@ -466,15 +471,15 @@ filterStories : String -> List Api.Story -> List Api.Story
 filterStories storyFilter stories =
     if String.length storyFilter < 3 then
         stories
+
     else
         let
             r =
                 Regex.fromStringWith { caseInsensitive = True, multiline = False } storyFilter
                     |> Maybe.withDefault Regex.never
 
-
             tagMatch tags =
-                (List.Extra.find (Regex.contains r) tags) /= Nothing
+                List.Extra.find (Regex.contains r) tags /= Nothing
 
             qualMatch q =
                 Maybe.map (Regex.contains r) q == Just True
@@ -571,6 +576,7 @@ viewStoryBasket m stories =
             if isEmpty then
                 [ p [ title "Click on a story in the table to open the story browser" ] [ text "Your story basket is empty. You can browse the search results and add stories, then use them to create an anthology." ]
                 ]
+
             else
                 [ StoryTiles.view True stories
                 , createAnthology
@@ -629,6 +635,7 @@ viewAnthologies session =
                         [ text
                             (if a.hidden then
                                 "Un-hide"
+
                              else
                                 "Hide"
                             )

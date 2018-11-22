@@ -1,14 +1,15 @@
-module Page.Home exposing (Model, view, update, init)
+module Page.Home exposing (Model, init, update, view)
 
 import Api
-import Data.Session as Session exposing (Session, User, Role(..))
+import Data.Session as Session exposing (Role(..), Session, User)
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (class)
 import List.Extra as List
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
-import Tuple exposing (pair, first)
+import Tuple exposing (first, pair)
+import Util exposing (defaultHttpErrorMsg)
 import Views.RobotPanel as RobotPanel
 import Views.StoryTiles as StoryTiles
 
@@ -22,7 +23,7 @@ init : Session -> Task PageLoadError ( Model, Session )
 init session =
     let
         handleLoadError e =
-            pageLoadError e "Couldn't load stories for the home page."
+            pageLoadError e ("Couldn't load stories for the home page: " ++ defaultHttpErrorMsg e ++ ".")
     in
         Session.loadStories session
             |> Task.andThen Session.loadUserAnswers
@@ -46,7 +47,7 @@ initModel session =
 
 isBeginner : Session -> Bool
 isBeginner =
-    ((>) 20) << Dict.size << .answers << .cache
+    (>) 20 << Dict.size << .answers << .cache
 
 
 pickStories : Session -> Int -> List Api.Story
@@ -73,6 +74,7 @@ pickStories session level =
                 ( _, s :: rem ) ->
                     if s.level == l then
                         takeLevel l (n - 1) (s :: acc) rem
+
                     else
                         takeLevel l n acc rem
 
@@ -108,6 +110,7 @@ pickStories session level =
     in
         if isBeginner session then
             List.concatMap (\( l, n ) -> takeLevel l n [] unansweredStories) (bumpLevels (answerLevels session answers) storiesPerLevel)
+
         else
             sortForLevel level unansweredStories
 
@@ -120,15 +123,16 @@ answerLevels session answers =
                 |> Maybe.map .level
                 |> Maybe.withDefault 0
 
-        answersCompletedForLevel (_, l)
-            = 1 + List.length l
+        answersCompletedForLevel ( _, l ) =
+            1 + List.length l
     in
         List.map answerLevel (Dict.values answers)
             |> List.sort
             |> List.group
-            |> \l ->
+        |> (\l ->
                 List.map2 pair (List.map first l) (List.map answersCompletedForLevel l)
                     |> Dict.fromList
+           )
 
 
 bumpLevels : Dict Int Int -> List ( Int, Int ) -> List ( Int, Int )
@@ -138,7 +142,7 @@ bumpLevels answers nPerLevel =
             Maybe.withDefault 0 (Dict.get l answers)
 
         bumpLevel ( l, n ) =
-            ( l, max 0 (n - (nAnswers l) + (nAnswers (l - 1))) )
+            ( l, max 0 (n - nAnswers l + nAnswers (l - 1)) )
     in
         List.map bumpLevel nPerLevel
 
@@ -156,7 +160,8 @@ update session model =
 view : Session -> Model -> { title: String, content: Html msg }
 view session model =
     { title = "Home"
-    , content = div [ class "home-page" ]
+    , content =
+        div [ class "home-page" ]
         [ div [ class "container page" ]
             [ RobotPanel.view
             , div []
@@ -175,7 +180,9 @@ storiesTitle session =
     if Session.isStudent session then
         if isBeginner session then
             "Starter Stories"
+
         else
             "My Stories"
+
     else
         "Sample Stories"
