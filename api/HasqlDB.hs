@@ -517,7 +517,7 @@ insertStory = Q.Statement sql storyEncoder (D.singleRow $ fromIntegral <$> D.col
 updateStory_ :: Statement Story ()
 updateStory_ = Q.Statement sql storyEncoder D.unit True
   where
-    sql = "UPDATE story SET title=$2, img_url=$3, level=$4, qualification=$5, curriculum=$6, tags=$7, content=$8, words=(array(select word::dict_entry from unnest ($9, $10) as word)), clarify_word=$11 WHERE id=$1"
+    sql = "UPDATE story SET title=$2, img_url=$3, level=$4, qualification=$5, curriculum=$6, tags=$7, content=$8, words=(array(select word::dict_entry from unnest ($9, $10) as word)), clarify_word=$11, enabled=$12 WHERE id=$1"
 
 storyEncoder :: E.Params Story
 storyEncoder = contramap (fromIntegral . (id :: Story -> StoryId)) (E.param E.int4)
@@ -531,6 +531,7 @@ storyEncoder = contramap (fromIntegral . (id :: Story -> StoryId)) (E.param E.in
     <> contramap (map word . words) (eArray E.text)
     <> contramap (map (fromIntegral . index) . words) (eArray E.int2)
     <> contramap clarifyWord evText
+    <> contramap enabled (E.param E.bool)
     -- <> contramap date (E.param E.timestamptz)
   where
     storyLevel = level :: Story -> Int
