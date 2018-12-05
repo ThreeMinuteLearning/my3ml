@@ -1,4 +1,4 @@
-module AnswersForm exposing (Msg, Model, init, update, view)
+module AnswersForm exposing (Model, Msg, init, update, view)
 
 import Api
 import Bootstrap exposing (errorClass)
@@ -12,7 +12,8 @@ import Http
 import Json.Decode as Json
 import List.Extra
 import Regex
-import Validate exposing (Validator, fromErrors, validate, ifBlank, ifNothing, ifTrue)
+import Util exposing (viewIf)
+import Validate exposing (Validator, fromErrors, ifBlank, ifNothing, ifTrue, validate)
 import Views.Form as Form
 
 
@@ -25,9 +26,14 @@ type ClarifyMethod
 toString : ClarifyMethod -> String
 toString c =
     case c of
-        ReadAround -> "ReadAround"
-        BreakDown -> "BreakDown"
-        Substitution -> " Substitution"
+        ReadAround ->
+            "ReadAround"
+
+        BreakDown ->
+            "BreakDown"
+
+        Substitution ->
+            " Substitution"
 
 
 type Msg
@@ -50,6 +56,7 @@ type alias Model =
     , summary : String
     , clarification : String
     , clarificationMethod : Maybe ClarifyMethod
+    , formSubmitted : Bool
     }
 
 
@@ -63,6 +70,7 @@ init s =
     , summary = ""
     , clarification = ""
     , clarificationMethod = Nothing
+    , formSubmitted = False
     }
 
 
@@ -75,8 +83,7 @@ update session msg model =
                     ( ( { model | errors = errors }, Cmd.none ), Nothing )
 
                 _ ->
-                    ( ( { model | errors = [] }, submitAnswers session (trim model) ), Nothing )
-
+                    ( ( { model | errors = [], formSubmitted = True }, submitAnswers session (trim model) ), Nothing )
 
         SetConnection connection ->
             ( ( { model | connection = connection }, Cmd.none ), Nothing )
@@ -96,6 +103,7 @@ update session msg model =
         ToggleDrawer d ->
             if model.showDrawer == Just d then
                 ( ( { model | showDrawer = Nothing }, Cmd.none ), Nothing )
+
             else
                 ( ( { model | showDrawer = Just d }, Cmd.none ), Nothing )
 
@@ -103,7 +111,7 @@ update session msg model =
             ( ( model, Cmd.none ), Just answer )
 
         SubmitAnswersResponse (Err _) ->
-            ( ( { model | errors = model.errors ++ [ ( Form, "Server error while trying to submit answers" ) ] }, Cmd.none ), Nothing )
+            ( ( { model | errors = model.errors ++ [ ( Form, "Server error while trying to submit answers" ) ], formSubmitted = False }, Cmd.none ), Nothing )
 
 
 trim : Model -> Model
@@ -142,12 +150,23 @@ type Field
 fieldToString : Field -> String
 fieldToString f =
     case f of
-        Form -> "Form"
-        Connection -> "Connection"
-        Question -> "Question"
-        Summary -> "Summary"
-        Clarification -> "Clarification"
-        ClarificationMethod -> "ClarificationMethod"
+        Form ->
+            "Form"
+
+        Connection ->
+            "Connection"
+
+        Question ->
+            "Question"
+
+        Summary ->
+            "Summary"
+
+        Clarification ->
+            "Clarification"
+
+        ClarificationMethod ->
+            "ClarificationMethod"
 
 
 type alias Error =
@@ -166,7 +185,7 @@ validator =
         , ifNotSentence .connection ( Connection, "Please write a sentence for your connection with the story" )
         , ifTooLong .connection Connection
         , ifBlank .question ( Question, "Please enter a question about the story" )
-        , ifNotSentence .question( Question, "Please write a sentence for your question" )
+        , ifNotSentence .question ( Question, "Please write a sentence for your question" )
         , ifTooLong .question Question
         , ifBlank .summary ( Summary, "Please write your summary sentence for the story" )
         , ifNotSentence .summary ( Summary, "Please the summary as a sentence" )
@@ -206,6 +225,7 @@ naughtyWordsCheck m =
     in
         if hasNaughtyWord then
             [ ( Form, "Sorry, that's not allowed" ) ]
+
         else
             []
 
@@ -214,8 +234,9 @@ view : Model -> Html Msg
 view m =
     div []
         [ Form.viewErrors m.errors
+        , viewIf m.formSubmitted (p [] [ text "Submitting answers ..." ])
         , viewForm m
-        , Drawer.view (.showDrawer m) ToggleDrawer
+        , Drawer.view m.showDrawer ToggleDrawer
         ]
 
 
@@ -225,7 +246,7 @@ viewForm model =
         answerField field msg lbl tx =
             div [ class (errorClass (fieldError field model.errors)) ]
                 [ label [ for (fieldToString field ++ "Input") ] lbl
-                , Form.textarea [ class "form-control", id (fieldToString field ++ "Input"), onInput msg, tabindex tx ] []
+                , Form.textarea [ class "form-control", id (fieldToString field ++ "Input"), onInput msg, tabindex tx, disabled model.formSubmitted ] []
                 ]
 
         mkOption ( v, txt ) =
@@ -247,7 +268,7 @@ viewForm model =
             on "change" (Json.map msg targetValue)
 
         submitButton =
-            Html.button [ class "btn btn-primary pull-xs-right", tabindex 6 ] [ text "Submit your answers" ]
+            Html.button [ class "btn btn-primary pull-xs-right", tabindex 6, disabled model.formSubmitted ] [ text "Submit your answers" ]
 
         drwrBtn s evt =
             button [ class "btn btn-sm btn-default", tabindex -1, onClick (ToggleDrawer evt), type_ "button" ] [ text s ]
