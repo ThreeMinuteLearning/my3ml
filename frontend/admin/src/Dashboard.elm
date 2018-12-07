@@ -32,6 +32,7 @@ type alias School =
 type alias Stats =
     { storyActivityDaily : Json.Value
     , storyActivityMonthly : Json.Value
+    , storyPopularity : Json.Value
     , schools : List School
     , sampleTime : Time.Posix
     }
@@ -43,9 +44,9 @@ port elmToVega : Spec -> Cmd msg
 vegaSpec : Stats -> Spec
 vegaSpec stats =
     toVegaLite
-        [ hConcat
-            [ storyActivityDailySpec stats
-            , storyActivityMonthlySpec stats
+        [ vConcat
+            [ asSpec [ hConcat [ storyActivityDailySpec stats, storyActivityMonthlySpec stats ] ]
+            , storyPopularitySpec stats
             ]
         ]
 
@@ -80,6 +81,21 @@ storyActivityMonthlySpec stats =
     toVegaLite [ data, width 400, area [], enc [] ]
 
 
+storyPopularitySpec : Stats -> Spec
+storyPopularitySpec stats =
+    let
+        data =
+            dataFromJson stats.storyPopularity []
+
+        enc =
+            encoding
+                << position X [ pName "students", pMType Quantitative, pAggregate opSum ]
+                << position Y [ pName "story_title", pMType Nominal, pSort [ soByField "students" opSum, soDescending ] ]
+                << color [ mName "school_name", mMType Nominal ]
+    in
+    toVegaLite [ data, width 800, bar [], enc [] ]
+
+
 epochTimeDecoder : Decoder Time.Posix
 epochTimeDecoder =
     Json.map ((*) 1000 >> Time.millisToPosix) int
@@ -90,6 +106,7 @@ decodeStats =
     Json.succeed Stats
         |> required "story_activity_daily" value
         |> required "story_activity_monthly" value
+        |> required "story_popularity" value
         |> required "schools" (Json.map (List.sortBy (\s -> -1 * s.numberOfStudents)) (list decodeSchoolData))
         |> required "sample_time" (Json.map ((*) 1000 >> Time.millisToPosix) int)
 

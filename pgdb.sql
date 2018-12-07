@@ -208,6 +208,26 @@ $$
 $$ LANGUAGE sql;
 
 
+CREATE OR REPLACE FUNCTION story_popularity()
+  RETURNS json AS
+$$
+  WITH story_activity AS (
+    SELECT sc.name AS school_name
+        , s.title AS story_title
+        , count(student.id) AS students
+    FROM story_answer sa
+    INNER JOIN student
+    ON student.id = sa.student_id
+    INNER JOIN school sc
+    ON sc.id = sa.school_id
+    INNER JOIN story s
+    ON s.id = sa.story_id
+    GROUP BY sc.name, s.title
+    ORDER BY sc.name, students DESC
+  )
+  SELECT json_agg(t) FROM story_activity t
+$$ LANGUAGE sql;
+
 CREATE OR REPLACE FUNCTION school_data()
   RETURNS json AS
 $$
@@ -249,9 +269,11 @@ $$
     SELECT to_epoch(now()) AS sample_time
   ), school_data AS (
     SELECT school_data() as schools
+  ), sp AS (
+    SELECT story_popularity()
   )
   SELECT row_to_json(t, true)
   FROM (
-    SELECT * FROM tm, m, d, school_data
+    SELECT * FROM tm, m, d, sp, school_data
   ) t
 $$ LANGUAGE sql;
