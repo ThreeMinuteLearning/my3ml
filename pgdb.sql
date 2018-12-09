@@ -208,20 +208,27 @@ $$
 $$ LANGUAGE sql;
 
 
-CREATE OR REPLACE FUNCTION story_popularity()
+CREATE OR REPLACE FUNCTION story_popularity(period interval)
   RETURNS json AS
 $$
-  WITH story_activity AS (
+  WITH top_stories AS (
+    SELECT story_id, count(story_id)
+    FROM story_answer
+    WHERE (now() - created_at < period)
+    GROUP BY story_id
+    ORDER BY count DESC
+    LIMIT 50
+  ), story_activity AS (
     SELECT sc.name AS school_name
         , s.title AS story_title
-        , count(student.id) AS students
+        , count(student_id) AS students
     FROM story_answer sa
-    INNER JOIN student
-    ON student.id = sa.student_id
     INNER JOIN school sc
     ON sc.id = sa.school_id
     INNER JOIN story s
     ON s.id = sa.story_id
+    WHERE s.id IN (SELECT story_id FROM top_stories)
+    AND (now() - sa.created_at < period)
     GROUP BY sc.name, s.title
     ORDER BY sc.name, students DESC
   )
@@ -269,11 +276,13 @@ $$
     SELECT to_epoch(now()) AS sample_time
   ), school_data AS (
     SELECT school_data() as schools
-  ), sp AS (
-    SELECT story_popularity()
+  ), spm AS (
+    SELECT story_popularity('1 month') AS story_popularity_month
+  ), spy AS (
+    SELECT story_popularity('5 years') AS story_popularity
   )
   SELECT row_to_json(t, true)
   FROM (
-    SELECT * FROM tm, m, d, sp, school_data
+    SELECT * FROM tm, m, d, spm, spy, school_data
   ) t
 $$ LANGUAGE sql;

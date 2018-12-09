@@ -32,7 +32,8 @@ type alias School =
 type alias Stats =
     { storyActivityDaily : Json.Value
     , storyActivityMonthly : Json.Value
-    , storyPopularity : Json.Value
+    , storyPopularityLastMonth : Json.Value
+    , storyPopularityAllTime : Json.Value
     , schools : List School
     , sampleTime : Time.Posix
     }
@@ -46,54 +47,39 @@ vegaSpec stats =
     toVegaLite
         [ vConcat
             [ asSpec [ hConcat [ storyActivityDailySpec stats, storyActivityMonthlySpec stats ] ]
-            , storyPopularitySpec stats
+            , asSpec [ hConcat [ storyPopularitySpec "Popular stories this month" stats.storyPopularityLastMonth, storyPopularitySpec "Popular stories (all time)" stats.storyPopularityAllTime ] ]
             ]
         ]
 
 
 storyActivityDailySpec : Stats -> Spec
 storyActivityDailySpec stats =
-    let
-        data =
-            dataFromJson stats.storyActivityDaily []
-
-        enc =
-            encoding
-                << position X [ pName "date", pMType Temporal, pTimeUnit monthDate ]
-                << position Y [ pName "stories", pMType Quantitative, pAggregate opSum ]
-                << color [ mName "school_name", mMType Nominal ]
-    in
-    toVegaLite [ data, width 400, bar [], enc [] ]
+    toVegaLite [ title "Story activity (daily)", dataFromJson stats.storyActivityDaily [], width 400, bar [], storyActivityEncoding monthDate [] ]
 
 
 storyActivityMonthlySpec : Stats -> Spec
 storyActivityMonthlySpec stats =
-    let
-        data =
-            dataFromJson stats.storyActivityMonthly []
+    toVegaLite [ title "Story activity (monthly)", dataFromJson stats.storyActivityMonthly [], width 400, area [], storyActivityEncoding yearMonth [] ]
 
+
+storyActivityEncoding : TimeUnit -> List LabelledSpec -> ( VLProperty, Spec )
+storyActivityEncoding timeUnit =
+    encoding
+        << position X [ pName "date", pMType Temporal, pTimeUnit timeUnit ]
+        << position Y [ pName "stories", pMType Quantitative, pTitle "Stories completed", pAggregate opSum ]
+        << color [ mName "school_name", mTitle "School name", mMType Nominal ]
+
+
+storyPopularitySpec : String -> Json.Value -> Spec
+storyPopularitySpec title_ jsonData =
+    let
         enc =
             encoding
-                << position X [ pName "date", pMType Temporal, pTimeUnit yearMonth ]
-                << position Y [ pName "stories", pMType Quantitative, pAggregate opSum ]
+                << position X [ pName "students", pMType Quantitative, pAggregate opSum, pTitle "Completed" ]
+                << position Y [ pName "story_title", pTitle "Title", pMType Nominal, pSort [ soByField "students" opSum, soDescending ] ]
                 << color [ mName "school_name", mMType Nominal ]
     in
-    toVegaLite [ data, width 400, area [], enc [] ]
-
-
-storyPopularitySpec : Stats -> Spec
-storyPopularitySpec stats =
-    let
-        data =
-            dataFromJson stats.storyPopularity []
-
-        enc =
-            encoding
-                << position X [ pName "students", pMType Quantitative, pAggregate opSum ]
-                << position Y [ pName "story_title", pMType Nominal, pSort [ soByField "students" opSum, soDescending ] ]
-                << color [ mName "school_name", mMType Nominal ]
-    in
-    toVegaLite [ data, width 800, bar [], enc [] ]
+    toVegaLite [ title title_, dataFromJson jsonData [], width 400, bar [], enc [] ]
 
 
 epochTimeDecoder : Decoder Time.Posix
@@ -106,6 +92,7 @@ decodeStats =
     Json.succeed Stats
         |> required "story_activity_daily" value
         |> required "story_activity_monthly" value
+        |> required "story_popularity_month" value
         |> required "story_popularity" value
         |> required "schools" (Json.map (List.sortBy (\s -> -1 * s.numberOfStudents)) (list decodeSchoolData))
         |> required "sample_time" (Json.map ((*) 1000 >> Time.millisToPosix) int)
