@@ -1,9 +1,9 @@
-module Page.Class exposing (Model, Msg, ExternalMsg(..), init, update, view)
+module Page.Class exposing (ExternalMsg(..), Model, Msg, init, update, view)
 
 import Api
+import Bootstrap exposing (row)
 import Data.Session as Session exposing (Session, authorization)
 import Dict exposing (Dict)
-import Bootstrap exposing (row)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
@@ -12,7 +12,7 @@ import Modal
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Table
 import Task exposing (Task)
-import Util exposing (viewIf, defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg, viewIf)
 import Views.Form as Form
 import Views.StudentTable as StudentTable
 
@@ -57,8 +57,8 @@ init session_ slug =
         mkModel newSession class =
             ( Model [] class StudentTable.init Dict.empty False, newSession )
     in
-        Task.map2 mkModel (Session.loadStudents session_) loadClass
-            |> Task.mapError handleLoadError
+    Task.map2 mkModel (Session.loadStudents session_) loadClass
+        |> Task.mapError handleLoadError
 
 
 update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), ExternalMsg )
@@ -72,9 +72,8 @@ update session msg model =
 
         ConfirmDelete ->
             ( ( model
-              , (Api.deleteSchoolClassesByClassId (authorization session) (.id model.class)
+              , Api.deleteSchoolClassesByClassId (authorization session) (.id model.class)
                     |> Http.send DeleteResponse
-                )
               )
             , NoOp
             )
@@ -100,24 +99,24 @@ update session msg model =
                 f =
                     if checked then
                         Dict.insert student.id student
+
                     else
                         Dict.remove student.id
             in
-                ( ( { model | selectedStudents = f model.selectedStudents }, Cmd.none ), NoOp )
+            ( ( { model | selectedStudents = f model.selectedStudents }, Cmd.none ), NoOp )
 
         RemoveSelectedStudents ->
             let
                 studentsToDelete =
                     Dict.values model.selectedStudents
-                        |> List.map (.id)
+                        |> List.map .id
             in
-                ( ( { model | selectedStudents = Dict.empty }
-                  , (Api.postSchoolClassesByClassIdMembers (authorization session) (.id model.class) (Just True) studentsToDelete
-                        |> Http.send ClassMembersResponse
-                    )
-                  )
-                , NoOp
-                )
+            ( ( { model | selectedStudents = Dict.empty }
+              , Api.postSchoolClassesByClassIdMembers (authorization session) (.id model.class) (Just True) studentsToDelete
+                    |> Http.send ClassMembersResponse
+              )
+            , NoOp
+            )
 
         ClassMembersResponse (Ok updatedClass) ->
             let
@@ -131,7 +130,7 @@ update session msg model =
                 newSession =
                     { session | cache = { cache | classes = newClasses } }
             in
-                ( ( { model | errors = [], class = updatedClass }, Cmd.none ), Updated newSession )
+            ( ( { model | errors = [], class = updatedClass }, Cmd.none ), Updated newSession )
 
         ClassMembersResponse (Err e) ->
             ( ( { model | errors = [ defaultHttpErrorMsg e ] }, Cmd.none ), NoOp )
@@ -143,11 +142,11 @@ deleteFromCache _ session =
         cache =
             session.cache
     in
-        -- Just clear the cache completely for now
-        { session | cache = { cache | classes = [] } }
+    -- Just clear the cache completely for now
+    { session | cache = { cache | classes = [] } }
 
 
-view : Session -> Model -> { title: String, content: Html Msg }
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Class " ++ model.class.name
     , content =
@@ -179,9 +178,9 @@ viewTable cache model =
         students =
             List.filter (\s -> List.member s.id classMembers) cache.students
     in
-        div [ class "row hidden-print" ]
-            [ StudentTable.view tableConfig model.membersTable students isChecked
-            ]
+    div [ class "row hidden-print" ]
+        [ StudentTable.view tableConfig model.membersTable students isChecked
+        ]
 
 
 userIsOwner : Maybe Session.User -> Api.Class -> Bool
@@ -200,21 +199,22 @@ viewToolbar model =
         inputGroupBtn msg txt =
             button [ class "btn btn-default btn-sm", onClick msg, type_ "button" ] [ text txt ]
     in
-        row
-            [ div [ class "col-lg-12" ]
-                [ div [ class "input-group" ]
-                    [ div [ class "input-group-btn" ]
-                        [ inputGroupBtn Delete "Delete"
-                        , viewIf (not (Dict.isEmpty model.selectedStudents)) <| inputGroupBtn RemoveSelectedStudents "Remove students from class"
-                        ]
+    row
+        [ div [ class "col-lg-12" ]
+            [ div [ class "input-group" ]
+                [ div [ class "input-group-btn" ]
+                    [ inputGroupBtn Delete "Delete"
+                    , viewIf (not (Dict.isEmpty model.selectedStudents)) <| inputGroupBtn RemoveSelectedStudents "Remove students from class"
                     ]
                 ]
             ]
+        ]
 
 
 confirmDeleteDialog : Bool -> Html Msg
 confirmDeleteDialog isOwner =
-    Modal.view "Delete class" DismissDialog
+    Modal.view "Delete class"
+        DismissDialog
         (div []
             [ p [] [ text "Are you sure you want to delete this class? Only the class information will be removed (none of the student accounts will be affected)." ]
             , viewIf (not isOwner) <|

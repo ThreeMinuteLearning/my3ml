@@ -1,12 +1,12 @@
-module Page.Errored exposing (view, pageLoadError, PageLoadError(..))
+module Page.Errored exposing (PageLoadError(..), pageLoadError, view)
 
 {-| The page that renders when there was an error trying to load another page,
 for example a Page Not Found error.
 -}
 
 import Data.Session as Session exposing (Session)
-import Html exposing (Html, main_, h3, div, img, text, p, a)
-import Html.Attributes exposing (class, tabindex, id)
+import Html exposing (Html, a, div, h3, img, main_, p, text)
+import Html.Attributes exposing (class, id, tabindex)
 import Http
 import Route
 
@@ -20,7 +20,7 @@ pageLoadError : Http.Error -> String -> PageLoadError
 pageLoadError err msg =
     case err of
         Http.BadStatus r ->
-            case (.code r.status) of
+            case .code r.status of
                 401 ->
                     AuthenticationRequired
 
@@ -31,7 +31,7 @@ pageLoadError err msg =
             PageLoadError msg
 
 
-view : Session -> PageLoadError -> { title: String, content: Html msg }
+view : Session -> PageLoadError -> { title : String, content : Html msg }
 view session error =
     { title = "Error loading page"
     , content =

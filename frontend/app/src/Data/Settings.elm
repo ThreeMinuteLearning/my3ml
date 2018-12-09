@@ -1,4 +1,4 @@
-module Data.Settings exposing (Settings, defaultSettings, decoder, encode, toStyle, fontOptions)
+module Data.Settings exposing (Settings, decoder, defaultSettings, encode, fontOptions, toStyle)
 
 import Html exposing (Attribute)
 import Html.Attributes exposing (style)

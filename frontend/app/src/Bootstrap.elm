@@ -1,7 +1,7 @@
-module Bootstrap exposing (errorClass, tableCustomizations, toolbar, btnGroup, btn, closeBtn, alert, Alert(..), row, formGroup)
+module Bootstrap exposing (Alert(..), alert, btn, btnGroup, closeBtn, errorClass, formGroup, row, tableCustomizations, toolbar)
 
 import Html exposing (Html, button, div, span, text, tr)
-import Html.Attributes exposing (attribute, id, class, type_)
+import Html.Attributes exposing (attribute, class, id, type_)
 import Html.Events exposing (onClick)
 import Table
 
@@ -9,6 +9,7 @@ import Table
 type Alert
     = Success
     | Danger
+
 
 row : List (Html msg) -> Html msg
 row =
@@ -31,10 +32,10 @@ alert a txt dismiss =
                 Danger ->
                     "alert-danger"
     in
-        div [ class ("alert alert-dismissable " ++ alertClass), role "alert" ]
-            [ closeBtn dismiss
-            , text txt
-            ]
+    div [ class ("alert alert-dismissable " ++ alertClass), role "alert" ]
+        [ closeBtn dismiss
+        , text txt
+        ]
 
 
 toolbar id_ =

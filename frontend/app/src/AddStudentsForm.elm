@@ -4,7 +4,7 @@ import Api
 import Bootstrap exposing (errorClass)
 import Data.Session exposing (Session, authorization)
 import Html exposing (..)
-import Html.Attributes exposing (class, id, disabled, selected)
+import Html.Attributes exposing (class, disabled, id, selected)
 import Html.Events exposing (onInput, onSubmit)
 import Http
 import Regex
@@ -72,7 +72,7 @@ update session msg model =
             ( ( { model | waitingForResponse = False }, Cmd.none ), Just newAccounts )
 
         AddStudentsResponse (Err e) ->
-            ( ( { model | errors = model.errors ++ [ ("Couldn't save the new accounts: " ++ defaultHttpErrorMsg e) ], waitingForResponse = False }
+            ( ( { model | errors = model.errors ++ [ "Couldn't save the new accounts: " ++ defaultHttpErrorMsg e ], waitingForResponse = False }
               , Cmd.none
               )
             , Nothing
@@ -100,6 +100,7 @@ validate model =
         validateName n =
             if not (validName n) then
                 [ n ++ " is not a valid name" ]
+
             else
                 []
 
@@ -111,6 +112,7 @@ validate model =
                 n ->
                     if n < 101 then
                         []
+
                     else
                         [ "You can only create 100 accounts at a atime" ]
 
@@ -119,18 +121,18 @@ validate model =
                 |> List.concat
                 |> List.append lengthCheck
     in
-        case errors of
-            [] ->
-                Ok parsedNames
+    case errors of
+        [] ->
+            Ok parsedNames
 
-            _ ->
-                Err errors
+        _ ->
+            Err errors
 
 
 validName : String -> Bool
 validName name =
     String.length (String.trim name)
-        |> \l -> l >= 2 && l < 50
+        |> (\l -> l >= 2 && l < 50)
 
 
 view : Model -> Html Msg
@@ -141,6 +143,7 @@ view model =
                 [ class
                     (if List.isEmpty model.errors then
                         ""
+
                      else
                         "has-error"
                     )
@@ -155,10 +158,10 @@ view model =
             Html.form
                 [ onSubmit SubmitForm ]
                 [ Html.fieldset []
-                    ([ namesInput, SelectLevel.view SetLevel model.level, submitButton ])
+                    [ namesInput, SelectLevel.view SetLevel model.level, submitButton ]
                 ]
     in
-        div []
-            [ Form.viewErrorMsgs model.errors
-            , viewForm
-            ]
+    div []
+        [ Form.viewErrorMsgs model.errors
+        , viewForm
+        ]

@@ -1,4 +1,4 @@
-port module Ports exposing (..)
+port module Ports exposing (checkPassword, dictLookup, getImgWidth, imgWidth, isLastEltVisible, lastEltVisible, passwordChecked, postProcessStory, printWindow, scroll, storeSession)
 
 import Api exposing (DictEntry)
 import Json.Encode as Json

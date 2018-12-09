@@ -1,12 +1,15 @@
-module List.Zipper.Infinite exposing (Zipper, fromList, current, next, previous, findFirst, mapCurrent)
+module List.Zipper.Infinite exposing (Zipper, current, findFirst, fromList, mapCurrent, next, previous)
 
 import List.Zipper as Z
 
 
-type alias Zipper a = Z.Zipper a
+type alias Zipper a =
+    Z.Zipper a
+
 
 fromList : List a -> Maybe (Zipper a)
-fromList = Z.fromList
+fromList =
+    Z.fromList
 
 
 current : Zipper a -> a

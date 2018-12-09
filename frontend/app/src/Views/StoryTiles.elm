@@ -1,4 +1,4 @@
-module Views.StoryTiles exposing (view, tilesPerPage, tilesPerRow)
+module Views.StoryTiles exposing (tilesPerPage, tilesPerRow, view)
 
 {- Displays a list of stories as a grid of tiles -}
 
@@ -12,31 +12,34 @@ view : Bool -> List Story -> Html msg
 view useSmallTiles stories =
     let
         storyStyle s =
-            [ style "background" ("url(pix/" ++ s.img ++ ")" ), style "background-size" "cover"  ]
+            [ style "background" ("url(pix/" ++ s.img ++ ")"), style "background-size" "cover" ]
 
         tileClass =
             if useSmallTiles then
                 "storytile smalltile"
+
             else
                 "storytile"
 
         attributes s =
             [ class tileClass, Html.Attributes.href (Route.routeToString (Route.Story s.id)) ]
-                ++ (storyStyle s)
-                ++ if useSmallTiles then
-                    [ title s.title ]
-                   else
-                    []
+                ++ storyStyle s
+                ++ (if useSmallTiles then
+                        [ title s.title ]
+
+                    else
+                        []
+                   )
 
         storyTile s =
             a (attributes s)
                 [ h3 [] [ text s.title ] ]
     in
-        div [ id "storytiles" ] (List.map storyTile stories)
+    div [ id "storytiles" ] (List.map storyTile stories)
 
 
-tilesPerPage : (Int, Int)-> Int
-tilesPerPage (width, height) =
+tilesPerPage : ( Int, Int ) -> Int
+tilesPerPage ( width, height ) =
     Basics.min 42 ((toFloat width / 160) * (toFloat height / 145))
         |> round
 

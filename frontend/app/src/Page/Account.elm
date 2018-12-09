@@ -2,7 +2,7 @@ module Page.Account exposing (Model, Msg, init, update, view)
 
 import Api
 import Data.Session as Session exposing (Session, authorization, findStoryById)
-import Data.Settings exposing (Settings, defaultSettings, encode, toStyle, fontOptions)
+import Data.Settings exposing (Settings, defaultSettings, encode, fontOptions, toStyle)
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -49,12 +49,12 @@ init origSession =
                 |> Dict.values
                 |> List.filterMap (zipWithStory sesh)
                 |> Model settings
-                |> \model -> ( model, sesh )
+                |> (\model -> ( model, sesh ))
     in
-        Session.loadUserAnswers origSession
-            |> Task.andThen (\newSession -> Session.loadStories newSession)
-            |> Task.map mkModel
-            |> Task.mapError handleLoadError
+    Session.loadUserAnswers origSession
+        |> Task.andThen (\newSession -> Session.loadStories newSession)
+        |> Task.map mkModel
+        |> Task.mapError handleLoadError
 
 
 update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
@@ -74,9 +74,8 @@ update session msg ({ settings } as model) =
 
         SaveSettings ->
             ( ( model
-              , (Api.postAccountSettings (authorization session) (encode model.settings)
+              , Api.postAccountSettings (authorization session) (encode model.settings)
                     |> Http.send SaveSettingsResponse
-                )
               )
             , session
             )
@@ -96,7 +95,7 @@ updateSessionSettings session newSettings =
         |> Maybe.withDefault session
 
 
-view : Model -> { title: String, content: Html Msg }
+view : Model -> { title : String, content : Html Msg }
 view { settings, answers } =
     { title = "My 3ml"
     , content =
@@ -112,7 +111,7 @@ viewSettings : Settings -> Html Msg
 viewSettings settings =
     div []
         [ h1 [] [ text "Story display settings" ]
-        , div ( toStyle settings )
+        , div (toStyle settings)
             [ p [] [ text "You may wish to change the way your stories are displayed." ]
             , p [] [ text "Use the buttons below to make changes and then save the settings." ]
             , p [] [ text "You can change the background and text colour." ]
@@ -146,8 +145,8 @@ fontSelect current =
         mkOption ( font, fontFamily ) =
             option [ selected (current == fontFamily), value fontFamily ] [ text font ]
     in
-        select [ id "font", class "form-control", onInput SetFont ]
-            (List.map mkOption fontOptions)
+    select [ id "font", class "form-control", onInput SetFont ]
+        (List.map mkOption fontOptions)
 
 
 fontSizeSelect : String -> Html Msg
@@ -156,11 +155,11 @@ fontSizeSelect current =
         mkOption ( sz, nm ) =
             option [ selected (current == sz), value sz ] [ text nm ]
     in
-        select [ id "sz", class "form-control", onInput SetFontSize ]
-            (List.map mkOption
-                [ ( "14px", "Small" )
-                , ( "16px", "Medium" )
-                , ( "20px", "Large" )
-                , ( "23px", "Huge" )
-                ]
-            )
+    select [ id "sz", class "form-control", onInput SetFontSize ]
+        (List.map mkOption
+            [ ( "14px", "Small" )
+            , ( "16px", "Medium" )
+            , ( "20px", "Large" )
+            , ( "23px", "Huge" )
+            ]
+        )

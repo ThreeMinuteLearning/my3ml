@@ -134,8 +134,8 @@ submitAnswers session model =
         answer =
             Api.Answer (.id model.story) "" model.connection model.question model.summary model.clarification
     in
-        Api.postSchoolAnswers (authorization session) answer
-            |> Http.send SubmitAnswersResponse
+    Api.postSchoolAnswers (authorization session) answer
+        |> Http.send SubmitAnswersResponse
 
 
 type Field
@@ -209,7 +209,7 @@ ifNotSentence f =
             Regex.fromString "^\\s*\\S+\\s*$"
                 |> Maybe.withDefault Regex.never
     in
-        ifTrue (\m -> Regex.contains notSentence (f m))
+    ifTrue (\m -> Regex.contains notSentence (f m))
 
 
 naughtyWordsCheck : Model -> List Error
@@ -223,11 +223,11 @@ naughtyWordsCheck m =
             List.map (Regex.contains naughtyWord) [ m.connection, m.question, m.summary, m.clarification ]
                 |> List.foldl (||) False
     in
-        if hasNaughtyWord then
-            [ ( Form, "Sorry, that's not allowed" ) ]
+    if hasNaughtyWord then
+        [ ( Form, "Sorry, that's not allowed" ) ]
 
-        else
-            []
+    else
+        []
 
 
 view : Model -> Html Msg
@@ -273,16 +273,16 @@ viewForm model =
         drwrBtn s evt =
             button [ class "btn btn-sm btn-default", tabindex -1, onClick (ToggleDrawer evt), type_ "button" ] [ text s ]
     in
-        Html.form [ onSubmit SubmitForm ]
-            [ div [ class "form-group" ]
-                [ answerField Connection SetConnection [ drwrBtn "?" Drawer.Connect, text " Connect this story with yourself or something you know about." ] 1
-                , answerField Question SetQuestion [ drwrBtn "?" Drawer.Question, text " Think of a question the story makes you want to ask and type it here." ] 2
-                , answerField Summary SetSummary [ drwrBtn "?" Drawer.Summarise, text " Write one sentence that captures the main idea." ] 3
-                , answerField Clarification SetClarification [ drwrBtn "?" Drawer.Clarify, text " Work through the clarify methods then type what you think this word means: ", em [ class "clarify-word" ] [ text (.clarifyWord model.story) ] ] 4
-                , div [ class (errorClass (fieldError ClarificationMethod model.errors)) ]
-                    [ label [ for "clarifyMethod" ] [ text "Which clarify method worked best for you?" ]
-                    , Html.select [ id "clarifyMethod", class "form-control", onSelect SetClarifyMethod, tabindex 5 ] clarifyMethodOptions
-                    ]
-                , submitButton
+    Html.form [ onSubmit SubmitForm ]
+        [ div [ class "form-group" ]
+            [ answerField Connection SetConnection [ drwrBtn "?" Drawer.Connect, text " Connect this story with yourself or something you know about." ] 1
+            , answerField Question SetQuestion [ drwrBtn "?" Drawer.Question, text " Think of a question the story makes you want to ask and type it here." ] 2
+            , answerField Summary SetSummary [ drwrBtn "?" Drawer.Summarise, text " Write one sentence that captures the main idea." ] 3
+            , answerField Clarification SetClarification [ drwrBtn "?" Drawer.Clarify, text " Work through the clarify methods then type what you think this word means: ", em [ class "clarify-word" ] [ text (.clarifyWord model.story) ] ] 4
+            , div [ class (errorClass (fieldError ClarificationMethod model.errors)) ]
+                [ label [ for "clarifyMethod" ] [ text "Which clarify method worked best for you?" ]
+                , Html.select [ id "clarifyMethod", class "form-control", onSelect SetClarifyMethod, tabindex 5 ] clarifyMethodOptions
                 ]
+            , submitButton
             ]
+        ]

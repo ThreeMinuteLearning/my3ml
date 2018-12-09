@@ -32,20 +32,20 @@ view print dismiss accounts =
                 , td [] [ text password ]
                 ]
     in
-        case accounts of
-            [] ->
-                div [] []
+    case accounts of
+        [] ->
+            div [] []
 
-            _ ->
-                div [ class "panel panel-default" ]
-                    [ div [ class "panel-heading" ]
-                        [ div [ class "btn-group pull-right" ]
-                            [ closeBtn dismiss ]
-                        , heading
-                        ]
-                    , div [ class "panel-body" ]
-                        [ p [ class "hidden-print" ] [ printButton print "Print list of new accounts.", text " ", text "Please make sure you save this list or print it off before logging out, or the information will be lost." ]
-                        , p [ class "hidden-print" ] [ text "Passwords and usernames are automatically generated. You can change them later. Please don't use real names or other personal information for usernames." ]
-                        , accountsTable
-                        ]
+        _ ->
+            div [ class "panel panel-default" ]
+                [ div [ class "panel-heading" ]
+                    [ div [ class "btn-group pull-right" ]
+                        [ closeBtn dismiss ]
+                    , heading
                     ]
+                , div [ class "panel-body" ]
+                    [ p [ class "hidden-print" ] [ printButton print "Print list of new accounts.", text " ", text "Please make sure you save this list or print it off before logging out, or the information will be lost." ]
+                    , p [ class "hidden-print" ] [ text "Passwords and usernames are automatically generated. You can change them later. Please don't use real names or other personal information for usernames." ]
+                    , accountsTable
+                    ]
+                ]

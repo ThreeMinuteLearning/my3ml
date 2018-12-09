@@ -3,7 +3,7 @@ module Page.Story exposing (Model, Msg, init, subscriptions, update, view)
 import AnswersForm
 import Api
 import Browser.Dom
-import Data.Session as Session exposing (Session, Cache, Role(..), authorization, findStoryById)
+import Data.Session as Session exposing (Cache, Role(..), Session, authorization, findStoryById)
 import Data.Settings exposing (Settings, defaultSettings)
 import Dict
 import Html exposing (..)
@@ -12,7 +12,7 @@ import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Ports
 import Task exposing (Task)
-import Util exposing (viewIf, defaultHttpErrorMsg, printButton)
+import Util exposing (defaultHttpErrorMsg, printButton, viewIf)
 import Views.Answers as Answers
 import Views.RobotPanel as RobotPanel
 import Views.Story as StoryView
@@ -51,6 +51,7 @@ init originalSession slug =
         createFormIfUnanswered story answers usr =
             if List.any (\a -> a.studentId == .sub usr) answers then
                 Nothing
+
             else
                 Just (AnswersForm.init story)
 
@@ -69,12 +70,13 @@ init originalSession slug =
                         << PageLoadError
                     <|
                         "Sorry. That story couldn't be found."
-                            ++ case user of
-                                Just _ ->
-                                    ""
+                            ++ (case user of
+                                    Just _ ->
+                                        ""
 
-                                Nothing ->
-                                    " You probably need to sign in to see it."
+                                    Nothing ->
+                                        " You probably need to sign in to see it."
+                               )
 
         lookupAnswers session story =
             case Maybe.map .role user of
@@ -89,10 +91,10 @@ init originalSession slug =
                         |> Http.toTask
                         |> Task.mapError handleLoadError
     in
-        Session.loadDictionary originalSession
-            |> Task.andThen (\newSession -> Session.loadStories newSession)
-            |> Task.mapError handleLoadError
-            |> Task.andThen lookupStoryAndCreateModel
+    Session.loadDictionary originalSession
+        |> Task.andThen (\newSession -> Session.loadStories newSession)
+        |> Task.mapError handleLoadError
+        |> Task.andThen lookupStoryAndCreateModel
 
 
 subscriptions : Sub Msg
@@ -100,7 +102,7 @@ subscriptions =
     Sub.batch [ Sub.map StoryViewMsg StoryView.subscriptions, Ports.dictLookup DictLookup ]
 
 
-view : Session -> Model -> { title: String, content: Html Msg }
+view : Session -> Model -> { title : String, content : Html Msg }
 view session m =
     { title = m.story.title
     , content =
@@ -129,7 +131,7 @@ viewAnswersForm m =
             div [] []
 
         Just f ->
-            Html.map (AnswersFormMsg) <|
+            Html.map AnswersFormMsg <|
                 div [ id "activities" ]
                     [ h2 [] [ text "Answers" ]
                     , AnswersForm.view f
@@ -154,7 +156,7 @@ update session msg model =
                 ( newStoryView, cmd ) =
                     StoryView.update svm model.storyView
             in
-                ( ( { model | storyView = newStoryView }, Cmd.map StoryViewMsg cmd ), session )
+            ( ( { model | storyView = newStoryView }, Cmd.map StoryViewMsg cmd ), session )
 
         DictLookup ( w, i ) ->
             ( ( { model | dictLookup = Just (Api.DictEntry w i) }, Cmd.none ), session )

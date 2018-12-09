@@ -1,6 +1,6 @@
 module Views.SelectLevel exposing (view)
 
-import Html exposing (Html, select, option, text)
+import Html exposing (Html, option, select, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on)
 import Json.Decode as Json
@@ -25,5 +25,5 @@ view toMsg current =
                 Nothing ->
                     Json.fail "Failed to convert selected level to Int"
     in
-        select [ class "form-control", (on "input" intMsg) ]
-            (List.map mkOption (List.range 0 9))
+    select [ class "form-control", on "input" intMsg ]
+        (List.map mkOption (List.range 0 9))

@@ -1,4 +1,4 @@
-module Data.Words exposing (WordDict, Definition)
+module Data.Words exposing (Definition, WordDict)
 
 import Dict exposing (Dict)
 

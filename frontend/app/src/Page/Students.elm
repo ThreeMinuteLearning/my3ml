@@ -17,7 +17,7 @@ import Regex
 import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
-import Util exposing (viewIf, defaultHttpErrorMsg, maybeView)
+import Util exposing (defaultHttpErrorMsg, maybeView, viewIf)
 import Views.ClassSelect as ClassSelect
 import Views.NewAccounts as NewAccounts
 import Views.StudentTable as StudentTable
@@ -64,10 +64,10 @@ init session =
         createModel sesh =
             ( Model NoMsg StudentTable.init Dict.empty Nothing ( "", Nothing ), sesh )
     in
-        Session.loadStudents session
-            |> Task.andThen (\newSession -> Session.loadClasses newSession)
-            |> Task.mapError handleLoadError
-            |> Task.map createModel
+    Session.loadStudents session
+        |> Task.andThen (\newSession -> Session.loadClasses newSession)
+        |> Task.mapError handleLoadError
+        |> Task.map createModel
 
 
 update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
@@ -93,10 +93,11 @@ update session msg model =
                 f =
                     if checked then
                         Dict.insert student.id student
+
                     else
                         Dict.remove student.id
             in
-                ( ( { model | selectedStudents = f model.selectedStudents }, Cmd.none ), session )
+            ( ( { model | selectedStudents = f model.selectedStudents }, Cmd.none ), session )
 
         AddStudentsFormMsg subMsg ->
             case Maybe.map (AddStudentsForm.update session subMsg) model.addStudentsForm of
@@ -109,9 +110,9 @@ update session msg model =
                 Just ( _, Just newAccounts ) ->
                     let
                         f c =
-                            { c | students = (List.map first newAccounts) ++ c.students, newAccounts = newAccounts ++ c.newAccounts }
+                            { c | students = List.map first newAccounts ++ c.students, newAccounts = newAccounts ++ c.newAccounts }
                     in
-                        ( ( { model | addStudentsForm = Nothing }, Cmd.none ), updateCache f session )
+                    ( ( { model | addStudentsForm = Nothing }, Cmd.none ), updateCache f session )
 
         SetTableState state ->
             ( ( { model | tableState = state }, Cmd.none ), session )
@@ -131,15 +132,14 @@ update session msg model =
                     let
                         studentsToAdd =
                             Dict.values model.selectedStudents
-                                |> List.map (.id)
+                                |> List.map .id
                     in
-                        ( ( { model | selectedStudents = Dict.empty }
-                          , (Api.postSchoolClassesByClassIdMembers (authorization session) cid Nothing studentsToAdd
-                                |> Http.send ClassMembersResponse
-                            )
-                          )
-                        , session
-                        )
+                    ( ( { model | selectedStudents = Dict.empty }
+                      , Api.postSchoolClassesByClassIdMembers (authorization session) cid Nothing studentsToAdd
+                            |> Http.send ClassMembersResponse
+                      )
+                    , session
+                    )
 
         ClassMembersResponse (Ok updatedClass) ->
             let
@@ -153,7 +153,7 @@ update session msg model =
                 newSession =
                     { session | cache = { cache | classes = newClasses } }
             in
-                ( ( { model | notification = Msg "Class members updated" }, Cmd.none ), newSession )
+            ( ( { model | notification = Msg "Class members updated" }, Cmd.none ), newSession )
 
         ClassMembersResponse (Err e) ->
             ( ( { model | notification = Error ("Could't update add class members: " ++ defaultHttpErrorMsg e) }, Cmd.none ), session )
@@ -187,6 +187,7 @@ subtools session =
     if Session.isSchoolAdmin session then
         [ Bootstrap.btn "add-students-button" ShowAddStudents [ text "Add Students" ]
         ]
+
     else
         []
 
@@ -216,9 +217,9 @@ viewTable cache model =
         isChecked s =
             Dict.member s.id model.selectedStudents
     in
-        div [ class "row hidden-print" ]
-            [ StudentTable.view tableConfig model.tableState elements isChecked
-            ]
+    div [ class "row hidden-print" ]
+        [ StudentTable.view tableConfig model.tableState elements isChecked
+        ]
 
 
 filterStudents : Session.Cache -> Model -> List Api.Student
@@ -232,6 +233,7 @@ filterStudents cache model =
         ( nameFilter, Nothing ) ->
             if String.length nameFilter < 3 then
                 cache.students
+
             else
                 filterStudentsByName nameFilter cache.students
 
@@ -249,9 +251,9 @@ filterByStudentIds students ids =
 
 filterStudentsByName : String -> List Api.Student -> List Api.Student
 filterStudentsByName nameFilter students =
-    (Regex.fromStringWith { caseInsensitive = True, multiline = False } nameFilter)
+    Regex.fromStringWith { caseInsensitive = True, multiline = False } nameFilter
         |> Maybe.withDefault Regex.never
-        |> \r -> List.filter (\s -> Regex.contains r s.name) students
+        |> (\r -> List.filter (\s -> Regex.contains r s.name) students)
 
 
 viewStudentsFilter : Session.Cache -> Model -> Html Msg
@@ -261,45 +263,48 @@ viewStudentsFilter cache model =
             msg <|
                 if classId == "" then
                     Nothing
+
                 else
-                    (Just classId)
+                    Just classId
 
         inputGroupBtn msg txt =
             span [ class "input-group-btn" ]
                 [ button [ class "btn btn-default", onClick msg, type_ "button" ] [ text txt ]
                 ]
     in
-        div [ class "row hidden-print" ]
-            [ div [ class "form-inline" ]
-                [ formGroup
-                    [ input
-                        [ class "form-control"
-                        , type_ "text"
-                        , value (first model.studentFilter)
-                        , onInput StudentFilterInput
-                        , placeholder "Name search"
-                        , id "studentNameFilter"
-                        ]
-                        []
-                    , ClassSelect.view cache.classes (second model.studentFilter) "Filter by class" (onSelect SetClassFilter)
+    div [ class "row hidden-print" ]
+        [ div [ class "form-inline" ]
+            [ formGroup
+                [ input
+                    [ class "form-control"
+                    , type_ "text"
+                    , value (first model.studentFilter)
+                    , onInput StudentFilterInput
+                    , placeholder "Name search"
+                    , id "studentNameFilter"
                     ]
-                , if Dict.isEmpty model.selectedStudents then
-                    div [] []
-                  else
-                    div [ class "input-group" ]
-                        [ span [ class "input-group-btn" ]
-                            [ button [ class "btn btn-default", onClick ClearSelectedStudents, type_ "button" ] [ text "Clear selection" ]
-                            ]
-                        , ClassSelect.view cache.classes Nothing "Add selected students to class" (onSelect AddStudentsToClass)
-                        ]
+                    []
+                , ClassSelect.view cache.classes (second model.studentFilter) "Filter by class" (onSelect SetClassFilter)
                 ]
+            , if Dict.isEmpty model.selectedStudents then
+                div [] []
+
+              else
+                div [ class "input-group" ]
+                    [ span [ class "input-group-btn" ]
+                        [ button [ class "btn btn-default", onClick ClearSelectedStudents, type_ "button" ] [ text "Clear selection" ]
+                        ]
+                    , ClassSelect.view cache.classes Nothing "Add selected students to class" (onSelect AddStudentsToClass)
+                    ]
             ]
+        ]
 
 
 addStudentsDialog : AddStudentsForm.Model -> Html Msg
 addStudentsDialog form =
-    Modal.view "Add Students" DismissAddStudents
-        ( div []
+    Modal.view "Add Students"
+        DismissAddStudents
+        (div []
             [ p [] [ text "Enter the names of the students you want to add accounts for, separated by commas or on separate lines. You can enter up to 100 names." ]
             , Html.map AddStudentsFormMsg (AddStudentsForm.view form)
             ]

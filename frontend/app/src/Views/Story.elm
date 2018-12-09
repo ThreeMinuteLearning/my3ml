@@ -1,4 +1,4 @@
-module Views.Story exposing (State, Msg, init, view, subscriptions, update)
+module Views.Story exposing (Msg, State, init, subscriptions, update, view)
 
 {-| The single story view
 -}
@@ -52,14 +52,14 @@ view : Settings -> Story -> State -> Html Msg
 view settings story state =
     div [ class "u-fade-in" ]
         [ h3 [ class "storytitle" ] [ text story.title ]
-        , div ((id "storypic") :: picStyle state)
+        , div (id "storypic" :: picStyle state)
             [ img
                 (imgStyle state
                     ++ [ onLoadGetWidth GetImgWidth, src ("pix/" ++ story.img) ]
                 )
                 []
             ]
-        , Markdown.toHtml ((id "storycontent") :: toStyle settings) (storyContent story)
+        , Markdown.toHtml (id "storycontent" :: toStyle settings) (storyContent story)
         , div [ id "storyfooter", class "hidden-print" ]
             [ p [] [ text (String.join ", " (tagList story)), br [] [], text ("Level: " ++ String.fromInt story.level) ]
             ]
@@ -82,6 +82,7 @@ picStyle : State -> List (Html.Attribute msg)
 picStyle ( picWidth, windowWidth ) =
     if picWidth > 0 && picWidth < thresholdWidth windowWidth then
         [ class "rightimage" ]
+
     else
         []
 
@@ -89,7 +90,8 @@ picStyle ( picWidth, windowWidth ) =
 imgStyle : State -> List (Html.Attribute msg)
 imgStyle ( picWidth, windowWidth ) =
     if picWidth > thresholdWidth windowWidth then
-        [ style  "width" "100%" ]
+        [ style "width" "100%" ]
+
     else
         []
 
@@ -103,12 +105,13 @@ storyContent : Story -> String
 storyContent s =
     let
         replace m =
-            "*" ++ (String.dropRight 1 m.match) ++ "*" ++ (String.right 1 m.match)
+            "*" ++ String.dropRight 1 m.match ++ "*" ++ String.right 1 m.match
 
-        re w = Maybe.withDefault Regex.never <|
-            Regex.fromString (w.word ++ "[^a-zA-z\\-]")
+        re w =
+            Maybe.withDefault Regex.never <|
+                Regex.fromString (w.word ++ "[^a-zA-z\\-]")
 
         replaceWord w content =
             Regex.replace (re w) replace content
     in
-        List.foldl replaceWord s.content s.words
+    List.foldl replaceWord s.content s.words

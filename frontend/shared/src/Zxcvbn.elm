@@ -7,12 +7,14 @@ import Json.Decode.Pipeline exposing (required)
 type alias Zxcvbn =
     { password :
         String
-        -- , guesses : Float
-        -- , guessesLog10 : Float
+
+    -- , guesses : Float
+    -- , guessesLog10 : Float
     , calcTime :
         Int
-        -- , crackTimesSeconds : CrackTimesSeconds
-        -- , crackTimesDisplay : CrackTimesDisplay
+
+    -- , crackTimesSeconds : CrackTimesSeconds
+    -- , crackTimesDisplay : CrackTimesDisplay
     , score : Int
     , feedback : ZxcvbnFeedback
     }
@@ -43,16 +45,14 @@ type alias ZxcvbnFeedback =
 decodeZxcvbn : Json.Decode.Decoder Zxcvbn
 decodeZxcvbn =
     Json.Decode.succeed Zxcvbn
-        |> required "password" (Json.Decode.string)
+        |> required "password" Json.Decode.string
         -- |> required "guesses" (Json.Decode.float)
         -- |> required "guesses_log10" (Json.Decode.float)
-        |>
-            required "calc_time" (Json.Decode.int)
+        |> required "calc_time" Json.Decode.int
         -- |> required "crack_times_seconds" (decodeCrackTimesSeconds)
         -- |> required "crack_times_display" (decodeCrackTimesDisplay)
-        |>
-            required "score" (Json.Decode.int)
-        |> required "feedback" (decodeZxcvbnFeedback)
+        |> required "score" Json.Decode.int
+        |> required "feedback" decodeZxcvbnFeedback
 
 
 decodeCrackTimesSeconds : Json.Decode.Decoder CrackTimesSeconds

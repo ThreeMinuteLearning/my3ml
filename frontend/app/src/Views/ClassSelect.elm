@@ -28,5 +28,5 @@ view classes selection name onSelect =
                 ]
                 [ text (c.name ++ format c.description) ]
     in
-        Html.select [ class "form-control", on "change" (Json.map onSelect targetValue) ]
-            (emptyOption :: List.map classOption classes)
+    Html.select [ class "form-control", on "change" (Json.map onSelect targetValue) ]
+        (emptyOption :: List.map classOption classes)

@@ -37,9 +37,9 @@ init session =
         createModel sesh =
             ( Model (Table.initialSort "Class Name") Nothing, sesh )
     in
-        Session.loadClasses session
-            |> Task.mapError handleLoadError
-            |> Task.map createModel
+    Session.loadClasses session
+        |> Task.mapError handleLoadError
+        |> Task.map createModel
 
 
 update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
@@ -73,10 +73,10 @@ update session msg model =
                         newSession =
                             { session | cache = { cache | classes = newClasses } }
                     in
-                        ( ( { model | addClassForm = Nothing }, Cmd.none ), newSession )
+                    ( ( { model | addClassForm = Nothing }, Cmd.none ), newSession )
 
 
-view : Session -> Model -> { title: String, content: Html Msg }
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Classes"
     , content =
@@ -132,8 +132,9 @@ subtools =
 
 addClassesDialog : AddClassForm.Model -> Html Msg
 addClassesDialog form =
-    Modal.view "Add Class" DismissAddClass
-        ( div []
+    Modal.view "Add Class"
+        DismissAddClass
+        (div []
             [ p [] [ text "Enter the new class name and a description" ]
             , Html.map AddClassFormMsg (AddClassForm.view form)
             ]

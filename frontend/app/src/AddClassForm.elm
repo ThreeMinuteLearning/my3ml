@@ -9,7 +9,7 @@ import Html.Events exposing (onInput, onSubmit)
 import Http
 import List.Extra
 import Util exposing (defaultHttpErrorMsg)
-import Validate exposing (Validator, validate, ifBlank, ifFalse)
+import Validate exposing (Validator, ifBlank, ifFalse, validate)
 import Views.Form as Form
 
 
@@ -75,7 +75,7 @@ update session msg model =
                         _ ->
                             defaultHttpErrorMsg e
             in
-                ( ( { model | errors = [ ( Form, errorMessage ) ] }, Cmd.none ), Nothing )
+            ( ( { model | errors = [ ( Form, errorMessage ) ] }, Cmd.none ), Nothing )
 
 
 sendNewClassRequest : Session -> Model -> Cmd Msg
@@ -110,7 +110,7 @@ validator =
 validName : String -> Bool
 validName name =
     String.length (String.trim name)
-        |> \l -> l > 1 && l < 50
+        |> (\l -> l > 1 && l < 50)
 
 
 view : Model -> Html Msg
@@ -141,7 +141,7 @@ view model =
                     ]
                 ]
     in
-        div []
-            [ Form.viewErrors model.errors
-            , viewForm
-            ]
+    div []
+        [ Form.viewErrors model.errors
+        , viewForm
+        ]

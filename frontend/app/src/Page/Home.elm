@@ -25,10 +25,10 @@ init session =
         handleLoadError e =
             pageLoadError e ("Couldn't load stories for the home page: " ++ defaultHttpErrorMsg e ++ ".")
     in
-        Session.loadStories session
-            |> Task.andThen Session.loadUserAnswers
-            |> Task.map initModel
-            |> Task.mapError handleLoadError
+    Session.loadStories session
+        |> Task.andThen Session.loadUserAnswers
+        |> Task.map initModel
+        |> Task.mapError handleLoadError
 
 
 initModel : Session -> ( Model, Session )
@@ -42,7 +42,7 @@ initModel session =
                 _ ->
                     Model session.cache.stories
     in
-        (model, session)
+    ( model, session )
 
 
 isBeginner : Session -> Bool
@@ -108,11 +108,11 @@ pickStories session level =
                     _ ->
                         [ 0, 0, 0, 2, 2, 5, 5, 5, 10, 5, 0 ]
     in
-        if isBeginner session then
-            List.concatMap (\( l, n ) -> takeLevel l n [] unansweredStories) (bumpLevels (answerLevels session answers) storiesPerLevel)
+    if isBeginner session then
+        List.concatMap (\( l, n ) -> takeLevel l n [] unansweredStories) (bumpLevels (answerLevels session answers) storiesPerLevel)
 
-        else
-            sortForLevel level unansweredStories
+    else
+        sortForLevel level unansweredStories
 
 
 answerLevels : Session -> Dict Int Api.Answer -> Dict Int Int
@@ -126,9 +126,9 @@ answerLevels session answers =
         answersCompletedForLevel ( _, l ) =
             1 + List.length l
     in
-        List.map answerLevel (Dict.values answers)
-            |> List.sort
-            |> List.group
+    List.map answerLevel (Dict.values answers)
+        |> List.sort
+        |> List.group
         |> (\l ->
                 List.map2 pair (List.map first l) (List.map answersCompletedForLevel l)
                     |> Dict.fromList
@@ -144,7 +144,7 @@ bumpLevels answers nPerLevel =
         bumpLevel ( l, n ) =
             ( l, max 0 (n - nAnswers l + nAnswers (l - 1)) )
     in
-        List.map bumpLevel nPerLevel
+    List.map bumpLevel nPerLevel
 
 
 sortForLevel : Int -> List Api.Story -> List Api.Story
@@ -157,21 +157,21 @@ update session model =
     ( model, Cmd.none )
 
 
-view : Session -> Model -> { title: String, content: Html msg }
+view : Session -> Model -> { title : String, content : Html msg }
 view session model =
     { title = "Home"
     , content =
         div [ class "home-page" ]
-        [ div [ class "container page" ]
-            [ RobotPanel.view
-            , div []
-                [ h1 []
-                    [ text (storiesTitle session)
+            [ div [ class "container page" ]
+                [ RobotPanel.view
+                , div []
+                    [ h1 []
+                        [ text (storiesTitle session)
+                        ]
+                    , StoryTiles.view False (List.take 24 model.stories)
                     ]
-                , StoryTiles.view False (List.take 24 model.stories)
                 ]
             ]
-        ]
     }
 
 

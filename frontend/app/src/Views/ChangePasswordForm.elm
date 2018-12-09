@@ -1,4 +1,4 @@
-module Views.ChangePasswordForm exposing (Model, Msg, ExternalMsg(..), init, update, view)
+module Views.ChangePasswordForm exposing (ExternalMsg(..), Model, Msg, init, update, view)
 
 import Api
 import Data.Session exposing (Session, authorization)
@@ -7,7 +7,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
 import Http
 import Util exposing (defaultHttpErrorMsg)
-import Validate exposing (Validator, validate, ifTrue)
+import Validate exposing (Validator, ifTrue, validate)
 import Views.Form as Form
 
 
@@ -48,7 +48,6 @@ update session msg model =
                 _ ->
                     ( ( { model | errors = [] }, sendPasswordChangeRequest session model ), NoOp )
 
-
         SetPassword password ->
             ( ( { model | password = password }, Cmd.none ), NoOp )
 
@@ -76,8 +75,8 @@ validator : Int -> Validator Error Model
 validator min =
     Validate.firstError
         [ ifTrue (\m -> String.length m.password < min)
-                ("Password must be at least " ++ String.fromInt min ++ " characters")
-        , ifTrue (\m -> m.password /= m.confirmPassword) ("Passwords don't match")
+            ("Password must be at least " ++ String.fromInt min ++ " characters")
+        , ifTrue (\m -> m.password /= m.confirmPassword) "Passwords don't match"
         ]
 
 
@@ -106,7 +105,7 @@ view model =
         submitButton =
             Html.button [ class "btn btn-primary pull-xs-right", tabindex 3 ] [ text "Save new password" ]
     in
-        div []
-            [ Form.viewErrorMsgs model.errors
-            , viewForm
-            ]
+    div []
+        [ Form.viewErrorMsgs model.errors
+        , viewForm
+        ]

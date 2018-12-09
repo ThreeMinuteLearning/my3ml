@@ -27,20 +27,20 @@ viewStoryAnswer : ( Api.Answer, Api.Story ) -> Html msg
 viewStoryAnswer ( answer, story ) =
     div [ class "row" ]
         [ div [ class "col-md-9" ]
-            ((h2 [] [ text story.title ]) :: viewDetails story answer)
+            (h2 [] [ text story.title ] :: viewDetails story answer)
         ]
 
 
 viewDetails : Api.Story -> Api.Answer -> List (Html msg)
 viewDetails story answer =
-    [ cqsc "Connect" [text answer.connect]
-    , cqsc "Question" [text answer.question]
-    , cqsc "Summarise" [text answer.summarise]
-    , cqsc "Clarify" [em [] [ text story.clarifyWord], text ": ", text answer.clarify ]
+    [ cqsc "Connect" [ text answer.connect ]
+    , cqsc "Question" [ text answer.question ]
+    , cqsc "Summarise" [ text answer.summarise ]
+    , cqsc "Clarify" [ em [] [ text story.clarifyWord ], text ": ", text answer.clarify ]
     ]
 
 
 cqsc : String -> List (Html msg) -> Html msg
 cqsc answerType content =
     div [ class "cqsc-answer" ]
-        (h3 [] [ text answerType] :: content)
+        (h3 [] [ text answerType ] :: content)

@@ -1,4 +1,4 @@
-module Util exposing (viewIf, viewUnless, appendErrors, printButton, defaultHttpErrorMsg, maybeView)
+module Util exposing (appendErrors, defaultHttpErrorMsg, maybeView, printButton, viewIf, viewUnless)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -11,6 +11,7 @@ viewIf : Bool -> Html msg -> Html msg
 viewIf condition content =
     if condition then
         content
+
     else
         Html.text ""
 
@@ -23,8 +24,11 @@ viewUnless condition content =
 maybeView : (a -> Html msg) -> Maybe a -> Html msg
 maybeView f a_ =
     case a_ of
-        Just a -> f a
-        Nothing -> text ""
+        Just a ->
+            f a
+
+        Nothing ->
+            text ""
 
 
 appendErrors : { model | errors : List error } -> List error -> { model | errors : List error }

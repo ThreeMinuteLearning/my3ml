@@ -34,7 +34,7 @@ type alias Model =
     , browser : Maybe (Zipper Api.Story)
     , storyView : StoryView.State
     , viewType : ViewType
-    , windowSize : (Int, Int)
+    , windowSize : ( Int, Int )
     , anthologyForm : Maybe AnthologyForm
     }
 
@@ -79,7 +79,7 @@ type ViewType
 
 
 initialModel : Session -> Browser.Dom.Viewport -> ( Model, Session )
-initialModel session { viewport }=
+initialModel session { viewport } =
     let
         sortColumn =
             if Session.isStudent session then
@@ -101,7 +101,7 @@ initialModel session { viewport }=
             else
                 Table
     in
-        ( Model [] "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init (first size)) viewType size Nothing, session )
+    ( Model [] "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init (first size)) viewType size Nothing, session )
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -115,7 +115,7 @@ init session =
                 |> Task.andThen Session.loadAnthologies
                 |> Task.mapError handleLoadError
     in
-        Task.map2 initialModel loadData getViewport
+    Task.map2 initialModel loadData getViewport
 
 
 subscriptions : Model -> Sub Msg
@@ -154,7 +154,7 @@ update session msg model =
                 ( newStoryView, cmd ) =
                     StoryView.update svm model.storyView
             in
-                ( ( { model | storyView = newStoryView }, Cmd.map StoryViewMsg cmd ), session )
+            ( ( { model | storyView = newStoryView }, Cmd.map StoryViewMsg cmd ), session )
 
         Next ->
             ( ( { model | browser = model.browser |> Maybe.map Zipper.next }, Cmd.none ), session )
@@ -170,7 +170,7 @@ update session msg model =
                 ( ( model, Cmd.none ), session )
 
         Resize w h ->
-            ( ( { model | windowSize = (w, h) }, Cmd.none ), session )
+            ( ( { model | windowSize = ( w, h ) }, Cmd.none ), session )
 
         CloseBrowser ->
             ( ( { model | browser = Nothing }, Cmd.none ), session )
@@ -187,7 +187,7 @@ update session msg model =
                     else
                         filterStories model.storyFilter session.cache.stories
             in
-                ( ( { model | showDisabledStoriesOnly = flag, stories = newStories }, Cmd.none ), session )
+            ( ( { model | showDisabledStoriesOnly = flag, stories = newStories }, Cmd.none ), session )
 
         SelectStory s ->
             ( ( model, Cmd.none ), updateCache (\c -> { c | selectedStories = s :: c.selectedStories }) session )
@@ -222,7 +222,7 @@ update session msg model =
                             ( ( { model | errors = [], anthologyForm = Nothing }
                               , Api.postAnthologies (authorization session) (Api.Anthology "" f.name f.description "" (Just "") (List.map .id session.cache.selectedStories) False)
                                     |> Http.send CreateAnthologyResponse
-                                )
+                              )
                             , session
                             )
 
@@ -251,7 +251,7 @@ update session msg model =
             ( ( model
               , Api.deleteAnthologiesByAnthologyId (authorization session) aid
                     |> Http.send DeleteAnthologyResponse
-                )
+              )
             , session
             )
 
@@ -259,7 +259,7 @@ update session msg model =
             ( ( model, Cmd.none )
             , updateAnthologies (List.filter (\a -> a.id /= aid)) session
                 |> Session.success "Anthology deleted."
-              )
+            )
 
         DeleteAnthologyResponse (Err e) ->
             ( ( model, Cmd.none )
@@ -270,7 +270,7 @@ update session msg model =
             ( ( model
               , Api.postAnthologiesByAnthologyIdStarter_stories (authorization session) aid
                     |> Http.send SetStarterStoriesResponse
-                )
+              )
             , session
             )
 
@@ -286,7 +286,7 @@ update session msg model =
             ( ( model
               , Api.postAnthologiesByAnthologyId (authorization session) a.id a
                     |> Http.send UpdateAnthologyResponse
-                )
+              )
             , session
             )
 
@@ -349,7 +349,7 @@ zipperFrom storyId stories =
         |> Maybe.andThen (Zipper.findFirst (\s -> s.id == storyId))
 
 
-view : Session -> Model -> { title: String, content: Html Msg }
+view : Session -> Model -> { title : String, content : Html Msg }
 view session m =
     { title = "Find a Story"
     , content =
@@ -445,7 +445,7 @@ viewCycleDisplayButton session m =
                 Table ->
                     viewTiles
     in
-        button [ class "btn btn-default", onClick (SetViewType nextViewType) ] [ text displayTxt ]
+    button [ class "btn btn-default", onClick (SetViewType nextViewType) ] [ text displayTxt ]
 
 
 viewToggleDisabledStoriesOnly : Model -> Html Msg
@@ -458,7 +458,7 @@ viewToggleDisabledStoriesOnly m =
             else
                 "Hide enabled stories"
     in
-        a [ href "#", onClick ToggleShowDisabledOnly ] [ text txt ]
+    a [ href "#", onClick ToggleShowDisabledOnly ] [ text txt ]
 
 
 viewStoriesTable : Model -> Html Msg
@@ -487,7 +487,7 @@ filterStories storyFilter stories =
             match story =
                 Regex.contains r story.title || qualMatch story.qualification || tagMatch story.tags || Regex.contains r story.content
         in
-            List.filter match stories
+        List.filter match stories
 
 
 tableConfig : Table.Config Api.Story Msg
@@ -520,18 +520,18 @@ tableConfig =
                 [ viewStoryLink s
                 ]
     in
-        Table.customConfig
-            { toId = String.fromInt << .id
-            , toMsg = SetTableState
-            , columns =
-                [ storyTitleColumn
-                , Table.stringColumn "General" (tag 1)
-                , Table.stringColumn "BGE" (Maybe.withDefault "" << .curriculum)
-                , Table.stringColumn "SQA" (Maybe.withDefault "" << .qualification)
-                , levelColumn
-                ]
-            , customizations = Bootstrap.tableCustomizations
-            }
+    Table.customConfig
+        { toId = String.fromInt << .id
+        , toMsg = SetTableState
+        , columns =
+            [ storyTitleColumn
+            , Table.stringColumn "General" (tag 1)
+            , Table.stringColumn "BGE" (Maybe.withDefault "" << .curriculum)
+            , Table.stringColumn "SQA" (Maybe.withDefault "" << .qualification)
+            , levelColumn
+            ]
+        , customizations = Bootstrap.tableCustomizations
+        }
 
 
 viewStoryLink : Api.Story -> Html Msg
@@ -582,15 +582,15 @@ viewStoryBasket m stories =
                 , createAnthology
                 ]
     in
-        div [ class "panel panel-default" ]
-            [ div [ class "panel-heading" ]
-                [ div [ class "btn-group pull-right" ]
-                    [ viewUnless isEmpty (closeBtn ClearSelectedStories) ]
-                , h4 [ class "panel-title" ] [ text "Story basket" ]
-                ]
-            , div [ id "storybasket", class "panel-body" ]
-                basketContents
+    div [ class "panel panel-default" ]
+        [ div [ class "panel-heading" ]
+            [ div [ class "btn-group pull-right" ]
+                [ viewUnless isEmpty (closeBtn ClearSelectedStories) ]
+            , h4 [ class "panel-title" ] [ text "Story basket" ]
             ]
+        , div [ id "storybasket", class "panel-body" ]
+            basketContents
+        ]
 
 
 viewStoryTable : List Api.Story -> Html Msg
@@ -601,8 +601,8 @@ viewStoryTable stories =
                 [ td [] [ viewStoryLink s ]
                 ]
     in
-        table [ class "table" ]
-            [ tbody [] (List.map storyRow stories) ]
+    table [ class "table" ]
+        [ tbody [] (List.map storyRow stories) ]
 
 
 viewAnthologies : Session -> Html Msg
@@ -655,5 +655,5 @@ viewAnthologies session =
                 , StoryTiles.view True astories
                 ]
     in
-        div [ class "anthologies" ]
-            (List.map render anthologiesWithStories)
+    div [ class "anthologies" ]
+        (List.map render anthologiesWithStories)

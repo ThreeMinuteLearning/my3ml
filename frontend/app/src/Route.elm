@@ -1,10 +1,11 @@
-module Route exposing (Route(..), TeacherSubRoute(..), href, modifyUrl, fromUrl, routeToString)
+module Route exposing (Route(..), TeacherSubRoute(..), fromUrl, href, modifyUrl, routeToString)
 
 import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, int, string)
+import Url.Parser as Parser exposing ((</>), Parser, int, oneOf, s, string)
+
 
 
 -- ROUTING --
@@ -114,7 +115,7 @@ routeToString page =
                 Editor slug ->
                     [ "editor", String.fromInt slug ]
     in
-        "#/" ++ (String.join "/" pieces)
+    "#/" ++ String.join "/" pieces
 
 
 

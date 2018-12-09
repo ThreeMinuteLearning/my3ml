@@ -21,12 +21,12 @@ init session =
         handleLoadError e =
             pageLoadError e (defaultHttpErrorMsg e)
     in
-        Api.getSchoolLeaderboard (authorization session)
-            |> Http.toTask
-            |> Task.mapError handleLoadError
+    Api.getSchoolLeaderboard (authorization session)
+        |> Http.toTask
+        |> Task.mapError handleLoadError
 
 
-view : Model -> { title: String, content: Html msg }
+view : Model -> { title : String, content : Html msg }
 view model =
     { title = "Leaderboard"
     , content =

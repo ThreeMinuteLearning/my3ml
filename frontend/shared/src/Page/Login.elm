@@ -1,4 +1,4 @@
-module Page.Login exposing (view, update, Model, Msg, initialModel)
+module Page.Login exposing (Model, Msg, initialModel, update, view)
 
 {-| The login page.
 -}
@@ -39,15 +39,20 @@ view model regLink =
                 [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
                     [ h1 [ class "text-xs-center" ] [ text "Sign in" ]
                     , case regLink of
-                          Just ref ->
-                              p [ class "text-xs-center" ]
-                                  [ a [ ref ]
-                                      [ text "Need an account?" ]
-                                  ]
-                          Nothing ->
-                              text ""
+                        Just ref ->
+                            p [ class "text-xs-center" ]
+                                [ a [ ref ]
+                                    [ text "Need an account?" ]
+                                ]
+
+                        Nothing ->
+                            text ""
                     , Form.viewErrors model.errors
-                    , if model.otpRequired then viewOtpForm model else viewForm
+                    , if model.otpRequired then
+                        viewOtpForm model
+
+                      else
+                        viewForm
                     ]
                 ]
             ]
@@ -112,6 +117,7 @@ update msg model loginRequest =
             case validate validator model of
                 Err errors ->
                     ( ( { model | errors = errors }, Cmd.none ), Nothing )
+
                 _ ->
                     ( ( { model | errors = [] }
                       , Http.send LoginCompleted (loginRequest (String.trim model.username) model.password (Maybe.andThen String.toInt model.otp))
@@ -128,7 +134,7 @@ update msg model loginRequest =
         SetOTP otp ->
             ( ( { model | otp = Just otp }, Cmd.none ), Nothing )
 
-        LoginCompleted (Err (Http.BadStatus response as error)) ->
+        LoginCompleted (Err ((Http.BadStatus response) as error)) ->
             case response.status.code of
                 401 ->
                     loginError "Login failed. Check your username and password" model
@@ -140,13 +146,13 @@ update msg model loginRequest =
                     loginError "The login server is a bit busy. Please try again" model
 
                 462 ->
-                    ( ( { model | otpRequired = True }, Cmd.none), Nothing )
+                    ( ( { model | otpRequired = True }, Cmd.none ), Nothing )
 
                 _ ->
-                    loginError ( defaultHttpErrorMsg error ) model
+                    loginError (defaultHttpErrorMsg error) model
 
         LoginCompleted (Err error) ->
-            loginError ( defaultHttpErrorMsg error ) model
+            loginError (defaultHttpErrorMsg error) model
 
         LoginCompleted (Ok user) ->
             ( ( model, Cmd.none ), Just user )
@@ -154,7 +160,7 @@ update msg model loginRequest =
 
 loginError : String -> Model -> ( ( Model, Cmd (Msg a) ), Maybe a )
 loginError errorMsg model =
-    ( ( { model | errors = [( Form, errorMsg )], otp = Nothing, otpRequired = False }, Cmd.none ), Nothing )
+    ( ( { model | errors = [ ( Form, errorMsg ) ], otp = Nothing, otpRequired = False }, Cmd.none ), Nothing )
 
 
 type Field
@@ -173,5 +179,5 @@ validator =
     Validate.all
         [ ifBlank .username ( Email, "You must enter a username" )
         , ifBlank .password ( Password, "You must enter a password" )
-        , ifTrue (\m -> m.otpRequired && Maybe.andThen String.toInt m.otp == Nothing) (OTP, "You must enter a number for the one-time password")
+        , ifTrue (\m -> m.otpRequired && Maybe.andThen String.toInt m.otp == Nothing) ( OTP, "You must enter a number for the one-time password" )
         ]

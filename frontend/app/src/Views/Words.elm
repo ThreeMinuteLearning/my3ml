@@ -16,6 +16,7 @@ view dict words =
         collectDefinitions entry defs =
             if Dict.member entry.word defs then
                 defs
+
             else
                 Dict.get entry.word dict
                     |> Maybe.andThen (List.head << List.drop entry.index)
@@ -45,6 +46,6 @@ view dict words =
 
         sortedDefinitions =
             List.partition (\( w, d ) -> List.member w originalWords) uniqueDefinitions
-                |> \( defs, subdefs ) -> List.append defs subdefs
+                |> (\( defs, subdefs ) -> List.append defs subdefs)
     in
-        div [] (List.map render sortedDefinitions)
+    div [] (List.map render sortedDefinitions)

@@ -39,10 +39,10 @@ init session =
         createModel =
             Model (Table.initialSort "Name") Nothing
     in
-        Api.getSchoolTeachers (authorization session)
-            |> Http.toTask
-            |> Task.mapError handleLoadError
-            |> Task.map createModel
+    Api.getSchoolTeachers (authorization session)
+        |> Http.toTask
+        |> Task.mapError handleLoadError
+        |> Task.map createModel
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
@@ -53,9 +53,8 @@ update session msg model =
 
         ActivateAccount accId ->
             ( model
-            , (Api.postSchoolTeachersByTeacherIdActivate (authorization session) accId
+            , Api.postSchoolTeachersByTeacherIdActivate (authorization session) accId
                 |> Http.send ActivateAccountResponse
-              )
             )
 
         ActivateAccountResponse (Ok accId) ->
@@ -66,9 +65,8 @@ update session msg model =
 
         GenerateRegistrationCode ->
             ( model
-            , (Api.getAccountRegisterCode (authorization session)
+            , Api.getAccountRegisterCode (authorization session)
                 |> Http.send GenerateRegistrationCodeResponse
-              )
             )
 
         GenerateRegistrationCodeResponse (Ok code) ->
@@ -82,11 +80,12 @@ markActivated : String -> ( Api.Teacher, Bool ) -> ( Api.Teacher, Bool )
 markActivated accId teacher =
     if .id (first teacher) == accId then
         ( first teacher, True )
+
     else
         teacher
 
 
-view : Session -> Model -> { title: String, content: Html Msg }
+view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Teachers"
     , content =
@@ -147,6 +146,7 @@ viewActivationButton : ( Api.Teacher, Bool ) -> Table.HtmlDetails Msg
 viewActivationButton ( teacher, isActive ) =
     if isActive then
         Table.HtmlDetails [] []
+
     else
         Table.HtmlDetails []
             [ button [ class "btn btn-default", type_ "button", onClick (ActivateAccount teacher.id) ] [ text "Activate account" ]

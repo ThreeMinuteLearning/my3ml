@@ -7,11 +7,11 @@ import Html.Events exposing (onClick)
 
 modalHeader : String -> msg -> Html msg
 modalHeader title onClose =
-    div [ class "modal-header"]
+    div [ class "modal-header" ]
         [ button [ type_ "button", class "close", onClick onClose ]
             [ span [] [ text "×" ]
             ]
-        , h3 [ class "modal-title" ] [ text title]
+        , h3 [ class "modal-title" ] [ text title ]
         ]
 
 
@@ -19,10 +19,10 @@ view : String -> msg -> Html msg -> Html msg
 view title onClose content =
     div []
         [ div [ class "modal in", style "display" "block" ]
-            [ div [ class "modal-dialog"]
-                [ div [ class "modal-content"]
+            [ div [ class "modal-dialog" ]
+                [ div [ class "modal-content" ]
                     [ modalHeader title onClose
-                    , div [ class "modal-body"] [ content]
+                    , div [ class "modal-body" ] [ content ]
                     ]
                 ]
             ]

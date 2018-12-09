@@ -6,16 +6,16 @@ import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Data.Settings exposing (defaultSettings)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput, onClick)
+import Html.Events exposing (onClick, onInput)
 import Http
 import List.Zipper.Infinite as Zipper exposing (Zipper)
-import Select
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
+import Select
 import Set
 import Task exposing (Task)
 import Tuple exposing (pair, second)
 import Util exposing (defaultHttpErrorMsg)
-import Validate exposing (Validator, validate, ifBlank, ifFalse)
+import Validate exposing (Validator, ifBlank, ifFalse, validate)
 import Views.Form as Form
 import Views.Story as StoryView
 
@@ -84,14 +84,14 @@ init originalSession slug =
                 Nothing ->
                     Task.fail (PageLoadError "Sorry. That story couldn't be found.")
     in
-        Session.loadDictionary originalSession
-            |> Task.andThen (\newSession -> Session.loadStories newSession)
-            |> Task.mapError handleLoadError
-            |> Task.andThen
-                (\newSession ->
-                    lookupStoryAndCreateModel newSession
-                        |> Task.map (\m -> ( m, newSession ))
-                )
+    Session.loadDictionary originalSession
+        |> Task.andThen (\newSession -> Session.loadStories newSession)
+        |> Task.mapError handleLoadError
+        |> Task.andThen
+            (\newSession ->
+                lookupStoryAndCreateModel newSession
+                    |> Task.map (\m -> ( m, newSession ))
+            )
 
 
 makeZipper : List Api.Story -> Int -> Maybe (Zipper Api.Story)
@@ -145,13 +145,13 @@ update session msg model =
                 ( newStoryView, cmd ) =
                     StoryView.update svm model.storyView
             in
-                ( { model | storyView = newStoryView }, Cmd.map StoryViewMsg cmd )
+            ( { model | storyView = newStoryView }, Cmd.map StoryViewMsg cmd )
 
         CancelChanges ->
             ( { model | story = Zipper.current model.stories, errors = [] }, Cmd.none )
 
         ToggleEnabled ->
-            updateStory (\s -> { s | enabled = not s.enabled } ) model
+            updateStory (\s -> { s | enabled = not s.enabled }) model
 
         ContentInput newContent ->
             updateStory (\s -> { s | content = newContent }) model
@@ -160,10 +160,32 @@ update session msg model =
             updateStory (\s -> { s | title = newTitle }) model
 
         IncrementLevel ->
-            updateStory (\s -> { s | level = if model.story.level < 9 then model.story.level + 1 else 9 }) model
+            updateStory
+                (\s ->
+                    { s
+                        | level =
+                            if model.story.level < 9 then
+                                model.story.level + 1
+
+                            else
+                                9
+                    }
+                )
+                model
 
         DecrementLevel ->
-            updateStory (\s -> { s | level = if model.story.level > 0 then model.story.level - 1 else 0 }) model
+            updateStory
+                (\s ->
+                    { s
+                        | level =
+                            if model.story.level > 0 then
+                                model.story.level - 1
+
+                            else
+                                0
+                    }
+                )
+                model
 
         SetClarifyWord newClarifyWord ->
             updateStory (\s -> { s | clarifyWord = newClarifyWord }) model
@@ -175,9 +197,8 @@ update session msg model =
 
                 _ ->
                     ( { model | errors = [] }
-                    , (Api.postStoriesByStoryId (authorization session) model.story.id model.story
+                    , Api.postStoriesByStoryId (authorization session) model.story.id model.story
                         |> Http.send SaveResponse
-                      )
                     )
 
         SaveResponse (Ok story) ->
@@ -213,7 +234,7 @@ update session msg model =
                 ( updated, cmd ) =
                     Select.update tagSelectConfig sub model.tagsSelect
             in
-                ( { model | tagsSelect = updated }, cmd )
+            ( { model | tagsSelect = updated }, cmd )
 
         CurriculumSelectMsg sub ->
             let
@@ -221,7 +242,6 @@ update session msg model =
                     Select.update curriculumSelectConfig sub model.curriculumSelect
             in
             ( { model | curriculumSelect = updated }, cmd )
-
 
         QualificationSelectMsg sub ->
             let
@@ -237,15 +257,16 @@ update session msg model =
             updateZipper Zipper.previous model
 
 
-updateStory : (Api.Story -> Api.Story) -> Model -> (Model, Cmd msg)
+updateStory : (Api.Story -> Api.Story) -> Model -> ( Model, Cmd msg )
 updateStory f model =
     ( { model | story = f model.story }, Cmd.none )
 
 
-updateZipper : (Zipper Api.Story -> Zipper Api.Story) -> Model -> (Model, Cmd msg)
+updateZipper : (Zipper Api.Story -> Zipper Api.Story) -> Model -> ( Model, Cmd msg )
 updateZipper f model =
     let
-        newStories = f model.stories
+        newStories =
+            f model.stories
     in
     ( { model | story = Zipper.current newStories, stories = newStories, errors = [] }, Cmd.none )
 
@@ -257,7 +278,7 @@ subscriptions model =
         ]
 
 
-view : Model -> { title: String, content: Html Msg }
+view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Story editor"
     , content =
@@ -272,10 +293,10 @@ view model =
                 [ Form.viewErrorMsgs model.errors
                 , div [ class "col-md-6" ]
                     [ Html.map TagSelectMsg
-                        ( Select.viewMulti tagSelectConfig
-                              model.tagsSelect
-                              model.allTags
-                              model.story.tags
+                        (Select.viewMulti tagSelectConfig
+                            model.tagsSelect
+                            model.allTags
+                            model.story.tags
                         )
                     ]
                 , div [ class "col-md-3" ]
@@ -298,18 +319,18 @@ view model =
             , div [ class "row" ]
                 [ div [ class "col-md-6" ]
                     [ Html.map CurriculumSelectMsg
-                        ( Select.view curriculumSelectConfig
-                              model.curriculumSelect
-                              model.curriculumTags
-                              model.story.curriculum
+                        (Select.view curriculumSelectConfig
+                            model.curriculumSelect
+                            model.curriculumTags
+                            model.story.curriculum
                         )
                     ]
                 , div [ class "col-md-6" ]
                     [ Html.map QualificationSelectMsg
-                        ( Select.view qualificationSelectConfig
-                              model.qualificationSelect
-                              model.qualificationTags
-                              model.story.qualification
+                        (Select.view qualificationSelectConfig
+                            model.qualificationSelect
+                            model.qualificationTags
+                            model.story.qualification
                         )
                     ]
                 ]
@@ -332,9 +353,9 @@ view model =
                         ]
                         []
                     ]
-                , div [ class "col-md-1", style "display" "flex", style "align-items" "center"]
-                    [ button [ class "btn btn-small",  onClick DecrementLevel ] [ text "-" ]
-                    , div [ style "padding-left" "0.5em", style "padding-right" "0.5em"]
+                , div [ class "col-md-1", style "display" "flex", style "align-items" "center" ]
+                    [ button [ class "btn btn-small", onClick DecrementLevel ] [ text "-" ]
+                    , div [ style "padding-left" "0.5em", style "padding-right" "0.5em" ]
                         [ text (String.fromInt model.story.level)
                         ]
                     , button [ class "btn btn-small", onClick IncrementLevel ] [ text "+" ]
@@ -344,7 +365,8 @@ view model =
                         [ text
                             (if model.story.enabled then
                                 "Enabled"
-                            else
+
+                             else
                                 "Disabled"
                             )
                         ]
@@ -367,7 +389,8 @@ view model =
     }
 
 
-type alias Error = String
+type alias Error =
+    String
 
 
 validator : Validator Error Api.Story
@@ -383,9 +406,16 @@ validator =
 clarifyWordExists : Api.Story -> Bool
 clarifyWordExists s =
     let
-        cw = String.toLower s.clarifyWord
-        isPhrase = String.contains " " cw
-        inContent = String.contains cw (String.toLower s.content)
-        inTitle = String.contains cw (String.toLower s.title)
+        cw =
+            String.toLower s.clarifyWord
+
+        isPhrase =
+            String.contains " " cw
+
+        inContent =
+            String.contains cw (String.toLower s.content)
+
+        inTitle =
+            String.contains cw (String.toLower s.title)
     in
     isPhrase || inContent || inTitle

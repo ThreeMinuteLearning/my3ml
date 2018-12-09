@@ -1,8 +1,8 @@
 module Page.Student exposing (Model, Msg, init, update, view)
 
 import Api
-import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Bootstrap exposing (row)
+import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
@@ -65,8 +65,8 @@ init session_ slug =
         mkModel newSession student answers =
             ( Model [] student (List.filterMap (zipWithStory newSession) answers) Nothing Nothing False False (Session.isSchoolAdmin newSession), newSession )
     in
-        Task.map3 mkModel (Session.loadStories session_) loadStudent loadAnswers
-            |> Task.mapError handleLoadError
+    Task.map3 mkModel (Session.loadStories session_) loadStudent loadAnswers
+        |> Task.mapError handleLoadError
 
 
 update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
@@ -108,7 +108,7 @@ update session msg model =
                 newStudent =
                     { s | hidden = not s.hidden }
             in
-                ( ( model, sendUpdateStudent session newStudent ), session )
+            ( ( model, sendUpdateStudent session newStudent ), session )
 
         ToggleDeletedStatus ->
             case .deleted model.student of
@@ -120,19 +120,17 @@ update session msg model =
                         s =
                             model.student
                     in
-                        ( ( model
-                          , (Api.postSchoolStudentsByStudentIdUndelete (authorization session) (.id model.student)
-                                |> Http.send UndeleteResponse
-                            )
-                          )
-                        , session
-                        )
+                    ( ( model
+                      , Api.postSchoolStudentsByStudentIdUndelete (authorization session) (.id model.student)
+                            |> Http.send UndeleteResponse
+                      )
+                    , session
+                    )
 
         ConfirmDelete ->
             ( ( model
-              , (Api.deleteSchoolStudentsByStudentId (authorization session) (.id model.student)
+              , Api.deleteSchoolStudentsByStudentId (authorization session) (.id model.student)
                     |> Http.send UpdateStudentResponse
-                )
               )
             , session
             )
@@ -142,7 +140,7 @@ update session msg model =
                 student =
                     model.student
             in
-                ( ( { model | errors = [], student = { student | deleted = Nothing } }, Cmd.none ), updateSession session student )
+            ( ( { model | errors = [], student = { student | deleted = Nothing } }, Cmd.none ), updateSession session student )
 
         UndeleteResponse (Err e) ->
             ( ( { model | errors = [ defaultHttpErrorMsg e ] }, Cmd.none ), session )
@@ -154,14 +152,15 @@ update session msg model =
             ( ( { model | errors = [ defaultHttpErrorMsg e ] }, Cmd.none ), session )
 
         SetLevel newLevel ->
-            if newLevel == (.level model.student) then
+            if newLevel == .level model.student then
                 ( ( model, Cmd.none ), session )
+
             else
                 let
                     s =
                         model.student
                 in
-                    ( ( model, sendUpdateStudent session { s | level = newLevel } ), session )
+                ( ( model, sendUpdateStudent session { s | level = newLevel } ), session )
 
         DismissDialog ->
             ( ( { model | changeUsernameForm = Nothing, changePasswordForm = Nothing, showConfirmDelete = False }, Cmd.none ), session )
@@ -176,7 +175,7 @@ updateSession session student =
         newStudents =
             student :: List.filter (\s -> s.id /= student.id) cache.students
     in
-        { session | cache = { cache | students = newStudents } }
+    { session | cache = { cache | students = newStudents } }
 
 
 sendUpdateStudent : Session -> Api.Student -> Cmd Msg
@@ -201,6 +200,7 @@ view model =
             , viewIf model.showConfirmDelete confirmDeleteDialog
             ]
     }
+
 
 viewToolbar : Bool -> Api.Student -> Html Msg
 viewToolbar isAdmin student =
@@ -228,28 +228,31 @@ viewToolbar isAdmin student =
                     (student.deleted /= Nothing)
                     (if student.hidden then
                         "Un-hide"
+
                      else
                         "Hide"
                     )
                 ]
+
             else
                 []
     in
-        row
-            [ div [ class "col-lg-8" ]
-                [ div [ class "input-group" ]
-                    [ div [ class "input-group-btn" ]
-                        (teacherButtons ++ adminButtons)
-                    , SelectLevel.view SetLevel student.level
-                    ]
+    row
+        [ div [ class "col-lg-8" ]
+            [ div [ class "input-group" ]
+                [ div [ class "input-group-btn" ]
+                    (teacherButtons ++ adminButtons)
+                , SelectLevel.view SetLevel student.level
                 ]
             ]
+        ]
 
 
 changePasswordDialog : ChangePassword.Model -> Html Msg
 changePasswordDialog form =
-    Modal.view "Change password" DismissDialog
-        ( div []
+    Modal.view "Change password"
+        DismissDialog
+        (div []
             [ Html.map ChangePasswordMsg (ChangePassword.view form)
             ]
         )
@@ -257,8 +260,9 @@ changePasswordDialog form =
 
 changeUsernameDialog : ChangeUsername.Model -> Html Msg
 changeUsernameDialog form =
-    Modal.view "Change username" DismissDialog
-        ( div []
+    Modal.view "Change username"
+        DismissDialog
+        (div []
             [ Html.map ChangeUsernameMsg (ChangeUsername.view form)
             ]
         )
@@ -266,8 +270,9 @@ changeUsernameDialog form =
 
 confirmDeleteDialog : Html Msg
 confirmDeleteDialog =
-    Modal.view "Delete Student" DismissDialog
-        ( div []
+    Modal.view "Delete Student"
+        DismissDialog
+        (div []
             [ p [] [ text "Are you sure you want to delete this student account? It will be marked for deletion and removed automatically at a later date (you can un-delete it if you change your mind)." ]
             , button [ class "btn btn-danger", onClick ConfirmDelete ]
                 [ text "Delete student"

@@ -1,9 +1,10 @@
-module Views.Page exposing (frame, ActivePage(..))
+module Views.Page exposing (ActivePage(..), frame)
 
 {-| The frame around a typical page - that is, the header and footer.
 -}
-import Browser exposing (Document)
+
 import Bootstrap exposing (closeBtn)
+import Browser exposing (Document)
 import Data.Session as Session exposing (Alert(..), Session, User)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -29,7 +30,7 @@ type ActivePage
 {-| Take a page's Html and frame it with a header.
 -}
 frame : Bool -> Session -> (Alert -> msg) -> ActivePage -> { title : String, content : Html msg } -> Document msg
-frame isLoading session onAlertClose page {title, content} =
+frame isLoading session onAlertClose page { title, content } =
     { title = title
     , body =
         [ div [ id "app" ]
@@ -40,6 +41,7 @@ frame isLoading session onAlertClose page {title, content} =
         ]
     }
 
+
 viewHeader : ActivePage -> Maybe User -> Bool -> Html msg
 viewHeader page user isLoading =
     nav [ class "navbar navbar-default" ]
@@ -47,12 +49,12 @@ viewHeader page user isLoading =
             [ div [ class "navbar-header" ]
                 [ mobileToggleButton
                 , a [ class "navbar-left", tabindex -1, Route.href Route.Home ]
-                    [ img [ src "/img/logo.png", alt "The Three Minute Learning logo (3ml)"] []]
+                    [ img [ src "/img/logo.png", alt "The Three Minute Learning logo (3ml)" ] [] ]
                 ]
             , div [ id "navbar", class "navbar-collapse collapse" ]
                 [ ul [ class "nav navbar-nav navbar-right" ] <|
                     lazy2 Util.viewIf isLoading spinner
-                        :: (navbarLink (page == Home) Route.Home [ text "Home" ])
+                        :: navbarLink (page == Home) Route.Home [ text "Home" ]
                         :: viewSignIn page user
                 ]
             ]
@@ -82,13 +84,14 @@ viewAlert onAlertClose ( a, closed ) =
         hide =
             if closed then
                 " closed"
+
             else
                 ""
     in
-        div [ class (cls ++ hide), attribute "role" "alert" ]
-            [ closeBtn (onAlertClose a)
-            , text msg
-            ]
+    div [ class (cls ++ hide), attribute "role" "alert" ]
+        [ closeBtn (onAlertClose a)
+        , text msg
+        ]
 
 
 mobileToggleButton : Html msg
@@ -116,23 +119,23 @@ viewSignIn page user =
         logout =
             navbarLink False Route.Logout [ text "Sign out" ]
     in
-        case user of
-            Nothing ->
-                [ navbarLink (page == Login) Route.Login [ text "Sign in" ]
-                , navbarLink (page == Register) Route.Register [ text "Sign up" ]
-                ]
+    case user of
+        Nothing ->
+            [ navbarLink (page == Login) Route.Login [ text "Sign in" ]
+            , navbarLink (page == Register) Route.Register [ text "Sign up" ]
+            ]
 
-            Just u ->
-                case u.role of
-                    Session.Student ->
-                        [ findStory, my3ml, leaderboard, logout ]
+        Just u ->
+            case u.role of
+                Session.Student ->
+                    [ findStory, my3ml, leaderboard, logout ]
 
-                    Session.Editor ->
-                        [ findStory, my3ml, logout ]
+                Session.Editor ->
+                    [ findStory, my3ml, logout ]
 
-                    Session.Teacher _ ->
-                        (navbarLink (page == Teacher) (Route.Teacher Route.Students) [ text "Admin" ])
-                            :: [ findStory, my3ml, leaderboard, logout ]
+                Session.Teacher _ ->
+                    navbarLink (page == Teacher) (Route.Teacher Route.Students) [ text "Admin" ]
+                        :: [ findStory, my3ml, leaderboard, logout ]
 
 
 navbarLink : Bool -> Route -> List (Html msg) -> Html msg

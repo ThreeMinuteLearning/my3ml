@@ -1,9 +1,9 @@
 module Main exposing (main)
 
 import Api
-import Data.Session as Session exposing (Session, Role(..), User, decodeSession, storeSession)
 import Browser exposing (Document)
 import Browser.Navigation as Nav
+import Data.Session as Session exposing (Role(..), Session, User, decodeSession, storeSession)
 import Html exposing (..)
 import Json.Decode as Decode exposing (Value)
 import Page.Account as Account
@@ -25,8 +25,8 @@ import Ports
 import Route exposing (Route)
 import Task
 import Time
-import Url exposing (Url)
 import Tuple exposing (second)
+import Url exposing (Url)
 import Views.Page as Page exposing (ActivePage)
 
 
@@ -88,85 +88,85 @@ viewPage session isLoading page =
         frame =
             Page.frame isLoading session CloseAlert
 
-        mapMsg m { title, content} =
+        mapMsg m { title, content } =
             { title = title, content = Html.map (PageMsg << m) content }
     in
-        case page of
-            NotFound ->
-                NotFound.view session
-                    |> frame Page.Other
+    case page of
+        NotFound ->
+            NotFound.view session
+                |> frame Page.Other
 
-            Blank ->
-                { title = "", content = Html.text "" }
-                    |> frame Page.Other
+        Blank ->
+            { title = "", content = Html.text "" }
+                |> frame Page.Other
 
-            Home subModel ->
-                Home.view session subModel
-                    |> frame Page.Home
+        Home subModel ->
+            Home.view session subModel
+                |> frame Page.Home
 
-            Errored subModel ->
-                Errored.view session subModel
-                    |> frame Page.Other
+        Errored subModel ->
+            Errored.view session subModel
+                |> frame Page.Other
 
-            Story subModel ->
-                Story.view session subModel
-                    |> mapMsg StoryMsg
-                    |> frame Page.Home
+        Story subModel ->
+            Story.view session subModel
+                |> mapMsg StoryMsg
+                |> frame Page.Home
 
-            FindStory subModel ->
-                FindStory.view session subModel
-                    |> mapMsg FindStoryMsg
-                    |> frame Page.FindStory
+        FindStory subModel ->
+            FindStory.view session subModel
+                |> mapMsg FindStoryMsg
+                |> frame Page.FindStory
 
-            Login subModel ->
-                { title = "Login to 3ml"
-                , content = Html.map (PageMsg << LoginMsg) (Login.view subModel (Just (Route.href Route.Register)))
-                }
-                    |> frame Page.Other
+        Login subModel ->
+            { title = "Login to 3ml"
+            , content = Html.map (PageMsg << LoginMsg) (Login.view subModel (Just (Route.href Route.Register)))
+            }
+                |> frame Page.Other
 
-            Students subModel ->
-                Students.view session subModel
-                    |> mapMsg StudentsMsg
-                    |> frame Page.Teacher
+        Students subModel ->
+            Students.view session subModel
+                |> mapMsg StudentsMsg
+                |> frame Page.Teacher
 
-            Student subModel ->
-                Student.view subModel
-                    |> mapMsg StudentMsg
-                    |> frame Page.Teacher
+        Student subModel ->
+            Student.view subModel
+                |> mapMsg StudentMsg
+                |> frame Page.Teacher
 
-            Classes subModel ->
-                Classes.view session subModel
-                    |> mapMsg ClassesMsg
-                    |> frame Page.Teacher
+        Classes subModel ->
+            Classes.view session subModel
+                |> mapMsg ClassesMsg
+                |> frame Page.Teacher
 
-            Class subModel ->
-                Class.view session subModel
-                    |> mapMsg ClassMsg
-                    |> frame Page.Teacher
+        Class subModel ->
+            Class.view session subModel
+                |> mapMsg ClassMsg
+                |> frame Page.Teacher
 
-            Editor subModel ->
-                Editor.view subModel
-                    |> mapMsg EditorMsg
-                    |> frame Page.Other
+        Editor subModel ->
+            Editor.view subModel
+                |> mapMsg EditorMsg
+                |> frame Page.Other
 
-            LeaderBoard subModel ->
-                LeaderBoard.view subModel
-                    |> frame Page.LeaderBoard
+        LeaderBoard subModel ->
+            LeaderBoard.view subModel
+                |> frame Page.LeaderBoard
 
-            Account subModel ->
-                Account.view subModel
-                    |> mapMsg AccountMsg
-                    |> frame Page.Account
+        Account subModel ->
+            Account.view subModel
+                |> mapMsg AccountMsg
+                |> frame Page.Account
 
-            Register subModel ->
-                Register.view subModel
-                    |> mapMsg RegisterMsg
-                    |> frame Page.Register
+        Register subModel ->
+            Register.view subModel
+                |> mapMsg RegisterMsg
+                |> frame Page.Register
 
-            Teachers subModel ->
-                Teachers.view session subModel
-                    |> mapMsg TeachersMsg
-                    |> frame Page.Teacher
+        Teachers subModel ->
+            Teachers.view session subModel
+                |> mapMsg TeachersMsg
+                |> frame Page.Teacher
 
 
 type Msg
@@ -239,6 +239,7 @@ changeRouteTo maybeRoute model =
                 _ ->
                     if hasRole session then
                         transition_
+
                     else
                         errored "You can't view this page as the current user. Perhaps you need to log in as a teacher?"
 
@@ -259,49 +260,49 @@ changeRouteTo maybeRoute model =
                 Route.Class slug ->
                     transition ClassLoaded (Class.init session slug)
     in
-        case maybeRoute of
-            Nothing ->
-                ( { model | pageState = Loaded NotFound }, Cmd.none )
+    case maybeRoute of
+        Nothing ->
+            ( { model | pageState = Loaded NotFound }, Cmd.none )
 
-            Just (Route.Home) ->
-                transition HomeLoaded (Home.init session)
+        Just Route.Home ->
+            transition HomeLoaded (Home.init session)
 
-            Just (Route.Story slug) ->
-                transition StoryLoaded (Story.init session slug)
+        Just (Route.Story slug) ->
+            transition StoryLoaded (Story.init session slug)
 
-            Just (Route.Editor slug) ->
-                requireRole Session.isEditor <|
-                    transition EditorLoaded (Editor.init session slug)
+        Just (Route.Editor slug) ->
+            requireRole Session.isEditor <|
+                transition EditorLoaded (Editor.init session slug)
 
-            Just (Route.Login) ->
-                ( { model | pageState = Loaded (Login Login.initialModel) }, Cmd.none )
+        Just Route.Login ->
+            ( { model | pageState = Loaded (Login Login.initialModel) }, Cmd.none )
 
-            Just (Route.Logout) ->
-                let
-                    s =
-                        { session | user = Nothing }
-                in
-                    ( { model | session = s }
-                    , Cmd.batch [ storeSession s, Route.modifyUrl model.navKey Route.Home ]
-                    )
+        Just Route.Logout ->
+            let
+                s =
+                    { session | user = Nothing }
+            in
+            ( { model | session = s }
+            , Cmd.batch [ storeSession s, Route.modifyUrl model.navKey Route.Home ]
+            )
 
-            Just (Route.FindStory) ->
-                transition FindStoryLoaded (FindStory.init session)
+        Just Route.FindStory ->
+            transition FindStoryLoaded (FindStory.init session)
 
-            Just (Route.Teacher subRoute) ->
-                requireRole Session.isTeacher (teacherRoute subRoute)
+        Just (Route.Teacher subRoute) ->
+            requireRole Session.isTeacher (teacherRoute subRoute)
 
-            Just (Route.LeaderBoard) ->
-                transition LeaderBoardLoaded (LeaderBoard.init session)
+        Just Route.LeaderBoard ->
+            transition LeaderBoardLoaded (LeaderBoard.init session)
 
-            Just (Route.Account) ->
-                transition AccountLoaded (Account.init session)
+        Just Route.Account ->
+            transition AccountLoaded (Account.init session)
 
-            Just (Route.Register) ->
-                ( { model | pageState = Loaded (Register Register.init) }, Cmd.none )
+        Just Route.Register ->
+            ( { model | pageState = Loaded (Register Register.init) }, Cmd.none )
 
-            Just (Route.Trails) ->
-                ( model, Cmd.none )
+        Just Route.Trails ->
+            ( model, Cmd.none )
 
 
 pageErrored : Model -> String -> ( Model, Cmd msg )
@@ -357,8 +358,10 @@ update msg model =
                 ( newAlerts, newTick ) =
                     if interval < 3000 then
                         ( alerts, model.tick )
+
                     else if interval > 10000 then
                         ( alerts, t )
+
                     else
                         ( List.map closeUnlessError alerts, t )
 
@@ -373,7 +376,7 @@ update msg model =
                 newSession =
                     { session | alerts = newAlerts }
             in
-                ( { model | tick = newTick, session = newSession }, Cmd.none )
+            ( { model | tick = newTick, session = newSession }, Cmd.none )
 
 
 pageLoaded : PageLoaded -> Model -> ( Model, Cmd Msg )
@@ -397,47 +400,47 @@ pageLoaded msg model =
                 \( subModel, newSession ) ->
                     ( { model | session = newSession, pageState = Loaded (toModel subModel) }, Cmd.none )
     in
-        case msg of
-            StoryLoaded r ->
-                handlePageLoadError r <|
-                    \( subModel, newSession ) ->
-                        ( { model | session = newSession, pageState = Loaded (Story subModel) }
-                        , Ports.postProcessStory (.words subModel.story)
-                        )
+    case msg of
+        StoryLoaded r ->
+            handlePageLoadError r <|
+                \( subModel, newSession ) ->
+                    ( { model | session = newSession, pageState = Loaded (Story subModel) }
+                    , Ports.postProcessStory (.words subModel.story)
+                    )
 
-            HomeLoaded r ->
-                pageLoadedWithNewSession r Home
+        HomeLoaded r ->
+            pageLoadedWithNewSession r Home
 
-            EditorLoaded r ->
-                pageLoadedWithNewSession r Editor
+        EditorLoaded r ->
+            pageLoadedWithNewSession r Editor
 
-            FindStoryLoaded r ->
-                pageLoadedWithNewSession r FindStory
+        FindStoryLoaded r ->
+            pageLoadedWithNewSession r FindStory
 
-            StudentsLoaded r ->
-                pageLoadedWithNewSession r Students
+        StudentsLoaded r ->
+            pageLoadedWithNewSession r Students
 
-            StudentLoaded r ->
-                pageLoadedWithNewSession r Student
+        StudentLoaded r ->
+            pageLoadedWithNewSession r Student
 
-            ClassesLoaded r ->
-                pageLoadedWithNewSession r Classes
+        ClassesLoaded r ->
+            pageLoadedWithNewSession r Classes
 
-            ClassLoaded r ->
-                pageLoadedWithNewSession r Class
+        ClassLoaded r ->
+            pageLoadedWithNewSession r Class
 
-            LeaderBoardLoaded r ->
-                handlePageLoadError r <|
-                    \subModel ->
-                        ( { model | pageState = Loaded (LeaderBoard subModel) }, Cmd.none )
+        LeaderBoardLoaded r ->
+            handlePageLoadError r <|
+                \subModel ->
+                    ( { model | pageState = Loaded (LeaderBoard subModel) }, Cmd.none )
 
-            AccountLoaded r ->
-                pageLoadedWithNewSession r Account
+        AccountLoaded r ->
+            pageLoadedWithNewSession r Account
 
-            TeachersLoaded r ->
-                handlePageLoadError r <|
-                    \subModel ->
-                        ( { model | pageState = Loaded (Teachers subModel) }, Cmd.none )
+        TeachersLoaded r ->
+            handlePageLoadError r <|
+                \subModel ->
+                    ( { model | pageState = Loaded (Teachers subModel) }, Cmd.none )
 
 
 updatePage : Page -> PageMsg -> Model -> ( Model, Cmd Msg )
@@ -448,83 +451,84 @@ updatePage page msg model =
                 ( newModel, newCmd ) =
                     subUpdate subMsg subModel
             in
-                ( { model | pageState = Loaded (toModel newModel) }, mapMsg toMsg newCmd )
+            ( { model | pageState = Loaded (toModel newModel) }, mapMsg toMsg newCmd )
 
         toPageUpdateSession toModel toMsg subUpdate subMsg subModel =
             let
                 ( ( newModel, newCmd ), newSession ) =
                     subUpdate model.session subMsg subModel
             in
-                ( { model | session = newSession, pageState = Loaded (toModel newModel) }, mapMsg toMsg newCmd )
+            ( { model | session = newSession, pageState = Loaded (toModel newModel) }, mapMsg toMsg newCmd )
 
         mapMsg m =
             Cmd.map (PageMsg << m)
     in
-        case ( msg, page ) of
-            ( StoryMsg subMsg, Story subModel ) ->
-                toPageUpdateSession Story StoryMsg Story.update subMsg subModel
+    case ( msg, page ) of
+        ( StoryMsg subMsg, Story subModel ) ->
+            toPageUpdateSession Story StoryMsg Story.update subMsg subModel
 
-            ( FindStoryMsg subMsg, FindStory subModel ) ->
-                toPageUpdateSession FindStory FindStoryMsg FindStory.update subMsg subModel
+        ( FindStoryMsg subMsg, FindStory subModel ) ->
+            toPageUpdateSession FindStory FindStoryMsg FindStory.update subMsg subModel
 
-            ( StudentsMsg subMsg, Students subModel ) ->
-                toPageUpdateSession Students StudentsMsg Students.update subMsg subModel
+        ( StudentsMsg subMsg, Students subModel ) ->
+            toPageUpdateSession Students StudentsMsg Students.update subMsg subModel
 
-            ( StudentMsg subMsg, Student subModel ) ->
-                toPageUpdateSession Student StudentMsg Student.update subMsg subModel
+        ( StudentMsg subMsg, Student subModel ) ->
+            toPageUpdateSession Student StudentMsg Student.update subMsg subModel
 
-            ( ClassesMsg subMsg, Classes subModel ) ->
-                toPageUpdateSession Classes ClassesMsg Classes.update subMsg subModel
+        ( ClassesMsg subMsg, Classes subModel ) ->
+            toPageUpdateSession Classes ClassesMsg Classes.update subMsg subModel
 
-            ( ClassMsg subMsg, Class subModel ) ->
-                let
-                    ( ( pageModel, cmd ), externalMsg ) =
-                        Class.update model.session subMsg subModel
-                in
-                    case externalMsg of
-                        Class.NoOp ->
-                            ( { model | pageState = Loaded (Class pageModel) }, mapMsg ClassMsg cmd )
+        ( ClassMsg subMsg, Class subModel ) ->
+            let
+                ( ( pageModel, cmd ), externalMsg ) =
+                    Class.update model.session subMsg subModel
+            in
+            case externalMsg of
+                Class.NoOp ->
+                    ( { model | pageState = Loaded (Class pageModel) }, mapMsg ClassMsg cmd )
 
-                        Class.Deleted newSession ->
-                            changeRouteTo (Just (Route.Teacher Route.Classes))
-                                { model | session = newSession }
+                Class.Deleted newSession ->
+                    changeRouteTo (Just (Route.Teacher Route.Classes))
+                        { model | session = newSession }
 
-                        Class.Updated newSession ->
-                            ( { model | pageState = Loaded (Class pageModel), session = newSession }
-                            , mapMsg ClassMsg cmd
-                            )
-
-            ( LoginMsg subMsg, Login subModel ) ->
-                let
-                    loginRequest username password otp = Api.postAuthenticate (Api.LoginRequest username password otp)
-
-                    ( ( pageModel, loginCmd ), maybeLoggedIn ) =
-                        Login.update subMsg subModel loginRequest
-
-                    ( newSession, cmd ) =
-                        maybeLoggedIn
-                            |> Maybe.map (Session.newLogin model.session)
-                            |> Maybe.map (\s -> ( s, Cmd.batch [ storeSession s, chooseStartPage model.navKey s.user ] ))
-                            |> Maybe.withDefault ( model.session, Cmd.none )
-                in
-                    ( { model | session = newSession, pageState = Loaded (Login pageModel) }
-                    , Cmd.batch [ mapMsg LoginMsg loginCmd, cmd ]
+                Class.Updated newSession ->
+                    ( { model | pageState = Loaded (Class pageModel), session = newSession }
+                    , mapMsg ClassMsg cmd
                     )
 
-            ( EditorMsg subMsg, Editor subModel ) ->
-                toPage Editor EditorMsg (Editor.update model.session) subMsg subModel
+        ( LoginMsg subMsg, Login subModel ) ->
+            let
+                loginRequest username password otp =
+                    Api.postAuthenticate (Api.LoginRequest username password otp)
 
-            ( AccountMsg subMsg, Account subModel ) ->
-                toPageUpdateSession Account AccountMsg Account.update subMsg subModel
+                ( ( pageModel, loginCmd ), maybeLoggedIn ) =
+                    Login.update subMsg subModel loginRequest
 
-            ( RegisterMsg subMsg, Register subModel ) ->
-                toPage Register RegisterMsg (Register.update model.session) subMsg subModel
+                ( newSession, cmd ) =
+                    maybeLoggedIn
+                        |> Maybe.map (Session.newLogin model.session)
+                        |> Maybe.map (\s -> ( s, Cmd.batch [ storeSession s, chooseStartPage model.navKey s.user ] ))
+                        |> Maybe.withDefault ( model.session, Cmd.none )
+            in
+            ( { model | session = newSession, pageState = Loaded (Login pageModel) }
+            , Cmd.batch [ mapMsg LoginMsg loginCmd, cmd ]
+            )
 
-            ( TeachersMsg subMsg, Teachers subModel ) ->
-                toPage Teachers TeachersMsg (Teachers.update model.session) subMsg subModel
+        ( EditorMsg subMsg, Editor subModel ) ->
+            toPage Editor EditorMsg (Editor.update model.session) subMsg subModel
 
-            ( _, _ ) ->
-                ( model, Cmd.none )
+        ( AccountMsg subMsg, Account subModel ) ->
+            toPageUpdateSession Account AccountMsg Account.update subMsg subModel
+
+        ( RegisterMsg subMsg, Register subModel ) ->
+            toPage Register RegisterMsg (Register.update model.session) subMsg subModel
+
+        ( TeachersMsg subMsg, Teachers subModel ) ->
+            toPage Teachers TeachersMsg (Teachers.update model.session) subMsg subModel
+
+        ( _, _ ) ->
+            ( model, Cmd.none )
 
 
 chooseStartPage : Nav.Key -> Maybe User -> Cmd msg
@@ -542,7 +546,7 @@ subscriptions : Model -> Sub Msg
 subscriptions m =
     pageSubscriptions (getPage m.pageState)
         |> Sub.map PageMsg
-        |> \s -> Sub.batch [ s, sessionSubscriptions m.session ]
+        |> (\s -> Sub.batch [ s, sessionSubscriptions m.session ])
 
 
 sessionSubscriptions : Session -> Sub Msg

@@ -1,4 +1,4 @@
-module Views.ChangeUsernameForm exposing (Model, Msg, ExternalMsg(..), init, update, view)
+module Views.ChangeUsernameForm exposing (ExternalMsg(..), Model, Msg, init, update, view)
 
 import Api
 import Data.Session exposing (Session, authorization)
@@ -8,7 +8,7 @@ import Html.Events exposing (onInput, onSubmit)
 import Http
 import Regex exposing (Regex)
 import Util exposing (defaultHttpErrorMsg)
-import Validate exposing (Validator, validate, ifTrue)
+import Validate exposing (Validator, ifTrue, validate)
 import Views.Form as Form
 
 
@@ -47,9 +47,9 @@ update session msg model =
             case validate validator model of
                 Err errors ->
                     ( ( { model | errors = errors }, Cmd.none ), NoOp )
+
                 _ ->
                     ( ( { model | errors = [] }, sendUsernameChangeRequest session model ), NoOp )
-
 
         SetUsername username ->
             ( ( { model | username = username }, Cmd.none ), NoOp )
@@ -58,18 +58,17 @@ update session msg model =
             ( ( model, Cmd.none ), Completed )
 
         UsernameUpdateResponse (Err e) ->
-            ( ( (case e of
+            ( ( case e of
                     Http.BadStatus { status } ->
                         case status.code of
                             409 ->
-                                addError model ("This user name is already taken")
+                                addError model "This user name is already taken"
 
                             _ ->
                                 addError model (defaultHttpErrorMsg e)
 
                     _ ->
                         addError model (defaultHttpErrorMsg e)
-                )
               , Cmd.none
               )
             , NoOp
@@ -100,9 +99,10 @@ validator : Validator Error Model
 validator =
     Validate.all
         [ ifTrue (\m -> String.length m.username < minLength)
-                ("Username must be at least " ++ String.fromInt minLength ++ " characters")
+            ("Username must be at least " ++ String.fromInt minLength ++ " characters")
         , ifTrue (Regex.contains spaceChars << .username) "Username can't contain spaces"
         ]
+
 
 view : Model -> Html Msg
 view model =
@@ -122,8 +122,8 @@ view model =
         submitButton =
             Html.button [ class "btn btn-primary pull-xs-right", tabindex 2 ] [ text "Save new username" ]
     in
-        div []
-            [ p [] [ text "Please avoid using personal names (or variations of them) as usernames." ]
-            , Form.viewErrorMsgs model.errors
-            , viewForm
-            ]
+    div []
+        [ p [] [ text "Please avoid using personal names (or variations of them) as usernames." ]
+        , Form.viewErrorMsgs model.errors
+        , viewForm
+        ]

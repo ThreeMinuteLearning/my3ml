@@ -1,14 +1,14 @@
-module Data.Session exposing (AccessToken, Alert(..), Session, Cache, User, Role(..), authorization, emptySession, storeSession, decodeSession, isStudent, isEditor, isTeacher, isSchoolAdmin, newLogin, loadStories, loadDictionary, loadStudents, loadUserAnswers, loadClasses, loadAnthologies, findStoryById, updateCache, success, error, warn, closeAlert)
+module Data.Session exposing (AccessToken, Alert(..), Cache, Role(..), Session, User, authorization, closeAlert, decodeSession, emptySession, error, findStoryById, isEditor, isSchoolAdmin, isStudent, isTeacher, loadAnthologies, loadClasses, loadDictionary, loadStories, loadStudents, loadUserAnswers, newLogin, storeSession, success, updateCache, warn)
 
 import Api
 import Data.Settings as Settings exposing (Settings)
 import Data.Words exposing (WordDict)
 import Dict exposing (Dict)
-import List.Extra
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode as Encode
+import List.Extra
 import Ports
 import Task exposing (Task)
 
@@ -105,7 +105,7 @@ authorization session =
 clearCache : Cache -> Cache
 clearCache oldCache =
     emptyCache
-        |> \c -> { c | dict = oldCache.dict }
+        |> (\c -> { c | dict = oldCache.dict })
 
 
 updateCache : (Cache -> Cache) -> Session -> Session
@@ -141,6 +141,7 @@ closeAlert a session =
                 (\( a_, closed ) ->
                     if a_ == a then
                         ( a_, True )
+
                     else
                         ( a_, closed )
                 )
@@ -178,7 +179,7 @@ newLogin s { sub, name, level, token, role, settings } =
         user =
             User name sub userRole level (AccessToken token) userSettings
     in
-        Session (clearCache s.cache) [] (Just user)
+    Session (clearCache s.cache) [] (Just user)
 
 
 loadStories : Session -> Task Http.Error Session
@@ -227,12 +228,13 @@ loadToCache isDirty mkAuthorizedRequest mkCache session =
         cache =
             session.cache
     in
-        if isDirty cache then
-            mkAuthorizedRequest (authorization session)
-                |> Http.toTask
-                |> Task.map (\a -> { session | cache = mkCache a cache })
-        else
-            Task.succeed session
+    if isDirty cache then
+        mkAuthorizedRequest (authorization session)
+            |> Http.toTask
+            |> Task.map (\a -> { session | cache = mkCache a cache })
+
+    else
+        Task.succeed session
 
 
 findStoryById : Cache -> Int -> Maybe Api.Story
