@@ -40,7 +40,7 @@ view useSmallTiles stories =
 
 tilesPerPage : ( Int, Int ) -> Int
 tilesPerPage ( width, height ) =
-    Basics.min 42 ((toFloat width / 160) * (toFloat height / 145))
+    Basics.max 24 ((toFloat width / 160) * (toFloat height / 145))
         |> round
 
 

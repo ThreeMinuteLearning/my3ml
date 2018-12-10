@@ -88,8 +88,11 @@ initialModel session { viewport } =
             else
                 "Title"
 
+        maxWidth =
+            990
+
         size =
-            ( round viewport.width, round viewport.height )
+            ( Basics.min maxWidth (round viewport.width), round viewport.height )
 
         stories =
             session.cache.stories
