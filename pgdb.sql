@@ -286,3 +286,43 @@ $$
     SELECT * FROM tm, m, d, spm, spy, school_data
   ) t
 $$ LANGUAGE sql;
+
+
+CREATE OR REPLACE VIEW inactive_schools_view
+AS
+WITH student_logins AS (
+  SELECT school.id, max(last_login) AS last_student_login
+  FROM login
+  INNER JOIN student
+  ON student.id = login.id
+  INNER JOIN school
+  ON student.school_id = school.id
+  GROUP BY school.id
+), teacher_logins AS (
+  SELECT school.id, max(last_login) AS last_teacher_login
+  FROM login
+  INNER JOIN teacher
+  ON teacher.id = login.id
+  INNER JOIN school
+  ON teacher.school_id = school.id
+  GROUP BY school.id
+), school_logins AS (
+  SELECT student_logins.id, greatest(last_student_login, last_teacher_login) AS last_login
+  FROM teacher_logins
+  INNER JOIN student_logins
+  ON student_logins.id = teacher_logins.id
+)
+SELECT id
+FROM school_logins
+WHERE (now() - last_login > '1 year')
+UNION
+SELECT id
+FROM (
+  SELECT s.id, count(student.id)
+  FROM school s
+  LEFT JOIN student
+  ON s.id = student.school_id
+  WHERE (now() - s.created_at > '6 months')
+  GROUP BY s.id
+) AS t
+WHERE count = 0;
