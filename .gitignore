@@ -19,3 +19,4 @@ token_key.json
 *.prof
 .ghc.environment*
 node_modules
+package-lock.json

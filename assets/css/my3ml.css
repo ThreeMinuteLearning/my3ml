@@ -1,45 +1,16 @@
-html, body {
-    height: 100%;
-    font-size: 16px;
+@tailwind preflight;
+@tailwind components;
+@tailwind utilities;
+
+/* Menu-toggle button */
+.menu {
+    display: none;
 }
 
-#app {
-    margin-bottom: 5px;
+#menu-toggle:checked ~ .menu {
+    display: block;
 }
 
-.container {
-    max-width: 990px;
-    height: 100%;
-}
-.row {
-    margin-bottom: 20px;
-}
-
-.form-inline .form-group {
-    margin-right:4px;
-}
-
-.form-inline label {
-    margin-right:4px;
-}
-
-.pager {
-    margin: 0;
-}
-
-#editor.container {
-    max-width: 1500px;
-}
-
-#editor contentinput {
-    padding-right: 5em;
-    height: 100%;
-}
-
-#editor textarea.form-control {
-    height: 100%;
-    width: 100%;
-}
 
 /* Registration */
 .registration-code {
@@ -283,25 +254,6 @@ th span {
     padding: 0.3em;
 }
 
-
-/* Alerts */
-
-#alerts {
-    margin-bottom: 15px;
-}
-
-#alerts .alert {
-    margin-bottom: 2px;
-    opacity: 1;
-    transition:opacity 0.5s, height 1s ease 1s;
-}
-
-#alerts .closed {
-    opacity: 0;
-    height: 0;
-    border: 0;
-    padding: 0;
-}
 /* Story fade-in animation */
 
 .u-selectable:hover {

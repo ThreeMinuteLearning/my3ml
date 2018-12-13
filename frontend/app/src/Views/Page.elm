@@ -10,6 +10,8 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Lazy exposing (lazy2)
 import Route exposing (Route)
+import Svg
+import Svg.Attributes as Svga
 import Util
 import Views.Spinner exposing (spinner)
 
@@ -44,26 +46,23 @@ frame isLoading session onAlertClose page { title, content } =
 
 viewHeader : ActivePage -> Maybe User -> Bool -> Html msg
 viewHeader page user isLoading =
-    nav [ class "navbar navbar-default" ]
-        [ div [ class "container" ]
-            [ div [ class "navbar-header" ]
-                [ mobileToggleButton
-                , a [ class "navbar-left", tabindex -1, Route.href Route.Home ]
-                    [ img [ src "/img/logo.png", alt "The Three Minute Learning logo (3ml)" ] [] ]
-                ]
-            , div [ id "navbar", class "navbar-collapse collapse" ]
-                [ ul [ class "nav navbar-nav navbar-right" ] <|
-                    lazy2 Util.viewIf isLoading spinner
-                        :: navbarLink (page == Home) Route.Home [ text "Home" ]
-                        :: viewSignIn page user
-                ]
+    nav [ class "flex items-center justify-between flex-wrap bg-tml-blue px-6 py-2" ]
+        [ div [ class "flex items-center flex-no-shrink mr-6" ]
+            [ img [ class "fill-current mr-2", src "/img/logo.png", alt "The Three Minute Learning logo (3ml)" ] []
+            ]
+        , input [ id "menu-toggle", type_ "checkbox", class "hidden" ] []
+        , menuToggleButton
+        , div [ class "menu w-full flex-grow md:flex md:items-center md:w-auto" ]
+            [ div [ class "text-base md:flex-grow" ]
+                (menuItems page user)
+            , lazy2 Util.viewIf isLoading (div [ class "spinner bg-white" ] [])
             ]
         ]
 
 
 viewAlerts : List ( Alert, Bool ) -> (Alert -> msg) -> Html msg
 viewAlerts alerts onAlertClose =
-    div [ id "alerts", class "container" ]
+    div [ id "alerts" ]
         (List.map (viewAlert onAlertClose) alerts)
 
 
@@ -94,19 +93,24 @@ viewAlert onAlertClose ( a, closed ) =
         ]
 
 
-mobileToggleButton : Html msg
-mobileToggleButton =
-    button [ type_ "button", class "navbar-toggle collapsed", attribute "data-toggle" "collapse", attribute "data-target" "#navbar", attribute "aria-expanded" "false" ]
-        [ span [ class "sr-only" ] [ text "Toggle Navigation" ]
-        , span [ class "icon-bar" ] []
-        , span [ class "icon-bar" ] []
-        , span [ class "icon-bar" ] []
+menuToggleButton : Html msg
+menuToggleButton =
+    div [ class "block md:hidden" ]
+        [ label [ for "menu-toggle", class "flex items-center px-3 py-2 border rounded" ]
+            [ Svg.svg [ Svga.class "fill-current text-white h-3 w-3", Svga.viewBox "0 0 20 20" ]
+                [ Svg.title [] [ Svg.text "Menu" ]
+                , Svg.path [ Svga.d "M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z" ] []
+                ]
+            ]
         ]
 
 
-viewSignIn : ActivePage -> Maybe User -> List (Html msg)
-viewSignIn page user =
+menuItems : ActivePage -> Maybe User -> List (Html msg)
+menuItems page user =
     let
+        home =
+            navbarLink (page == Home) Route.Home [ text "Home" ]
+
         findStory =
             navbarLink (page == FindStory) Route.FindStory [ text "Find a story" ]
 
@@ -118,27 +122,34 @@ viewSignIn page user =
 
         logout =
             navbarLink False Route.Logout [ text "Sign out" ]
+
+        -- lazy2 Util.viewIf isLoading spinner
     in
     case user of
         Nothing ->
-            [ navbarLink (page == Login) Route.Login [ text "Sign in" ]
+            [ home
+            , navbarLink (page == Login) Route.Login [ text "Sign in" ]
             , navbarLink (page == Register) Route.Register [ text "Sign up" ]
             ]
 
         Just u ->
             case u.role of
                 Session.Student ->
-                    [ findStory, my3ml, leaderboard, logout ]
+                    [ home, findStory, my3ml, leaderboard, logout ]
 
                 Session.Editor ->
-                    [ findStory, my3ml, logout ]
+                    [ home, findStory, my3ml, logout ]
 
                 Session.Teacher _ ->
-                    navbarLink (page == Teacher) (Route.Teacher Route.Students) [ text "Admin" ]
-                        :: [ findStory, my3ml, leaderboard, logout ]
+                    [ home
+                    , navbarLink (page == Teacher) (Route.Teacher Route.Students) [ text "Admin" ]
+                    , findStory
+                    , my3ml
+                    , leaderboard
+                    , logout
+                    ]
 
 
 navbarLink : Bool -> Route -> List (Html msg) -> Html msg
 navbarLink isActive route linkContent =
-    li [ classList [ ( "nav-item", True ), ( "active", isActive ) ] ]
-        [ a [ class "nav-link", Route.href route ] linkContent ]
+    a [ classList [ ( "no-underline", not isActive ) ], class "block mt-4 md:inline-block md:mt-0 text-teal-lighter hover:text-white mr-4", classList [ ( "border-red", isActive ) ], Route.href route ] linkContent

@@ -27,9 +27,9 @@ clean:
 deep-clean: clean
 	rm -R dist-newstyle || true
 
-
-assets/app.css: assets/css/**
-	cat assets/css/my3ml.css assets/css/navbar.css assets/css/spinner.css > assets/app.css
+assets/app.css: assets/css/** tailwind.js
+	./node_modules/.bin/tailwind build assets/css/my3ml.css -c tailwind.js -o assets/app.css
+	cat assets/css/spinner.css >> assets/app.css
 
 frontend/shared/src/Api.elm: code-generator/*.hs api/*.hs api/**/*.hs
 	mkdir -p $(@D) && cabal new-run code-generator
