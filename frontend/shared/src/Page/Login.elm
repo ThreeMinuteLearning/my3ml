@@ -33,62 +33,82 @@ initialModel =
 
 view : Model -> Maybe (Attribute (Msg a)) -> Html (Msg a)
 view model regLink =
-    div [ class "auth-page" ]
-        [ div [ class "container page" ]
-            [ div [ class "row" ]
-                [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
-                    [ h1 [ class "text-xs-center" ] [ text "Sign in" ]
-                    , case regLink of
-                        Just ref ->
-                            p [ class "text-xs-center" ]
-                                [ a [ ref ]
-                                    [ text "Need an account?" ]
-                                ]
+    div [ class "py-10 px-4 flex justify-center" ]
+        [ div [ class "w-full max-w-xs" ]
+            [ Form.viewErrors model.errors
+            , if model.otpRequired then
+                viewOtpForm model
 
-                        Nothing ->
-                            text ""
-                    , Form.viewErrors model.errors
-                    , if model.otpRequired then
-                        viewOtpForm model
-
-                      else
-                        viewForm
-                    ]
-                ]
+              else
+                viewForm regLink
             ]
         ]
 
 
-viewForm : Html (Msg a)
-viewForm =
-    Html.form [ id "login-form", onSubmit SubmitForm ]
-        [ Form.input
-            [ class "form-control-lg"
-            , id "username"
-            , name "username"
-            , placeholder "Username or email"
-            , tabindex 1
-            , onInput SetUsername
+label_ : String -> String -> Html msg
+label_ for_ txt =
+    label [ class "block text-grey-darker-text-sm font-bold mb-2", for for_ ] [ text txt ]
+
+
+inputBaseCss : String
+inputBaseCss =
+    "shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker focus:outline-none focus:shadow-outline"
+
+
+form_ : String -> List (Html (Msg a)) -> Html (Msg a)
+form_ formId =
+    Html.form [ id formId, class "bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4", onSubmit SubmitForm ]
+
+
+submitButton : Html msg
+submitButton =
+    button [ class "bg-blue hover:bg-blue-dark text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outlinee", type_ "submit", tabindex 3 ] [ text "Sign in" ]
+
+
+viewForm : Maybe (Attribute (Msg a)) -> Html (Msg a)
+viewForm regLink =
+    form_ "login-form"
+        [ div [ class "mb-4" ]
+            [ label_ "username" "Username"
+            , Form.input
+                [ class inputBaseCss
+                , id "username"
+                , name "username"
+                , placeholder "Username or email"
+                , tabindex 1
+                , onInput SetUsername
+                ]
+                []
             ]
-            []
-        , Form.password
-            [ class "form-control-lg"
-            , id "password"
-            , placeholder "Password"
-            , tabindex 2
-            , onInput SetPassword
+        , div [ class "mb-6" ]
+            [ label_ "password" "Password"
+            , Form.password
+                [ class inputBaseCss
+                , id "password"
+                , placeholder "Password"
+                , tabindex 2
+                , onInput SetPassword
+                ]
+                []
             ]
-            []
-        , button [ class "btn btn-lg btn-primary pull-xs-right", tabindex 3 ]
-            [ text "Sign in" ]
+        , div [ class "flex items-center justify-between" ]
+            [ submitButton
+            , case regLink of
+                Just ref ->
+                    a [ class "inline-block align-baseline font-bold text-sm text-blue hover:text-blue-darker", ref ]
+                        [ text "Need an account?" ]
+
+                Nothing ->
+                    text ""
+            ]
         ]
 
 
 viewOtpForm : Model -> Html (Msg a)
 viewOtpForm model =
-    Html.form [ id "otp-form", onSubmit SubmitForm ]
+    form_ "otp-form"
         [ Form.input
-            [ class "form-control-lg"
+            [ class inputBaseCss
             , id "otp-code"
             , name "otp-code"
             , value (Maybe.withDefault "" model.otp)
@@ -97,8 +117,7 @@ viewOtpForm model =
             , onInput SetOTP
             ]
             []
-        , button [ class "btn btn-lg btn-primary pull-xs-right", tabindex 3 ]
-            [ text "Sign in" ]
+        , submitButton
         ]
 
 
