@@ -57,42 +57,6 @@ th span {
     cursor: pointer;
 }
 
-/* Story tiles view */
-
-.storytile {
-    width: 150px;
-    height: 135px;
-    display: inline-block;
-    position: relative;
-    margin-right: 10px;
-    margin-bottom: 10px;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
-}
-
-.storytile h3 {
-    position: relative;
-    padding-left: 10px;
-    font-weight: 600;
-    font-size: 14px;
-    text-align: left;
-    background: none;
-    color: #fff;
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    width: 100%;
-}
-
-.smalltile {
-    width: 90px;
-    height: 82px;
-}
-
-.smalltile h3 {
-    margin: 10px 3px 0 3px;
-    font-size: 11px;
-}
 /* Story content styling */
 .storytitle {
     background-color: #56a826;

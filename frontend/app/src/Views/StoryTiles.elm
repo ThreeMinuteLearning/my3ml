@@ -11,40 +11,30 @@ import Route
 view : Bool -> List Story -> Html msg
 view useSmallTiles stories =
     let
-        storyStyle s =
-            [ style "background" ("url(pix/" ++ s.img ++ ")"), style "background-size" "cover" ]
-
-        tileClass =
-            if useSmallTiles then
-                "storytile smalltile"
-
-            else
-                "storytile"
-
-        attributes s =
-            [ class tileClass, Html.Attributes.href (Route.routeToString (Route.Story s.id)) ]
-                ++ storyStyle s
-                ++ (if useSmallTiles then
-                        [ title s.title ]
-
-                    else
-                        []
-                   )
-
         storyTile s =
-            a (attributes s)
-                [ h3 [] [ text s.title ] ]
+            a
+                [ class "inline-block no-underline shadow px-2 py-1 mr-2 mt-2"
+                , style "width" "9rem"
+                , style "height" "7.5rem"
+                , style "background" ("url(pix/" ++ s.img ++ ")")
+                , style "background-size" "cover"
+                , style "box-shadow" "1px 1px 3px rgba(0,0,0,0.3)"
+                , href (Route.routeToString (Route.Story s.id))
+                , title s.title
+                ]
+                [ h3 [ class "text-sm text-white", classList [ ( "hidden", useSmallTiles ) ] ] [ text s.title ]
+                ]
     in
-    div [ id "storytiles" ] (List.map storyTile stories)
+    div [ class "flex flex-wrap" ] (List.map storyTile stories)
 
 
 tilesPerPage : ( Int, Int ) -> Int
 tilesPerPage ( width, height ) =
-    Basics.max 24 ((toFloat width / 160) * (toFloat height / 145))
+    Basics.max 25 ((toFloat width / 152) * (toFloat height / 128))
         |> round
 
 
 tilesPerRow : Int -> Int
 tilesPerRow width =
-    Basics.min 6 (toFloat width / 160)
+    Basics.min 5 (toFloat width / 152)
         |> round

@@ -37,8 +37,10 @@ frame isLoading session onAlertClose page { title, content } =
     , body =
         [ div [ id "app" ]
             [ viewHeader page session.user isLoading
-            , viewAlerts session.alerts onAlertClose
-            , content
+            , div [ class "max-w-lg mx-auto" ]
+                [ viewAlerts session.alerts onAlertClose
+                , content
+                ]
             ]
         ]
     }

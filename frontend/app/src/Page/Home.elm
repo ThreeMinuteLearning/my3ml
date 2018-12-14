@@ -161,16 +161,9 @@ view : Session -> Model -> { title : String, content : Html msg }
 view session model =
     { title = "Home"
     , content =
-        div [ class "home-page" ]
-            [ div [ class "container page" ]
-                [ RobotPanel.view
-                , div []
-                    [ h1 []
-                        [ text (storiesTitle session)
-                        ]
-                    , StoryTiles.view False (List.take 24 model.stories)
-                    ]
-                ]
+        div []
+            [ h1 [ class "text-xl my-2" ] [ text (storiesTitle session) ]
+            , StoryTiles.view False (List.take 24 model.stories)
             ]
     }
 
