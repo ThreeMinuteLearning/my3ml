@@ -48,9 +48,9 @@ frame isLoading session onAlertClose page { title, content } =
 
 viewHeader : ActivePage -> Maybe User -> Bool -> Html msg
 viewHeader page user isLoading =
-    nav [ class "flex items-center justify-between flex-wrap bg-tml-blue px-6 py-2" ]
-        [ div [ class "flex items-center flex-no-shrink mr-6" ]
-            [ img [ class "fill-current mr-2", src "/img/logo.png", alt "The Three Minute Learning logo (3ml)" ] []
+    nav [ class "flex items-center justify-between flex-wrap bg-tml-blue px-6 py-2 mb-4" ]
+        [ div [ class "flex items-center flex-no-shrink mr-8" ]
+            [ img [ class "fill-current", src "/img/logo.png", alt "The Three Minute Learning logo (3ml)" ] []
             ]
         , input [ id "menu-toggle", type_ "checkbox", class "hidden" ] []
         , menuToggleButton
