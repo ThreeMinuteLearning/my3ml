@@ -13,7 +13,7 @@ view useSmallTiles stories =
     let
         storyTile s =
             a
-                [ class "inline-block no-underline shadow px-2 py-1 mr-2 mt-2"
+                [ class "inline-block flex-auto no-underline shadow px-2 py-1 mr-2 mb-2"
                 , style "width" "9rem"
                 , style "height" "7.5rem"
                 , style "background" ("url(pix/" ++ s.img ++ ")")
@@ -25,7 +25,7 @@ view useSmallTiles stories =
                 [ h3 [ class "text-sm text-white", classList [ ( "hidden", useSmallTiles ) ] ] [ text s.title ]
                 ]
     in
-    div [ class "flex flex-wrap" ] (List.map storyTile stories)
+    div [ class "flex flex-wrap justify-between" ] (List.map storyTile stories)
 
 
 tilesPerPage : ( Int, Int ) -> Int
