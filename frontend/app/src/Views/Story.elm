@@ -49,19 +49,24 @@ update msg ( picWidth, windowWidth ) =
 
 
 view : Settings -> Story -> State -> Html Msg
-view settings story state =
+view settings story ( picWidth, windowWidth ) =
+    let
+        ( imgDivClass, imgClass ) =
+            if (toFloat picWidth / toFloat (divWidth windowWidth)) > 0.67 then
+                ( "w-full", "w-full" )
+
+            else
+                ( "float-right pl-3 pb-2", "" )
+    in
     div [ class "u-fade-in" ]
-        [ h3 [ class "storytitle" ] [ text story.title ]
-        , div (id "storypic" :: picStyle state)
-            [ img
-                (imgStyle state
-                    ++ [ onLoadGetWidth GetImgWidth, src ("pix/" ++ story.img) ]
-                )
-                []
+        [ h3 [ class "text-center text-white bg-green-dark py-2 mb-3" ] [ text story.title ]
+        , div [ id "storypic", class imgDivClass ]
+            [ img [ class imgClass, onLoadGetWidth GetImgWidth, src ("pix/" ++ story.img) ] []
             ]
-        , Markdown.toHtml (id "storycontent" :: toStyle settings) (storyContent story)
-        , div [ id "storyfooter", class "hidden-print" ]
-            [ p [] [ text (String.join ", " (tagList story)), br [] [], text ("Level: " ++ String.fromInt story.level) ]
+        , Markdown.toHtml (id "storycontent" :: class "leading-normal" :: toStyle settings) (storyContent story)
+        , div [ class "hidden-print text-sm" ]
+            [ p [ class "mb-1" ] [ text (String.join ", " (tagList story)) ]
+            , p [] [ text ("Level: " ++ String.fromInt story.level) ]
             ]
         ]
 
@@ -73,27 +78,26 @@ tagList story =
         ++ Maybe.withDefault [] (Maybe.map List.singleton story.qualification)
 
 
-thresholdWidth : Int -> Int
-thresholdWidth windowWidth =
-    Basics.min (round (toFloat windowWidth / 1.5)) 600
+divWidth : Int -> Int
+divWidth windowWidth =
+    let
+        padding =
+            16
 
+        responsiveWidth =
+            if windowWidth >= 992 then
+                992
 
-picStyle : State -> List (Html.Attribute msg)
-picStyle ( picWidth, windowWidth ) =
-    if picWidth > 0 && picWidth < thresholdWidth windowWidth then
-        [ class "rightimage" ]
+            else if windowWidth >= 768 then
+                768
 
-    else
-        []
+            else if windowWidth >= 576 then
+                576
 
-
-imgStyle : State -> List (Html.Attribute msg)
-imgStyle ( picWidth, windowWidth ) =
-    if picWidth > thresholdWidth windowWidth then
-        [ style "width" "100%" ]
-
-    else
-        []
+            else
+                windowWidth
+    in
+    responsiveWidth - 16
 
 
 onLoadGetWidth : (String -> msg) -> Html.Attribute msg

@@ -58,33 +58,8 @@ th span {
 }
 
 /* Story content styling */
-.storytitle {
-    background-color: #56a826;
-    color: #fff;
-    text-align: center;
-    padding: 5px;
-}
-
-#storyfooter {
-    font-size: 14px;
-    padding-top: 20px;
-}
-
-#storypic {
-    padding-bottom: 20px;
-}
-
-#storypic img {
-    max-width: 100%;
-}
-
-.rightimage {
-    float: right;
-    padding: 0 0 20px 20px;
-}
-
-#printactivities {
-    margin-top: 25px;
+#storycontent p {
+    margin-bottom: 0.75rem;
 }
 
 #printactivities h4 {
