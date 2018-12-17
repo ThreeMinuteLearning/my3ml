@@ -5,11 +5,20 @@ import Html exposing (Html, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, targetValue)
 import Json.Decode as Json
+import Views.Form as Form
 
 
-view : List Api.Class -> Maybe String -> String -> (String -> msg) -> Html msg
-view classes selection name onSelect =
+view : List Api.Class -> Maybe String -> String -> (Maybe String -> msg) -> Html msg
+view classes selection name mkMsg =
     let
+        onSelect classId =
+            mkMsg <|
+                if classId == "" then
+                    Nothing
+
+                else
+                    Just classId
+
         selectedClass =
             Maybe.withDefault "" selection
 
@@ -28,5 +37,5 @@ view classes selection name onSelect =
                 ]
                 [ text (c.name ++ format c.description) ]
     in
-    Html.select [ class "form-control", on "change" (Json.map onSelect targetValue) ]
+    Form.select [ on "change" (Json.map onSelect targetValue) ]
         (emptyOption :: List.map classOption classes)

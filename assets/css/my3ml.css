@@ -11,6 +11,11 @@
     }
 }
 
+a, a:visited {
+    color: #337ab7;
+    text-decoration: none;
+}
+
 /* Menu-toggle button */
 .menu {
     display: none;
@@ -19,14 +24,6 @@
 #menu-toggle:checked ~ .menu {
     display: block;
 }
-
-
-/* Registration */
-.registration-code {
-    font-size: 1.5em;
-    font-weight: bold;
-}
-
 
 /* Form error styling */
 .error-messages {
@@ -60,10 +57,25 @@ meter[value="4"]::-moz-meter-bar { background: green; }
 /* Tables */
 
 /* Make sortable table icons more obvious */
-th span {
-    font-size: 1.2em;
-    font-weight: bold;
+.sortable-table {
+    width: 100%;
+}
+
+.sortable-table th {
     cursor: pointer;
+    text-align: left;
+    padding: 0.5rem;
+}
+
+.sortable-table th span {
+    font-size: 1.0rem;
+    font-weight: bold;
+}
+
+.sortable-table td {
+    border-top: 1px solid #ddd;
+    padding: 0.5rem;
+    vertical-align: top;
 }
 
 /* Story content styling */

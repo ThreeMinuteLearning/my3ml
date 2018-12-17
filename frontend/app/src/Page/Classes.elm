@@ -80,8 +80,8 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Classes"
     , content =
-        div [ class "container page" ]
-            [ TeacherToolbar.view session subtools
+        div [ class "flex flex-col" ]
+            [ div [ class "mb-4" ] [ TeacherToolbar.view session Route.Classes subtools ]
             , viewTable session model
             , maybeView addClassesDialog model.addClassForm
             ]
@@ -127,7 +127,7 @@ viewClassLink class =
 
 subtools : List (Html Msg)
 subtools =
-    [ Bootstrap.btn "add-class-button" ShowAddClass [ text "Add Class" ] ]
+    [ Bootstrap.btn "add-class-button" ShowAddClass "Add Class" ]
 
 
 addClassesDialog : AddClassForm.Model -> Html Msg
