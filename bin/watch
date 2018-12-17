@@ -24,7 +24,7 @@ while true; do
     server_pid=$!
   fi
 
-  inotifywait -re close_write . --exclude "(.git|\.#.*|.*swp?x?|.ghc.*|dist-newstyle|elm-stuff|flycheck_.*|intero|stack_work)" -e close_write,modify,delete,create,move
+  inotifywait --exclude "(.git|\.#.*|.*swp?x?|.ghc.*|dist-newstyle|elm-stuff|flycheck_.*|intero|stack_work)" -re close_write,modify,delete,create,move .
 
   if [ $server_pid -gt 0 ]; then
     kill $(list_descendants $server_pid)
