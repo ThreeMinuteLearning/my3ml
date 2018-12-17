@@ -107,7 +107,7 @@ view session m =
     { title = m.story.title
     , content =
         div [ class "max-w-lg mx-auto px-2" ]
-            [ viewIf (Session.isTeacher session) (printButton PrintWindow "Print this story")
+            [ viewIf (Session.isTeacher session) (div [ class "mb-2" ] [ printButton PrintWindow "Print this story" ])
             , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) m.story m.storyView
             , m.dictLookup
                 |> Maybe.map List.singleton

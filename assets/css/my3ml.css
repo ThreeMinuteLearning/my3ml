@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+
+@media print {
+    .print\:none, .hidden-print {
+        display: none;
+    }
+}
+
 /* Menu-toggle button */
 .menu {
     display: none;
