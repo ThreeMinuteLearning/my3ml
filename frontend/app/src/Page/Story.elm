@@ -116,8 +116,8 @@ view session m =
             , viewIf (Session.isStudent session) (viewAnswersForm m)
             , viewIf (Session.isTeacher session) (viewPrintAnswerSections m.story)
             , viewIf (m.answersForm == Nothing && not (List.isEmpty m.answers))
-                (div [ class "hidden-print" ]
-                    (h2 [ class "text-lg font-bold" ] [ text "Story answers" ] :: Answers.view m.story m.answers)
+                (div [ class "hidden-print mt-8" ]
+                    (h2 [ class "text-lg text-center font-bold mb-2" ] [ text "Story answers" ] :: Answers.view m.story m.answers)
                 )
             ]
     }
