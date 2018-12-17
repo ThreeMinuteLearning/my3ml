@@ -5,7 +5,7 @@ import Data.Settings as Settings exposing (Settings)
 import Data.Words exposing (WordDict)
 import Dict exposing (Dict)
 import Http
-import Json.Decode as Decode exposing (Decoder)
+import Json.Decode as Decode exposing (Decoder, nullable)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode as Encode
 import List.Extra
@@ -19,7 +19,7 @@ type alias User =
     , role : Role
     , level : Int
     , token : AccessToken
-    , settings : Settings
+    , settings : Maybe Settings
     }
 
 
@@ -174,7 +174,6 @@ newLogin s { sub, name, level, token, role, settings } =
         userSettings =
             settings
                 |> Maybe.andThen (Result.toMaybe << Decode.decodeValue Settings.decoder)
-                |> Maybe.withDefault Settings.defaultSettings
 
         user =
             User name sub userRole level (AccessToken token) userSettings
@@ -272,7 +271,7 @@ encodeUser user =
         , ( "role", encodeRole user.role )
         , ( "level", Encode.int user.level )
         , ( "token", encodeAccessToken user.token )
-        , ( "settings", Settings.encode user.settings )
+        , ( "settings", Maybe.map Settings.encode user.settings |> Maybe.withDefault Encode.null )
         ]
 
 
@@ -284,7 +283,7 @@ userDecoder =
         |> required "role" roleDecoder
         |> required "level" Decode.int
         |> required "token" accessTokenDecoder
-        |> required "settings" Settings.decoder
+        |> required "settings" (nullable Settings.decoder)
 
 
 encodeRole : Role -> Encode.Value

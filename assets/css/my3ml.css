@@ -2,10 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-
 @media print {
     .print\:none, .hidden-print {
         display: none;
+    }
+    .print\:text-sm {
+        font-size: .875rem;
     }
 }
 

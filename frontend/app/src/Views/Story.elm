@@ -48,9 +48,13 @@ update msg ( picWidth, windowWidth ) =
             ( ( picWidth, width ), Cmd.none )
 
 
-view : Settings -> Story -> State -> Html Msg
-view settings story ( picWidth, windowWidth ) =
+view : Maybe Settings -> Story -> State -> Html Msg
+view mSettings story ( picWidth, windowWidth ) =
     let
+        style_ =
+            Maybe.map toStyle mSettings
+                |> Maybe.withDefault []
+
         ( imgDivClass, imgClass ) =
             if (toFloat picWidth / toFloat (divWidth windowWidth)) > 0.67 then
                 ( "w-full", "w-full" )
@@ -63,7 +67,7 @@ view settings story ( picWidth, windowWidth ) =
         , div [ id "storypic", class imgDivClass ]
             [ img [ class imgClass, onLoadGetWidth GetImgWidth, src ("pix/" ++ story.img) ] []
             ]
-        , Markdown.toHtml (id "storycontent" :: class "leading-normal" :: toStyle settings) (storyContent story)
+        , Markdown.toHtml (id "storycontent" :: class "print:text-sm text-lg leading-normal" :: style_) (storyContent story)
         , div [ class "hidden-print text-sm" ]
             [ p [ class "mb-1" ] [ text (String.join ", " (tagList story)) ]
             , p [] [ text ("Level: " ++ String.fromInt story.level) ]

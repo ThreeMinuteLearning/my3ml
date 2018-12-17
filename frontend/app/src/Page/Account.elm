@@ -38,7 +38,7 @@ init origSession =
 
         settings =
             origSession.user
-                |> Maybe.map .settings
+                |> Maybe.andThen .settings
                 |> Maybe.withDefault defaultSettings
 
         zipWithStory session a =
@@ -90,7 +90,7 @@ update session msg ({ settings } as model) =
 updateSessionSettings : Session -> Settings -> Session
 updateSessionSettings session newSettings =
     session.user
-        |> Maybe.map (\u -> { u | settings = newSettings })
+        |> Maybe.map (\u -> { u | settings = Just newSettings })
         |> Maybe.map (\u -> { session | user = Just u })
         |> Maybe.withDefault session
 

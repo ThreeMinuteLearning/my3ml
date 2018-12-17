@@ -4,7 +4,7 @@ import AnswersForm
 import Api
 import Browser.Dom
 import Data.Session as Session exposing (Cache, Role(..), Session, authorization, findStoryById)
-import Data.Settings exposing (Settings, defaultSettings)
+import Data.Settings exposing (Settings)
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -107,7 +107,7 @@ view session m =
     { title = m.story.title
     , content =
         div [ class "max-w-lg mx-auto px-2" ]
-            [ viewIf (Session.isTeacher session) (div [ class "mb-2" ] [ printButton PrintWindow "Print this story" ])
+            [ viewIf (Session.isTeacher session) (div [ class "print:none mb-2" ] [ printButton PrintWindow "Print this story" ])
             , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) m.story m.storyView
             , m.dictLookup
                 |> Maybe.map List.singleton
@@ -139,11 +139,15 @@ viewAnswersForm m =
 
 viewPrintAnswerSections : Api.Story -> Html Msg
 viewPrintAnswerSections story =
+    let
+        cls =
+            class "text-base font-bold mb-24"
+    in
     div [ id "printactivities", class "mt-2" ]
-        [ h2 [ class "text-lg font-bold mb-24" ] [ text "Connect this story with yourself or something you know about." ]
-        , h2 [ class "text-lg font-bold mb-24" ] [ text "Think of a question the story makes you want to ask." ]
-        , h2 [ class "text-lg font-bold mb-24" ] [ text "Write one sentence that captures the main idea." ]
-        , h2 [ class "text-lg font-bold mb-24" ] [ text ("What do you think the word \"" ++ story.clarifyWord ++ "\" means?") ]
+        [ h2 [ cls ] [ text "Connect this story with yourself or something you know about." ]
+        , h2 [ cls ] [ text "Think of a question the story makes you want to ask." ]
+        , h2 [ cls ] [ text "Write one sentence that captures the main idea." ]
+        , h2 [ cls ] [ text ("What do you think the word \"" ++ story.clarifyWord ++ "\" means?") ]
         ]
 
 
@@ -187,11 +191,13 @@ updateCacheAnswers a c =
     { c | answers = Dict.insert a.storyId a c.answers }
 
 
-settingsFromSession : Session -> Settings
+settingsFromSession : Session -> Maybe Settings
 settingsFromSession session =
-    session.user
-        |> Maybe.map .settings
-        |> Maybe.withDefault defaultSettings
+    if Session.isTeacher session then
+        Nothing
+
+    else
+        Maybe.andThen .settings session.user
 
 
 resetAnswersForm : Model -> Model

@@ -383,7 +383,7 @@ view model =
                         []
                     ]
                 , div [ class "col-md-6" ]
-                    [ Html.map StoryViewMsg <| StoryView.view defaultSettings model.story model.storyView ]
+                    [ Html.map StoryViewMsg <| StoryView.view Nothing model.story model.storyView ]
                 ]
             ]
     }

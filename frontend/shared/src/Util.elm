@@ -38,7 +38,7 @@ appendErrors model errors =
 
 printButton : msg -> String -> Html msg
 printButton print caption =
-    a [ class "no-underline hidden-print", onClick print, href "#" ] [ text caption ]
+    a [ class "print:none no-underline", onClick print, href "#" ] [ text caption ]
 
 
 defaultHttpErrorMsg : Http.Error -> String

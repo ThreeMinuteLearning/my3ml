@@ -356,7 +356,7 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session m =
     { title = "Find a Story"
     , content =
-        div [ class "container page" ]
+        div []
             [ case m.browser of
                 Nothing ->
                     div []
@@ -383,11 +383,10 @@ view session m =
     }
 
 
-settingsFromSession : Session -> Settings
+settingsFromSession : Session -> Maybe Settings
 settingsFromSession session =
     session.user
-        |> Maybe.map .settings
-        |> Maybe.withDefault defaultSettings
+        |> Maybe.andThen .settings
 
 
 viewBrowserToolbar : Session -> Api.Story -> List Api.Story -> Html Msg
