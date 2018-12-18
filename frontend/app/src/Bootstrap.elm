@@ -1,6 +1,6 @@
-module Bootstrap exposing (Alert(..), alert, btn, btnGroup, closeBtn, errorClass, formGroup, row, tableCustomizations, toolbar)
+module Bootstrap exposing (Alert(..), alert, btn, btnGroup, closeBtn, errorClass, formGroup, link, row, tableCustomizations, toolbar)
 
-import Html exposing (Html, button, div, span, text, tr)
+import Html exposing (Attribute, Html, button, div, span, text, tr)
 import Html.Attributes exposing (attribute, class, id, type_)
 import Html.Events exposing (onClick)
 import Svg
@@ -55,6 +55,11 @@ toolbar id_ =
 
 btnGroup =
     div [ class "btn-group", role "group" ]
+
+
+link : Attribute msg -> String -> Html msg
+link href_ txt =
+    Html.a [ class "text-blue hover:text-blue-dark no-underline", href_ ] [ text txt ]
 
 
 btn : String -> msg -> String -> Html msg

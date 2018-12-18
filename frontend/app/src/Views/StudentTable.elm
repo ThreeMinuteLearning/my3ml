@@ -1,7 +1,7 @@
 module Views.StudentTable exposing (config, init, view)
 
 import Api
-import Bootstrap
+import Bootstrap exposing (link)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onCheck)
@@ -44,9 +44,7 @@ config setState onSelectStudent =
 
         viewStudentLink ( _, student ) =
             Table.HtmlDetails []
-                [ a [ Route.href (Route.Teacher (Route.Student student.id)) ]
-                    [ text student.name
-                    ]
+                [ link (Route.href (Route.Teacher (Route.Student student.id))) student.name
                 ]
     in
     Table.customConfig

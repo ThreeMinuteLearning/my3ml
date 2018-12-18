@@ -2,7 +2,7 @@ module Page.Classes exposing (Model, Msg, init, update, view)
 
 import AddClassForm
 import Api
-import Bootstrap
+import Bootstrap exposing (link)
 import Data.Session as Session exposing (Session, authorization)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -119,9 +119,7 @@ nameColumn =
 viewClassLink : Api.Class -> Table.HtmlDetails Msg
 viewClassLink class =
     Table.HtmlDetails []
-        [ a [ Route.href (Route.Teacher (Route.Class class.id)) ]
-            [ text class.name
-            ]
+        [ link (Route.href (Route.Teacher (Route.Class class.id))) class.name
         ]
 
 

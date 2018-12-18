@@ -11,11 +11,6 @@
     }
 }
 
-a, a:visited {
-    color: #337ab7;
-    text-decoration: none;
-}
-
 /* Menu-toggle button */
 .menu {
     display: none;
