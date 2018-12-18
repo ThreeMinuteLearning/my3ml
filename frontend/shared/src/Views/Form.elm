@@ -7,7 +7,7 @@ import Tuple exposing (second)
 
 formControl : Attribute msg
 formControl =
-    class "appearance-none h-8 border shadow border-grey-light bg-white rounded px-3 py-1 text-grey-darker focus:border-blue"
+    class "h-8 border shadow border-grey-light bg-white rounded px-3 py-1 text-grey-darker focus:border-blue"
 
 
 password : List (Attribute msg) -> List (Html msg) -> Html msg
