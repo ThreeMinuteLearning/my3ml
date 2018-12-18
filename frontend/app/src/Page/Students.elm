@@ -281,8 +281,9 @@ addStudentsDialog : AddStudentsForm.Model -> Html Msg
 addStudentsDialog form =
     Modal.view "Add Students"
         DismissAddStudents
-        (div []
-            [ p [] [ text "Enter the names of the students you want to add accounts for, separated by commas or on separate lines. You can enter up to 100 names." ]
+        (div [ class "w-full max-w-md p-4 flex flex-col" ]
+            [ p [ class "mb-2 text-lg" ] [ text "Enter the names of the students you want to add accounts for, separated by commas or on separate lines." ]
+            , p [ class "mb-2 text-lg" ] [ text "You can enter up to 100 names." ]
             , Html.map AddStudentsFormMsg (AddStudentsForm.view form)
             ]
         )

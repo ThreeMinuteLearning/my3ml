@@ -2,9 +2,10 @@ module AddStudentsForm exposing (Model, Msg, init, update, view)
 
 import Api
 import Bootstrap exposing (errorClass)
+import Components
 import Data.Session exposing (Session, authorization)
 import Html exposing (..)
-import Html.Attributes exposing (class, disabled, id, selected)
+import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
 import Http
 import Regex
@@ -148,17 +149,17 @@ view model =
                         "has-error"
                     )
                 ]
-                [ Form.textarea [ onInput SetNames ] []
+                [ Form.textarea [ class "w-full h-48 mb-2", onInput SetNames ] []
                 ]
 
         submitButton =
-            Html.button [ class "btn btn-primary pull-xs-right", disabled model.waitingForResponse ] [ text "Create Accounts" ]
+            Components.btn [ class "sm:w-1/2 mt-2", disabled model.waitingForResponse, type_ "submit" ] [ text "Create Accounts" ]
 
         viewForm =
-            Html.form
-                [ onSubmit SubmitForm ]
-                [ Html.fieldset []
-                    [ namesInput, SelectLevel.view SetLevel model.level, submitButton ]
+            Html.form [ class "flex flex-col", onSubmit SubmitForm ]
+                [ namesInput
+                , SelectLevel.view SetLevel model.level
+                , submitButton
                 ]
     in
     div []

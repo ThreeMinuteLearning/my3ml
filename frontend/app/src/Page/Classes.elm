@@ -81,7 +81,7 @@ view session model =
     { title = "Classes"
     , content =
         div [ class "flex flex-col" ]
-            [ div [ class "mb-4" ] [ TeacherToolbar.view session Route.Classes subtools ]
+            [ div [ class "mb-16" ] [ TeacherToolbar.view session Route.Classes subtools ]
             , viewTable session model
             , maybeView addClassesDialog model.addClassForm
             ]
@@ -132,8 +132,8 @@ addClassesDialog : AddClassForm.Model -> Html Msg
 addClassesDialog form =
     Modal.view "Add Class"
         DismissAddClass
-        (div []
-            [ p [] [ text "Enter the new class name and a description" ]
+        (div [ class "w-full max-w-md p-4 flex flex-col" ]
+            [ p [ class "mb-2 text-lg" ] [ text "Please enter a name and a description for the new class" ]
             , Html.map AddClassFormMsg (AddClassForm.view form)
             ]
         )

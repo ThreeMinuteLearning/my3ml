@@ -3,6 +3,7 @@ module Page.Login exposing (Model, Msg, initialModel, update, view)
 {-| The login page.
 -}
 
+import Components
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -57,7 +58,7 @@ form_ formId =
 
 submitButton : Html msg
 submitButton =
-    button [ class "bg-blue hover:bg-blue-dark text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline", type_ "submit", tabindex 3 ] [ text "Sign in" ]
+    Components.btn [ type_ "submit", tabindex 3 ] [ text "Sign in" ]
 
 
 viewForm : Maybe (Attribute (Msg a)) -> Html (Msg a)

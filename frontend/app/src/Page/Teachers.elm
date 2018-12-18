@@ -91,7 +91,7 @@ view session model =
     { title = "Teachers"
     , content =
         div [ class "flex flex-col" ]
-            [ div [ class "mb-4" ]
+            [ div [ class "mb-16" ]
                 [ TeacherToolbar.view session Route.Teachers [ newRegistrationCodeButton ]
                 ]
             , viewCode model.registrationCode
@@ -114,10 +114,10 @@ viewCode code =
             div [] []
 
         Just c ->
-            div [ class "leading-normal" ]
+            div [ class "leading-normal mb-4" ]
                 [ p [ class "mb-4" ] [ text "Copy the code below and give it to the person you want to create an account for. They should then register for an account and enter the code to become a member of your school. The code is valid for 20 minutes." ]
                 , p [] [ text "Once they have completed their registration, they should tell you and you can activate their account from this page (reload the page if necessary)." ]
-                , div [ class "text-center font-bold text-xl" ]
+                , div [ class "text-center font-bold text-xl mt-3" ]
                     [ p [] [ text c ]
                     ]
                 ]

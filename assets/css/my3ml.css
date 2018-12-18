@@ -20,12 +20,6 @@
     display: block;
 }
 
-/* Form error styling */
-.error-messages {
-    color: #b85c5c !important;
-    font-weight: bold;
-}
-
 /* Password strength */
 
 #password-strength-meter {

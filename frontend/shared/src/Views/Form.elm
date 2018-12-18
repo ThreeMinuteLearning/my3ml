@@ -40,5 +40,5 @@ viewErrors errors =
 viewErrorMsgs : List String -> Html msg
 viewErrorMsgs errors =
     errors
-        |> List.map (\error -> li [] [ text error ])
-        |> ul [ class "error-messages" ]
+        |> List.map (\error -> li [ class "ml-2 mb-1" ] [ text error ])
+        |> ul [ class "list-reset text-red-dark font-bold mb-2" ]
