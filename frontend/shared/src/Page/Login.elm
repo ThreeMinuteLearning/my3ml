@@ -50,11 +50,6 @@ label_ for_ txt =
     label [ class "block text-grey-darker-text-sm font-bold mb-2", for for_ ] [ text txt ]
 
 
-inputBaseCss : String
-inputBaseCss =
-    "shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker focus:outline-none focus:shadow-outline"
-
-
 form_ : String -> List (Html (Msg a)) -> Html (Msg a)
 form_ formId =
     Html.form [ id formId, class "bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4", onSubmit SubmitForm ]
@@ -62,7 +57,7 @@ form_ formId =
 
 submitButton : Html msg
 submitButton =
-    button [ class "bg-blue hover:bg-blue-dark text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outlinee", type_ "submit", tabindex 3 ] [ text "Sign in" ]
+    button [ class "bg-blue hover:bg-blue-dark text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline", type_ "submit", tabindex 3 ] [ text "Sign in" ]
 
 
 viewForm : Maybe (Attribute (Msg a)) -> Html (Msg a)
@@ -71,8 +66,7 @@ viewForm regLink =
         [ div [ class "mb-4" ]
             [ label_ "username" "Username"
             , Form.input
-                [ class inputBaseCss
-                , id "username"
+                [ id "username"
                 , name "username"
                 , placeholder "Username or email"
                 , tabindex 1
@@ -83,8 +77,7 @@ viewForm regLink =
         , div [ class "mb-6" ]
             [ label_ "password" "Password"
             , Form.password
-                [ class inputBaseCss
-                , id "password"
+                [ id "password"
                 , placeholder "Password"
                 , tabindex 2
                 , onInput SetPassword
@@ -108,8 +101,7 @@ viewOtpForm : Model -> Html (Msg a)
 viewOtpForm model =
     form_ "otp-form"
         [ Form.input
-            [ class inputBaseCss
-            , id "otp-code"
+            [ id "otp-code"
             , name "otp-code"
             , value (Maybe.withDefault "" model.otp)
             , placeholder "One-time password code"
