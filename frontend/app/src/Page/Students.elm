@@ -3,6 +3,7 @@ module Page.Students exposing (Model, Msg, init, update, view)
 import AddStudentsForm
 import Api
 import Bootstrap
+import Components
 import Data.Session as Session exposing (Session, authorization, updateCache)
 import Dict exposing (Dict)
 import Html exposing (..)
@@ -191,11 +192,7 @@ view session model =
                     , ClassSelect.view session.cache.classes (second model.studentFilter) "Filter by class" SetClassFilter
                     ]
                 , Util.viewUnless (Dict.isEmpty model.selectedStudents)
-                    (div [ class "flex justify-between max-w-sm" ]
-                        [ Bootstrap.btn "clear-selected-students" ClearSelectedStudents "Clear selection"
-                        , ClassSelect.view session.cache.classes Nothing "Add selected students to class" AddStudentsToClass
-                        ]
-                    )
+                    (Components.toolbar [ ( ClearSelectedStudents, False, "Clear selection" ) ] [ ClassSelect.view session.cache.classes Nothing "Add selected students to class" AddStudentsToClass ])
                 ]
             , viewTable session.cache model
             , maybeView addStudentsDialog model.addStudentsForm
@@ -206,7 +203,7 @@ view session model =
 subtools : Session -> List (Html Msg)
 subtools session =
     if Session.isSchoolAdmin session then
-        [ Bootstrap.btn "add-students-button" ShowAddStudents "Add Students"
+        [ Components.btn [ id "add-students-button", onClick ShowAddStudents ] [ text "Add Students" ]
         ]
 
     else

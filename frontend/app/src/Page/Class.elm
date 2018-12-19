@@ -1,7 +1,7 @@
 module Page.Class exposing (ExternalMsg(..), Model, Msg, init, update, view)
 
 import Api
-import Bootstrap
+import Components
 import Data.Session as Session exposing (Session, authorization)
 import Dict exposing (Dict)
 import Html exposing (..)
@@ -10,6 +10,7 @@ import Html.Events exposing (onClick)
 import Http
 import Modal
 import Page.Errored exposing (PageLoadError, pageLoadError)
+import Route
 import Table
 import Task exposing (Task)
 import Util exposing (defaultHttpErrorMsg, viewIf)
@@ -150,13 +151,25 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Class " ++ model.class.name
     , content =
-        div [ class "container page" ]
-            [ h3 [] [ text (.name model.class) ]
-            , h4 [] [ text (Maybe.withDefault "" (.description model.class)) ]
+        div [ class "px-4" ]
+            [ h1 [ class "font-normal mb-2" ] [ text (.name model.class) ]
+            , div [ class "text-lg font-semi-bold mb-1" ] [ text (Maybe.withDefault "" (.description model.class)) ]
             , viewToolbar model
             , Form.viewErrorMsgs model.errors
-            , h4 [] [ text "Class members" ]
-            , viewTable session.cache model
+            , h2 [ class "text-lg" ] [ text "Class members" ]
+            , if List.isEmpty model.class.students then
+                div [ class "mt-2 text-base" ]
+                    [ p [ class "mb-1" ]
+                        [ text "This class is empty." ]
+                    , p []
+                        [ text "You can select students in the table on the "
+                        , Components.link [ Route.href (Route.Teacher Route.Students) ] "students page"
+                        , text " to add new members."
+                        ]
+                    ]
+
+              else
+                viewTable session.cache model
             , viewIf model.showConfirmDelete
                 (confirmDeleteDialog (userIsOwner session.user model.class))
             ]
@@ -178,7 +191,7 @@ viewTable cache model =
         students =
             List.filter (\s -> List.member s.id classMembers) cache.students
     in
-    div [ class "row hidden-print" ]
+    div [ class "print:none" ]
         [ StudentTable.view tableConfig model.membersTable students isChecked
         ]
 
@@ -196,29 +209,27 @@ userIsOwner user class =
 viewToolbar : Model -> Html Msg
 viewToolbar model =
     let
-        inputGroupBtn msg txt =
-            button [ class "btn btn-default btn-sm", onClick msg, type_ "button" ] [ text txt ]
+        buttons =
+            ( Delete, False, "Delete" )
+                :: (if not (Dict.isEmpty model.selectedStudents) then
+                        [ ( RemoveSelectedStudents, False, "Remove students from class" ) ]
+
+                    else
+                        []
+                   )
     in
-    div [ class "col-lg-12" ]
-        [ div [ class "input-group" ]
-            [ div [ class "input-group-btn" ]
-                [ inputGroupBtn Delete "Delete"
-                , viewIf (not (Dict.isEmpty model.selectedStudents)) <| inputGroupBtn RemoveSelectedStudents "Remove students from class"
-                ]
-            ]
-        ]
+    Components.toolbar buttons []
 
 
 confirmDeleteDialog : Bool -> Html Msg
 confirmDeleteDialog isOwner =
     Modal.view "Delete class"
         DismissDialog
-        (div []
-            [ p [] [ text "Are you sure you want to delete this class? Only the class information will be removed (none of the student accounts will be affected)." ]
+        (div [ class "w-full max-w-md p-4 flex flex-col" ]
+            [ p [ class "text-lg mb-4" ] [ text "Are you sure you want to delete this class?" ]
+            , p [ class "text-lg mb-4" ] [ text "Only the class information will be removed (none of the student accounts will be affected)." ]
             , viewIf (not isOwner) <|
-                p [] [ text "WARNING: Another teacher created this class. Perhaps you shouldn't delete it (they might be annoyed!)?" ]
-            , button [ class "btn btn-warn", onClick ConfirmDelete ]
-                [ text "Delete class"
-                ]
+                p [ class "text-lg font-bold" ] [ text "WARNING: Another teacher created this class. Perhaps you shouldn't delete it (they might be annoyed!)?" ]
+            , Components.btn [ class "mt-4", onClick ConfirmDelete ] [ text "Delete class" ]
             ]
         )

@@ -1,6 +1,7 @@
 module Views.ChangeUsernameForm exposing (ExternalMsg(..), Model, Msg, init, update, view)
 
 import Api
+import Components
 import Data.Session exposing (Session, authorization)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -108,9 +109,9 @@ view : Model -> Html Msg
 view model =
     let
         viewForm =
-            Html.form [ onSubmit SubmitForm ]
+            Html.form [ class "flex flex-col", onSubmit SubmitForm ]
                 [ Form.input
-                    [ class "form-control-lg"
+                    [ class "w-full"
                     , placeholder "New username"
                     , tabindex 1
                     , onInput SetUsername
@@ -120,10 +121,10 @@ view model =
                 ]
 
         submitButton =
-            Html.button [ class "btn btn-primary pull-xs-right", tabindex 2 ] [ text "Save new username" ]
+            Components.btn [ class "mt-4", tabindex 2 ] [ text "Save new username" ]
     in
     div []
-        [ p [] [ text "Please avoid using personal names (or variations of them) as usernames." ]
+        [ p [ class "text-lg mb-3" ] [ text "Please avoid using personal names (or variations of them) as usernames." ]
         , Form.viewErrorMsgs model.errors
         , viewForm
         ]

@@ -1,7 +1,7 @@
 module Page.Student exposing (Model, Msg, init, update, view)
 
 import Api
-import Bootstrap
+import Components
 import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -188,12 +188,11 @@ view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Student"
     , content =
-        div [ class "container page" ]
-            [ h1 [] [ text (.name model.student) ]
+        div [ class "px-4" ]
+            [ h1 [ class "font-normal" ] [ text (.name model.student) ]
             , viewToolbar model.userIsAdmin model.student
             , Form.viewErrorMsgs model.errors
-            , hr [] []
-            , h1 [] [ text "Completed Stories" ]
+            , h2 [ class "mt-4" ] [ text "Completed Stories" ]
             , Answers.viewWithStories model.answers
             , maybeView changePasswordDialog model.changePasswordForm
             , maybeView changeUsernameDialog model.changeUsernameForm
@@ -205,45 +204,34 @@ view model =
 viewToolbar : Bool -> Api.Student -> Html Msg
 viewToolbar isAdmin student =
     let
-        inputGroupBtn msg disable txt =
-            button [ class "btn btn-default", onClick msg, disabled disable, type_ "button" ] [ text txt ]
+        buttons =
+            ( ShowChangePassword, False, "Change password" )
+                :: ( ShowChangeUsername, False, "Change username" )
+                :: (if isAdmin then
+                        [ ( ToggleDeletedStatus
+                          , False
+                          , case student.deleted of
+                                Nothing ->
+                                    "Delete"
 
-        teacherButtons =
-            [ inputGroupBtn ShowChangePassword False "Change password"
-            , inputGroupBtn ShowChangeUsername False "Change username"
-            ]
+                                _ ->
+                                    "Un-delete"
+                          )
+                        , ( ToggleHiddenStatus
+                          , student.deleted /= Nothing
+                          , if student.hidden then
+                                "Un-hide"
 
-        adminButtons =
-            if isAdmin then
-                [ inputGroupBtn ToggleDeletedStatus
-                    False
-                    (case student.deleted of
-                        Nothing ->
-                            "Delete"
+                            else
+                                "Hide"
+                          )
+                        ]
 
-                        _ ->
-                            "Un-delete"
-                    )
-                , inputGroupBtn ToggleHiddenStatus
-                    (student.deleted /= Nothing)
-                    (if student.hidden then
-                        "Un-hide"
-
-                     else
-                        "Hide"
-                    )
-                ]
-
-            else
-                []
+                    else
+                        []
+                   )
     in
-    div [ class "col-lg-8" ]
-        [ div [ class "input-group" ]
-            [ div [ class "input-group-btn" ]
-                (teacherButtons ++ adminButtons)
-            , SelectLevel.view SetLevel student.level
-            ]
-        ]
+    Components.toolbar buttons [ SelectLevel.view SetLevel student.level ]
 
 
 changePasswordDialog : ChangePassword.Model -> Html Msg
@@ -260,7 +248,7 @@ changeUsernameDialog : ChangeUsername.Model -> Html Msg
 changeUsernameDialog form =
     Modal.view "Change username"
         DismissDialog
-        (div []
+        (div [ class "w-full max-w-sm p-4 flex flex-col" ]
             [ Html.map ChangeUsernameMsg (ChangeUsername.view form)
             ]
         )
@@ -270,10 +258,9 @@ confirmDeleteDialog : Html Msg
 confirmDeleteDialog =
     Modal.view "Delete Student"
         DismissDialog
-        (div []
-            [ p [] [ text "Are you sure you want to delete this student account? It will be marked for deletion and removed automatically at a later date (you can un-delete it if you change your mind)." ]
-            , button [ class "btn btn-danger", onClick ConfirmDelete ]
-                [ text "Delete student"
-                ]
+        (div [ class "w-full max-w-md p-4 flex flex-col" ]
+            [ p [ class "text-lg mb-4" ] [ text "Are you sure you want to delete this student account?" ]
+            , p [ class "text-lg" ] [ text "It will be marked for deletion and removed automatically at a later date (you can un-delete it if you change your mind)." ]
+            , Components.btn [ class "mt-6", onClick ConfirmDelete ] [ text "Delete student" ]
             ]
         )
