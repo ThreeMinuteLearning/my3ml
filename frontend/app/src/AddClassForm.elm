@@ -124,6 +124,7 @@ view model =
                 , class (errorClass (fieldError Name model.errors))
                 , onInput SetName
                 , placeholder "Class name"
+                , tabindex 1
                 ]
                 []
             , Form.input
@@ -131,6 +132,7 @@ view model =
                 , class (errorClass (fieldError Description model.errors))
                 , onInput SetDescription
                 , placeholder "Class description"
+                , tabindex 2
                 ]
                 []
             , Components.btn [ type_ "submit", tabindex 3 ] [ text "Create class" ]

@@ -27,7 +27,7 @@ alert a txt dismiss =
     in
     div [ class alertClass, role "alert" ]
         [ span [ class "block" ] [ text txt ]
-        , closeBtn2 dismiss
+        , closeBtn dismiss
         ]
 
 
@@ -57,7 +57,7 @@ closeIcon2 =
 
 link : Attribute msg -> String -> Html msg
 link href_ txt =
-    Html.a [ class "text-blue hover:text-blue-dark no-underline", href_ ] [ text txt ]
+    Components.link [ href_ ] txt
 
 
 btn : String -> msg -> String -> Html msg

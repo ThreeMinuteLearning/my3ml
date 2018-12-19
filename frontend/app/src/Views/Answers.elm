@@ -24,7 +24,7 @@ viewWithStories answers =
 viewStoryAnswer : ( Api.Answer, Api.Story ) -> Html msg
 viewStoryAnswer ( answer, story ) =
     div [ class "rounded shadow-md mt-2 py-2" ]
-        (h2 [ class "text-lg text-center font-bold" ] [ text story.title ] :: viewDetails story answer)
+        (h2 [ class "text-xl text-center font-light" ] [ text story.title ] :: viewDetails story answer)
 
 
 viewDetails : Api.Story -> Api.Answer -> List (Html msg)
@@ -39,4 +39,4 @@ viewDetails story answer =
 cqsc : String -> List (Html msg) -> Html msg
 cqsc answerType content =
     div [ class "px-6 py-2" ]
-        (h3 [ class "text-base font-bold" ] [ text answerType ] :: content)
+        (h3 [ class "text-base font-bold text-grey-dark" ] [ text answerType ] :: content)

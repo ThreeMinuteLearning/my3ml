@@ -251,7 +251,7 @@ viewForm model =
                     [ btn
                     , label [ class "font-bold text-sm", for (fieldToString field ++ "Input") ] lbl
                     ]
-                , Form.textarea [ class "border rounded w-full text-sm mt-1", errorClass field, id (fieldToString field ++ "Input"), onInput msg, tabindex tx, disabled model.formSubmitted ] []
+                , Form.textarea [ class "h-12 border rounded w-full text-sm mt-1", errorClass field, id (fieldToString field ++ "Input"), onInput msg, tabindex tx, disabled model.formSubmitted ] []
                 ]
 
         mkOption ( v, txt ) =
@@ -301,7 +301,7 @@ viewForm model =
             , answerField Clarification SetClarification (drwrBtn "Clarify" Drawer.Clarify) [ text "Work through the clarify methods then type what you think this word means: ", em [ class "clarify-word" ] [ text (.clarifyWord model.story) ] ] 4
             , div [ class "mt-3", errorClass ClarificationMethod ]
                 [ label [ class "text-sm font-bold", for "clarifyMethod" ] [ text "Which clarify method worked best for you?" ]
-                , Html.select [ id "clarifyMethod", class "border rounded mt-1", onSelect SetClarifyMethod, tabindex 5 ] clarifyMethodOptions
+                , Form.select [ id "clarifyMethod", class "border rounded mt-1", onSelect SetClarifyMethod, tabindex 5 ] clarifyMethodOptions
                 ]
             , submitButton
             ]

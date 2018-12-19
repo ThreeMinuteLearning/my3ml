@@ -5,29 +5,34 @@ import Html.Attributes exposing (class, type_)
 import Tuple exposing (second)
 
 
-formControl : Attribute msg
-formControl =
-    class "h-8 border shadow border-grey-light bg-white rounded px-3 py-1 text-grey-darker focus:border-blue"
+fcStyle : Attribute msg
+fcStyle =
+    class "border shadow border-grey-light bg-white rounded px-3 py-1 text-grey-darker focus:border-blue"
+
+
+fcHeight : Attribute msg
+fcHeight =
+    class "h-8"
 
 
 password : List (Attribute msg) -> List (Html msg) -> Html msg
 password attrs =
-    Html.input ([ formControl, type_ "password" ] ++ attrs)
+    Html.input ([ fcStyle, fcHeight, type_ "password" ] ++ attrs)
 
 
 input : List (Attribute msg) -> List (Html msg) -> Html msg
 input attrs =
-    Html.input ([ formControl, type_ "text" ] ++ attrs)
+    Html.input ([ fcStyle, fcHeight, type_ "text" ] ++ attrs)
 
 
 textarea : List (Attribute msg) -> List (Html msg) -> Html msg
 textarea attrs =
-    Html.textarea (formControl :: attrs)
+    Html.textarea (fcStyle :: attrs)
 
 
 select : List (Attribute msg) -> List (Html msg) -> Html msg
 select attrs =
-    Html.select (formControl :: attrs)
+    Html.select (fcStyle :: attrs)
 
 
 viewErrors : List ( a, String ) -> Html msg
