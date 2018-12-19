@@ -1,4 +1,4 @@
-module Bootstrap exposing (Alert(..), alert, btn, btnGroup, closeBtn, closeBtn2, errorClass, formGroup, link, row, tableCustomizations, toolbar)
+module Bootstrap exposing (Alert(..), alert, btn, closeBtn, closeBtn2, errorClass, link, tableCustomizations)
 
 import Components
 import Html exposing (Attribute, Html, button, div, span, text, tr)
@@ -12,16 +12,6 @@ import Table
 type Alert
     = Success
     | Danger
-
-
-row : List (Html msg) -> Html msg
-row =
-    div [ class "" ]
-
-
-formGroup : List (Html msg) -> Html msg
-formGroup =
-    div [ class "form-group" ]
 
 
 alert : Alert -> String -> msg -> Html msg
@@ -63,14 +53,6 @@ closeIcon2 =
         [ Svg.title [] [ Svg.text "Close" ]
         , Svg.path [ Svga.d "M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" ] []
         ]
-
-
-toolbar id_ =
-    div [ id id_, class "btn-toolbar hidden-print", role "toolbar" ]
-
-
-btnGroup =
-    div [ class "btn-group", role "group" ]
 
 
 link : Attribute msg -> String -> Html msg

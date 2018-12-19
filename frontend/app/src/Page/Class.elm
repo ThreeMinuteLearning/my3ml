@@ -1,7 +1,7 @@
 module Page.Class exposing (ExternalMsg(..), Model, Msg, init, update, view)
 
 import Api
-import Bootstrap exposing (row)
+import Bootstrap
 import Data.Session as Session exposing (Session, authorization)
 import Dict exposing (Dict)
 import Html exposing (..)
@@ -199,13 +199,11 @@ viewToolbar model =
         inputGroupBtn msg txt =
             button [ class "btn btn-default btn-sm", onClick msg, type_ "button" ] [ text txt ]
     in
-    row
-        [ div [ class "col-lg-12" ]
-            [ div [ class "input-group" ]
-                [ div [ class "input-group-btn" ]
-                    [ inputGroupBtn Delete "Delete"
-                    , viewIf (not (Dict.isEmpty model.selectedStudents)) <| inputGroupBtn RemoveSelectedStudents "Remove students from class"
-                    ]
+    div [ class "col-lg-12" ]
+        [ div [ class "input-group" ]
+            [ div [ class "input-group-btn" ]
+                [ inputGroupBtn Delete "Delete"
+                , viewIf (not (Dict.isEmpty model.selectedStudents)) <| inputGroupBtn RemoveSelectedStudents "Remove students from class"
                 ]
             ]
         ]

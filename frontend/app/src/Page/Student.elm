@@ -1,7 +1,7 @@
 module Page.Student exposing (Model, Msg, init, update, view)
 
 import Api
-import Bootstrap exposing (row)
+import Bootstrap
 import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -237,13 +237,11 @@ viewToolbar isAdmin student =
             else
                 []
     in
-    row
-        [ div [ class "col-lg-8" ]
-            [ div [ class "input-group" ]
-                [ div [ class "input-group-btn" ]
-                    (teacherButtons ++ adminButtons)
-                , SelectLevel.view SetLevel student.level
-                ]
+    div [ class "col-lg-8" ]
+        [ div [ class "input-group" ]
+            [ div [ class "input-group-btn" ]
+                (teacherButtons ++ adminButtons)
+            , SelectLevel.view SetLevel student.level
             ]
         ]
 
