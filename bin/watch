@@ -1,6 +1,9 @@
 #!/bin/bash
 
 set +x
+TARGET=$1
+
+[ -z $TARGET ] && TARGET=all
 
 list_descendants ()
 {
@@ -14,8 +17,13 @@ list_descendants ()
     echo "$children"
 }
 
+CHANGES="No changes"
+
 while true; do
-  make
+  echo -ne '\033c'
+  date +%H:%M:%S
+  echo $CHANGES
+  make $TARGET
   make_result=$?
   server_pid=0
 
@@ -24,9 +32,12 @@ while true; do
     server_pid=$!
   fi
 
-  inotifywait --exclude "(.git|\.#.*|.*swp?x?|.ghc.*|dist-newstyle|elm-stuff|flycheck_.*|intero|stack_work)" -re close_write,modify,delete,create,move .
+  echo "Server PID is $server_pid"
+  CHANGES=$(inotifywait -q --exclude '(\.git|elm-stuff|\.#.*|elm-stuff|\.ghc.*|dist-newstyle|flycheck_.*)' -r -e close_write -e modify -e delete -e create -e move .)
 
   if [ $server_pid -gt 0 ]; then
-    kill $(list_descendants $server_pid)
+    TOKILL=$(list_descendants $server_pid)
+    echo "Killing $TOKILL"
+    kill $TOKILL
   fi
 done

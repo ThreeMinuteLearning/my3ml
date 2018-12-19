@@ -1,8 +1,9 @@
+
 .PHONY: all
-all: backend frontend admin
+all: version backend frontend admin
 
 .PHONY: backend
-backend: backend/Version.hs
+backend: version
 	cabal new-build
 
 .PHONY: frontend
@@ -36,9 +37,16 @@ frontend/shared/src/Api.elm: code-generator/*.hs api/*.hs api/**/*.hs
 	mkdir -p $(@D) && cabal new-run code-generator
 
 VERSION_FILE=backend/Version.hs
+current_revision:=$(shell git rev-parse HEAD)
+current_version:=$(shell git describe --always)
+version_up_to_date:=$(shell grep -c $(current_revision) backend/Version.hs)
 
-backend/Version.hs: .git/refs/heads/*
-	printf "{-# LANGUAGE OverloadedStrings #-}\nmodule Version where\nimport Data.Text(Text)\n\nrevision :: Text\nrevision = \"$(shell git rev-parse HEAD)\"\n\nversion :: Text\nversion = \"$(shell git describe --always)\"" > $(VERSION_FILE)
+.PHONY: version
+version:
+  ifneq ($(version_up_to_date), 1)
+		printf "{-# LANGUAGE OverloadedStrings #-}\nmodule Version where\nimport Data.Text(Text)\n\nrevision :: Text\n" > $(VERSION_FILE)
+		printf "revision = \"$(current_revision)\"\n\nversion :: Text\nversion = \"$(current_version)\"" >> $(VERSION_FILE)
+  endif
 
 .PHONY: serve
 serve:
