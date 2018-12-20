@@ -35,7 +35,7 @@ initialModel =
 view : Model -> Maybe (Attribute (Msg a)) -> Html (Msg a)
 view model regLink =
     div [ class "py-10 px-4 flex justify-center" ]
-        [ div [ class "w-full max-w-xs" ]
+        [ div [ class "w-full max-w-sm" ]
             [ Form.viewErrors model.errors
             , if model.otpRequired then
                 viewOtpForm model
@@ -53,7 +53,7 @@ label_ for_ txt =
 
 form_ : String -> List (Html (Msg a)) -> Html (Msg a)
 form_ formId =
-    Html.form [ id formId, class "bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4", onSubmit SubmitForm ]
+    Html.form [ id formId, class "bg-white shadow-md rounded px-8 pt-6 pb-8 sm:p-16 mb-4", onSubmit SubmitForm ]
 
 
 submitButton : Html msg
@@ -68,6 +68,7 @@ viewForm regLink =
             [ label_ "username" "Username"
             , Form.input
                 [ id "username"
+                , class "w-full"
                 , name "username"
                 , placeholder "Username or email"
                 , tabindex 1
@@ -79,6 +80,7 @@ viewForm regLink =
             [ label_ "password" "Password"
             , Form.password
                 [ id "password"
+                , class "w-full"
                 , placeholder "Password"
                 , tabindex 2
                 , onInput SetPassword
