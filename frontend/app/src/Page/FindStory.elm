@@ -339,7 +339,7 @@ loadMore m =
 
             else
                 ( { m | viewType = Tiles (n + (4 * StoryTiles.tilesPerRow (first m.windowSize))) }
-                , Ports.isLastEltVisible "storytiles"
+                , Ports.isLastEltVisible StoryTiles.divId
                 )
 
         _ ->

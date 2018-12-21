@@ -1,4 +1,4 @@
-module Views.StoryTiles exposing (tilesPerPage, tilesPerRow, view)
+module Views.StoryTiles exposing (divId, tilesPerPage, tilesPerRow, view)
 
 {- Displays a list of stories as a grid of tiles -}
 
@@ -6,6 +6,11 @@ import Api exposing (Story)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Route
+
+
+divId : String
+divId =
+    "storytiles"
 
 
 view : Bool -> List Story -> Html msg
@@ -25,7 +30,7 @@ view useSmallTiles stories =
                 [ h3 [ class "text-sm text-white", classList [ ( "hidden", useSmallTiles ) ] ] [ text s.title ]
                 ]
     in
-    div [ class "flex flex-wrap justify-between" ] (List.map storyTile stories)
+    div [ id divId, class "flex flex-wrap justify-between" ] (List.map storyTile stories)
 
 
 tilesPerPage : ( Int, Int ) -> Int
