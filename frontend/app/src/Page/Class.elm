@@ -156,7 +156,7 @@ view session model =
             , div [ class "text-lg font-semi-bold mb-1" ] [ text (Maybe.withDefault "" (.description model.class)) ]
             , viewToolbar model
             , Form.viewErrorMsgs model.errors
-            , h2 [ class "text-lg" ] [ text "Class members" ]
+            , h2 [ class "text-lg mt-2" ] [ text "Class members" ]
             , if List.isEmpty model.class.students then
                 div [ class "mt-2 text-base" ]
                     [ p [ class "mb-1" ]

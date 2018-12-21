@@ -162,7 +162,7 @@ view session model =
     { title = "Home"
     , content =
         div [ class "max-w-lg mx-2 md:mx-auto" ]
-            [ h1 [ class "text-xl my-2" ] [ text (storiesTitle session) ]
+            [ h1 [ class "text-xl font-light my-4" ] [ text (storiesTitle session) ]
             , StoryTiles.view False (List.take 24 model.stories)
             ]
     }
