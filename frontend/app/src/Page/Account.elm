@@ -1,6 +1,7 @@
 module Page.Account exposing (Model, Msg, init, update, view)
 
 import Api
+import Components
 import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Data.Settings exposing (Settings, defaultSettings, encode, fontOptions, toStyle)
 import Dict
@@ -11,8 +12,9 @@ import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Task exposing (Task)
 import Tuple exposing (pair)
-import Util exposing (defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg, viewUnless)
 import Views.Answers as Answers
+import Views.Form as Form
 
 
 type alias Model =
@@ -99,9 +101,9 @@ view : Model -> { title : String, content : Html Msg }
 view { settings, answers } =
     { title = "My 3ml"
     , content =
-        div [ class "page container" ]
+        div [ class "max-w-md mx-auto" ]
             [ viewSettings settings
-            , h1 [] [ text "My story answers" ]
+            , viewUnless (List.isEmpty answers) (h1 [ class "text-2xl font-light mb-2" ] [ text "My story answers" ])
             , Answers.viewWithStories answers
             ]
     }
@@ -109,32 +111,36 @@ view { settings, answers } =
 
 viewSettings : Settings -> Html Msg
 viewSettings settings =
-    div []
-        [ h1 [] [ text "Story display settings" ]
-        , div (toStyle settings)
-            [ p [] [ text "You may wish to change the way your stories are displayed." ]
-            , p [] [ text "Use the buttons below to make changes and then save the settings." ]
-            , p [] [ text "You can change the background and text colour." ]
-            , p [] [ text "Also the type of font and the size of the text." ]
+    div [ class "mb-4" ]
+        [ h1 [ class "text-2xl font-light mb-2" ] [ text "Story display settings" ]
+        , div (class "p-4 border rounded mb-2" :: toStyle settings)
+            [ p [ class "mb-2" ] [ text "You may wish to change the way your stories are displayed." ]
+            , p [ class "mb-2" ] [ text "Use the controls below to make changes and then save the settings." ]
+            , p [ class "mb-2" ] [ text "You can change the background and text colour." ]
+            , p [ class "mb-2" ] [ text "You can also choose the font and the size of the text." ]
             ]
-        , Html.form [ class "form-inline", onSubmit SaveSettings ]
-            [ div [ class "form-group" ]
-                [ label [ for "bg" ] [ text "Background colour:" ]
-                , input [ type_ "color", id "bg", value settings.background, onInput SetBackground ] []
+        , Html.form [ class "flex flex-col", onSubmit SaveSettings ]
+            [ div [ class "flex mb-2" ]
+                [ div [ class "flex items-center mr-4" ]
+                    [ label [ for "bg", class "mr-2" ] [ text "Background colour:" ]
+                    , input [ type_ "color", id "bg", value settings.background, onInput SetBackground ] []
+                    ]
+                , div [ class "flex items-center" ]
+                    [ label [ for "fg", class "mr-2" ] [ text "Text colour:" ]
+                    , input [ type_ "color", id "fg", value settings.colour, onInput SetColour ] []
+                    ]
                 ]
-            , div [ class "form-group" ]
-                [ label [ for "fg" ] [ text "Text colour:" ]
-                , input [ type_ "color", id "fg", value settings.colour, onInput SetColour ] []
+            , div [ class "flex mb-2" ]
+                [ div [ class "flex items-center mr-4" ]
+                    [ label [ for "font", class "mr-2" ] [ text "Font:" ]
+                    , fontSelect settings.font
+                    ]
+                , div [ class "flex items-center" ]
+                    [ label [ for "sz", class "mr-2" ] [ text "Font size:" ]
+                    , fontSizeSelect settings.size
+                    ]
                 ]
-            , div [ class "form-group" ]
-                [ label [ for "font" ] [ text "Font:" ]
-                , fontSelect settings.font
-                ]
-            , div [ class "form-group" ]
-                [ label [ for "sz" ] [ text "Font size:" ]
-                , fontSizeSelect settings.size
-                ]
-            , button [ type_ "submit", class "btn btn-default" ] [ text "Save settings" ]
+            , Components.btn [ type_ "submit", class "max-w-xs" ] [ text "Save settings" ]
             ]
         ]
 
@@ -145,7 +151,7 @@ fontSelect current =
         mkOption ( font, fontFamily ) =
             option [ selected (current == fontFamily), value fontFamily ] [ text font ]
     in
-    select [ id "font", class "form-control", onInput SetFont ]
+    Form.select [ id "font", onInput SetFont ]
         (List.map mkOption fontOptions)
 
 
@@ -155,11 +161,12 @@ fontSizeSelect current =
         mkOption ( sz, nm ) =
             option [ selected (current == sz), value sz ] [ text nm ]
     in
-    select [ id "sz", class "form-control", onInput SetFontSize ]
+    Form.select [ id "sz", onInput SetFontSize ]
         (List.map mkOption
-            [ ( "14px", "Small" )
-            , ( "16px", "Medium" )
-            , ( "20px", "Large" )
-            , ( "23px", "Huge" )
+            [ ( "0.875rem", "Small" )
+            , ( "1rem", "Normal" )
+            , ( "1.25rem", "Large" )
+            , ( "1.875rem", "Huge" )
+            , ( "2.25rem", "Gigantic" )
             ]
         )
