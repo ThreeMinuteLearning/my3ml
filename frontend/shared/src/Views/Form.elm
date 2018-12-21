@@ -7,22 +7,22 @@ import Tuple exposing (second)
 
 fcStyle : Attribute msg
 fcStyle =
-    class "border shadow border-grey-light bg-white rounded px-3 py-1 text-grey-darker focus:border-blue"
+    class "border shadow border-grey-light bg-white rounded text-grey-darker focus:border-blue"
 
 
-fcHeight : Attribute msg
-fcHeight =
-    class "h-8"
+fcHeightPadding : Attribute msg
+fcHeightPadding =
+    class "h-8 px-3 py-1 "
 
 
 password : List (Attribute msg) -> List (Html msg) -> Html msg
 password attrs =
-    Html.input ([ fcStyle, fcHeight, type_ "password" ] ++ attrs)
+    Html.input ([ fcStyle, fcHeightPadding, type_ "password" ] ++ attrs)
 
 
 input : List (Attribute msg) -> List (Html msg) -> Html msg
 input attrs =
-    Html.input ([ fcStyle, fcHeight, type_ "text" ] ++ attrs)
+    Html.input ([ fcStyle, fcHeightPadding, type_ "text" ] ++ attrs)
 
 
 textarea : List (Attribute msg) -> List (Html msg) -> Html msg
@@ -46,4 +46,4 @@ viewErrorMsgs : List String -> Html msg
 viewErrorMsgs errors =
     errors
         |> List.map (\error -> li [ class "ml-2 mb-1" ] [ text error ])
-        |> ul [ class "list-reset text-red-dark font-bold mb-2" ]
+        |> ul [ class "list-reset text-red-dark font-bold py-2 mb-1" ]
