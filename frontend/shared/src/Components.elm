@@ -30,7 +30,7 @@ toolbar buttons elts =
                 ]
                 [ text txt ]
     in
-    div [ class "flex flex-wrap items-center mt-4 py-1" ]
+    div [ class "flex flex-wrap items-center mt-2 py-1" ]
         (List.map mkBtn buttons ++ elts)
 
 

@@ -46,11 +46,6 @@ view model regLink =
         ]
 
 
-label_ : String -> String -> Html msg
-label_ for_ txt =
-    label [ class "block text-grey-darker-text-sm font-bold mb-2", for for_ ] [ text txt ]
-
-
 form_ : String -> List (Html (Msg a)) -> Html (Msg a)
 form_ formId =
     Html.form [ id formId, class "bg-white shadow-md rounded px-8 pt-6 pb-8 sm:p-16 mb-4", onSubmit SubmitForm ]
@@ -65,7 +60,7 @@ viewForm : Maybe (Attribute (Msg a)) -> Html (Msg a)
 viewForm regLink =
     form_ "login-form"
         [ div [ class "mb-4" ]
-            [ label_ "username" "Username"
+            [ Form.label [ class "mb-2", for "username" ] [ text "Username" ]
             , Form.input
                 [ id "username"
                 , class "w-full"
@@ -77,7 +72,7 @@ viewForm regLink =
                 []
             ]
         , div [ class "mb-6" ]
-            [ label_ "password" "Password"
+            [ Form.label [ class "mb-2", for "password" ] [ text "Password" ]
             , Form.password
                 [ id "password"
                 , class "w-full"

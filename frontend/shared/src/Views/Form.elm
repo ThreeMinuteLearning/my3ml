@@ -1,7 +1,8 @@
-module Views.Form exposing (input, password, select, textarea, viewErrorMsgs, viewErrors)
+module Views.Form exposing (checkbox, input, label, password, select, textarea, viewErrorMsgs, viewErrors)
 
 import Html exposing (Attribute, Html, fieldset, li, text, ul)
-import Html.Attributes exposing (class, type_)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
 import Tuple exposing (second)
 
 
@@ -20,14 +21,27 @@ password attrs =
     Html.input ([ fcStyle, fcHeightPadding, type_ "password" ] ++ attrs)
 
 
+checkbox : msg -> Bool -> String -> Html msg
+checkbox msg checked_ lbl =
+    label [ class "flex items-center" ]
+        [ text lbl
+        , input [ class "mx-2", type_ "checkbox", checked checked_, onClick msg ] []
+        ]
+
+
 input : List (Attribute msg) -> List (Html msg) -> Html msg
 input attrs =
     Html.input ([ fcStyle, fcHeightPadding, type_ "text" ] ++ attrs)
 
 
+label : List (Attribute msg) -> List (Html msg) -> Html msg
+label attrs =
+    Html.label (class "block text-grey-darker text-sm font-bold" :: attrs)
+
+
 textarea : List (Attribute msg) -> List (Html msg) -> Html msg
 textarea attrs =
-    Html.textarea (fcStyle :: attrs)
+    Html.textarea (fcStyle :: class "p-2" :: attrs)
 
 
 select : List (Attribute msg) -> List (Html msg) -> Html msg
@@ -44,6 +58,10 @@ viewErrors errors =
 
 viewErrorMsgs : List String -> Html msg
 viewErrorMsgs errors =
-    errors
-        |> List.map (\error -> li [ class "ml-2 mb-1" ] [ text error ])
-        |> ul [ class "list-reset text-red-dark font-bold py-2 mb-1" ]
+    if List.isEmpty errors then
+        text ""
+
+    else
+        errors
+            |> List.map (\error -> li [ class "ml-2 mb-1" ] [ text error ])
+            |> ul [ class "list-reset text-red-dark font-bold py-2 mb-1" ]
