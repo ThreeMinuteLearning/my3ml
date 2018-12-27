@@ -1,4 +1,4 @@
-module Components exposing (btn, btnBase, link, panel, toolbar)
+module Components exposing (btn, btnBase, btnSmall, link, panel, toolbar)
 
 import Html exposing (Attribute, Html, button, div, span, text, tr)
 import Html.Attributes exposing (..)
@@ -21,9 +21,9 @@ toolbar : List ( msg, Bool, String ) -> List (Html msg) -> Html msg
 toolbar buttons elts =
     let
         mkBtn ( msg, disable, txt ) =
-            btnBase
-                [ class "bg-blue text-sm mr-1 px-2 py-1"
-                , classList [ ( "hover:bg-blue-dark", not disable ), ( "opacity-50 cursor-not-allowed", disable ) ]
+            btnSmall
+                [ classList [ ( "hover:bg-blue-dark", not disable ), ( "opacity-50 cursor-not-allowed", disable ) ]
+                , class "mr-1"
                 , onClick msg
                 , disabled disable
                 , type_ "button"
@@ -42,3 +42,8 @@ btnBase attrs =
 btn : List (Attribute msg) -> List (Html msg) -> Html msg
 btn attrs =
     btnBase (class "bg-blue hover:bg-blue-dark py-2 px-3" :: attrs)
+
+
+btnSmall : List (Attribute msg) -> List (Html msg) -> Html msg
+btnSmall attrs =
+    btnBase (class "bg-blue hover:bg-blue-dark text-sm px-2 py-1" :: attrs)

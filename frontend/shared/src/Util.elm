@@ -1,5 +1,6 @@
 module Util exposing (appendErrors, defaultHttpErrorMsg, maybeView, printButton, viewIf, viewUnless)
 
+import Components
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
@@ -38,7 +39,7 @@ appendErrors model errors =
 
 printButton : msg -> String -> Html msg
 printButton print caption =
-    a [ class "print:none no-underline", onClick print, href "#" ] [ text caption ]
+    Components.btnSmall [ class "print:none", type_ "button", onClick print ] [ text caption ]
 
 
 defaultHttpErrorMsg : Http.Error -> String

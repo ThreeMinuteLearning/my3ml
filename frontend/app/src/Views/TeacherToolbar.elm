@@ -9,7 +9,7 @@ import Util exposing (viewIf)
 
 view : Session -> Route.TeacherSubRoute -> List (Html msg) -> Html msg
 view session page subtools =
-    div [ id "teacher-toolbar", class "flex justify-between flex-wrap" ]
+    div [ id "teacher-toolbar", class "print:none flex justify-between flex-wrap" ]
         [ ul [ class "list-reset flex-1 flex border-b mr-4" ]
             [ btn "students-button" page Route.Students "Students"
             , btn "classes-button" page Route.Classes "Classes"

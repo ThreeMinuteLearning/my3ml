@@ -177,8 +177,8 @@ view session model =
         div [ class "flex flex-col" ]
             [ div [ class "mb-4" ] [ TeacherToolbar.view session Route.Students (subtools session) ]
             , viewNotification model.notification
-            , div [] [ NewAccounts.view PrintWindow ClearNewAccounts session.cache.newAccounts ]
-            , div [ class "flex flex-col" ]
+            , div [ class "mb-4" ] [ NewAccounts.view PrintWindow ClearNewAccounts session.cache.newAccounts ]
+            , div [ class "print:none flex flex-col" ]
                 [ div [ class "flex mb-4" ]
                     [ Form.input
                         [ class "mr-1"
