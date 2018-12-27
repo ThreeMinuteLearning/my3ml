@@ -414,7 +414,7 @@ viewStoriesFilter : Session -> Model -> Html Msg
 viewStoriesFilter session m =
     let
         btn ( msg, txt ) =
-            Components.btnBase [ class "text-sm bg-blue hover:bg-blue-dark py-2 px-2 mr-1", onClick msg ] [ text txt ]
+            Components.btnSmall [ class "mr-1", type_ "button", onClick msg ] [ text txt ]
     in
     div [ class "flex items-center justify-between flex-wrap" ]
         [ div [ class "flex flex-wrap items-center" ]
@@ -472,7 +472,7 @@ toggleDisabledStoriesOnly m =
 
 viewStoriesTable : Model -> Html Msg
 viewStoriesTable m =
-    div [ class "table-responsive" ]
+    div []
         [ Table.view tableConfig m.tableState m.stories ]
 
 
@@ -592,18 +592,6 @@ viewStoryBasket m stories =
                 ]
             )
         ]
-
-
-viewStoryTable : List Api.Story -> Html Msg
-viewStoryTable stories =
-    let
-        storyRow s =
-            tr []
-                [ td [] [ viewStoryLink s ]
-                ]
-    in
-    table [ class "table" ]
-        [ tbody [] (List.map storyRow stories) ]
 
 
 viewAnthologies : Session -> Html Msg
