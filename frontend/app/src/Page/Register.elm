@@ -100,7 +100,11 @@ update session msg model =
             ( { model | teacherName = name }, Cmd.none )
 
         SetPassword password ->
-            ( { model | password = password }, Ports.checkPassword password )
+            if String.length password < 4 then
+                ( { model | password = password, zxcvbn = Nothing }, Cmd.none )
+
+            else
+                ( { model | password = password }, Ports.checkPassword password )
 
         SetConfirmPassword password ->
             ( { model | confirmPassword = password }, Cmd.none )
