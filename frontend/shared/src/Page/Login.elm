@@ -3,6 +3,7 @@ module Page.Login exposing (Model, Msg, initialModel, update, view)
 {-| The login page.
 -}
 
+import Components
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -33,63 +34,72 @@ initialModel =
 
 view : Model -> Maybe (Attribute (Msg a)) -> Html (Msg a)
 view model regLink =
-    div [ class "auth-page" ]
-        [ div [ class "container page" ]
-            [ div [ class "row" ]
-                [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
-                    [ h1 [ class "text-xs-center" ] [ text "Sign in" ]
-                    , case regLink of
-                        Just ref ->
-                            p [ class "text-xs-center" ]
-                                [ a [ ref ]
-                                    [ text "Need an account?" ]
-                                ]
+    div [ class "py-10 px-4 flex justify-center" ]
+        [ div [ class "w-full max-w-sm" ]
+            [ Form.viewErrors model.errors
+            , if model.otpRequired then
+                viewOtpForm model
 
-                        Nothing ->
-                            text ""
-                    , Form.viewErrors model.errors
-                    , if model.otpRequired then
-                        viewOtpForm model
-
-                      else
-                        viewForm
-                    ]
-                ]
+              else
+                viewForm regLink
             ]
         ]
 
 
-viewForm : Html (Msg a)
-viewForm =
-    Html.form [ id "login-form", onSubmit SubmitForm ]
-        [ Form.input
-            [ class "form-control-lg"
-            , id "username"
-            , name "username"
-            , placeholder "Username or email"
-            , tabindex 1
-            , onInput SetUsername
+form_ : String -> List (Html (Msg a)) -> Html (Msg a)
+form_ formId =
+    Html.form [ id formId, class "bg-white shadow-md rounded px-8 pt-6 pb-8 sm:p-16 mb-4", onSubmit SubmitForm ]
+
+
+submitButton : Html msg
+submitButton =
+    Components.btn [ type_ "submit", tabindex 3 ] [ text "Sign in" ]
+
+
+viewForm : Maybe (Attribute (Msg a)) -> Html (Msg a)
+viewForm regLink =
+    form_ "login-form"
+        [ div [ class "mb-4" ]
+            [ Form.label [ class "mb-2", for "username" ] [ text "Username" ]
+            , Form.input
+                [ id "username"
+                , class "w-full"
+                , name "username"
+                , placeholder "Username or email"
+                , tabindex 1
+                , onInput SetUsername
+                ]
+                []
             ]
-            []
-        , Form.password
-            [ class "form-control-lg"
-            , id "password"
-            , placeholder "Password"
-            , tabindex 2
-            , onInput SetPassword
+        , div [ class "mb-6" ]
+            [ Form.label [ class "mb-2", for "password" ] [ text "Password" ]
+            , Form.password
+                [ id "password"
+                , class "w-full"
+                , placeholder "Password"
+                , tabindex 2
+                , onInput SetPassword
+                ]
+                []
             ]
-            []
-        , button [ class "btn btn-lg btn-primary pull-xs-right", tabindex 3 ]
-            [ text "Sign in" ]
+        , div [ class "flex items-center justify-between" ]
+            [ submitButton
+            , case regLink of
+                Just ref ->
+                    a [ class "inline-block align-baseline font-bold text-sm text-blue hover:text-blue-darker", ref ]
+                        [ text "Need an account?" ]
+
+                Nothing ->
+                    text ""
+            ]
         ]
 
 
 viewOtpForm : Model -> Html (Msg a)
 viewOtpForm model =
-    Html.form [ id "otp-form", onSubmit SubmitForm ]
+    form_ "otp-form"
         [ Form.input
-            [ class "form-control-lg"
-            , id "otp-code"
+            [ id "otp-code"
             , name "otp-code"
             , value (Maybe.withDefault "" model.otp)
             , placeholder "One-time password code"
@@ -97,8 +107,7 @@ viewOtpForm model =
             , onInput SetOTP
             ]
             []
-        , button [ class "btn btn-lg btn-primary pull-xs-right", tabindex 3 ]
-            [ text "Sign in" ]
+        , submitButton
         ]
 
 

@@ -1,6 +1,7 @@
 module Page.Register exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
+import Components
 import Data.Session as Session exposing (Session, authorization)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -100,7 +101,11 @@ update session msg model =
             ( { model | teacherName = name }, Cmd.none )
 
         SetPassword password ->
-            ( { model | password = password }, Ports.checkPassword password )
+            if String.length password < 4 then
+                ( { model | password = password, zxcvbn = Nothing }, Cmd.none )
+
+            else
+                ( { model | password = password }, Ports.checkPassword password )
 
         SetConfirmPassword password ->
             ( { model | confirmPassword = password }, Cmd.none )
@@ -144,43 +149,35 @@ view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Register with 3ml"
     , content =
-        div [ class "container page" ]
-            [ div [ class "row" ]
-                [ div [ class "col-md-12" ]
-                    [ h1 [ class "text-xs-center" ] [ text "Sign up" ]
+        div [ class "max-w-md mx-auto flex flex-col" ]
+            [ h1 [ class "text-xs-center" ] [ text "Sign up" ]
+            , p [ class "my-2 text-lg leading-normal" ]
+                [ text (blurb model.registrationType)
+                ]
+            , p [ class "mb-4" ]
+                [ a [ Route.href Route.Login ]
+                    [ text "Have an account already?" ]
+                ]
+            , Form.viewErrors model.errors
+            , if model.registrationType == Nothing then
+                viewRegistrationOptions
+
+              else if model.status == Completed then
+                div [ class "text-lg" ]
+                    [ p [] [ text "Registration complete." ]
                     , p []
-                        [ text (blurb model.registrationType)
+                        [ case model.registrationType of
+                            Just WithCode ->
+                                text "Your school admin should let you know when they have activated your account."
+
+                            _ ->
+                                text "Your account should be activated within an hour."
                         ]
+                    , p [] [ text "You can then sign in using your email and password." ]
                     ]
-                ]
-            , div [ class "row" ]
-                [ div [ class "col-md-6 offset-md-3 col-xs-12" ]
-                    [ p [ class "text-xs-center" ]
-                        [ a [ Route.href Route.Login ]
-                            [ text "Have an account already?" ]
-                        ]
-                    , Form.viewErrors model.errors
-                    , if model.registrationType == Nothing then
-                        viewRegistrationOptions
 
-                      else if model.status == Completed then
-                        div []
-                            [ p [] [ text "Registration complete." ]
-                            , p []
-                                [ case model.registrationType of
-                                    Just WithCode ->
-                                        text "Your school admin should let you know when they have activated your account."
-
-                                    _ ->
-                                        text "Your account should be activated within an hour."
-                                ]
-                            , p [] [ text "You can then sign in using your email and password." ]
-                            ]
-
-                      else
-                        viewForm model
-                    ]
-                ]
+              else
+                viewForm model
             ]
     }
 
@@ -212,20 +209,19 @@ for your school.
 
 viewRegistrationOptions : Html Msg
 viewRegistrationOptions =
-    div []
-        [ button [ id "register-school", type_ "button", class "btn", onClick (SetRegistrationType NewSchool) ] [ text "Register a new school" ]
-        , text " "
-        , button [ id "register-teacher", type_ "button", class "btn btn-primary", onClick (SetRegistrationType WithCode) ] [ text "Register as a teacher in an existing school" ]
+    div [ class "flex justify-around" ]
+        [ Components.btn [ id "register-school", class "mr-2", type_ "button", onClick (SetRegistrationType NewSchool) ] [ text "Register a new school" ]
+        , Components.btn [ id "register-teacher", type_ "button", onClick (SetRegistrationType WithCode) ] [ text "Register as a teacher in an existing school" ]
         ]
 
 
 viewForm : Model -> Html Msg
 viewForm model =
-    Html.form [ onSubmit SubmitForm ]
+    Html.form [ class "flex flex-col", onSubmit SubmitForm ]
         [ case model.registrationType of
             Just WithCode ->
                 Form.input
-                    [ class "form-control-lg"
+                    [ class ""
                     , placeholder "Registration code"
                     , onInput SetCode
                     , maxlength 100
@@ -234,47 +230,45 @@ viewForm model =
 
             _ ->
                 Form.input
-                    [ class "form-control-lg"
+                    [ class ""
                     , placeholder "School name"
                     , onInput SetSchoolName
                     , maxlength 100
                     ]
                     []
         , Form.input
-            [ class "form-control-lg"
+            [ class "my-2"
             , placeholder "Your name"
             , onInput SetTeacherName
             , maxlength 100
             ]
             []
         , Form.input
-            [ class "form-control-lg"
+            [ class "mb-2"
             , placeholder "Email"
             , onInput SetEmail
             , maxlength 50
             ]
             []
-        , fieldset [ class "form-group" ]
-            [ Html.input
-                [ class "form-control form-control-lg"
-                , placeholder "Choose a password"
-                , onInput SetPassword
-                , maxlength 100
-                , type_ "password"
-                ]
-                []
-            , meter [ id "password-strength-meter", Html.Attributes.max "4", value (passwordScore model) ] []
-            , p [ id "password-strength-warning" ] [ text (passwordWarning model) ]
-            , passwordSuggestions model
-            ]
         , Form.password
-            [ class "form-control-lg"
+            [ class ""
+            , placeholder "Choose a password"
+            , onInput SetPassword
+            , maxlength 100
+            , type_ "password"
+            ]
+            []
+        , meter [ id "password-strength-meter", class "mb-2", Html.Attributes.max "4", value (passwordScore model) ] []
+        , p [ id "password-strength-warning", class "text-sm" ] [ text (passwordWarning model) ]
+        , passwordSuggestions model
+        , Form.password
+            [ class "my-2"
             , placeholder "Confirm Password"
             , onInput SetConfirmPassword
             , maxlength 100
             ]
             []
-        , button [ class "btn btn-lg btn-primary pull-xs-right", disabled (model.status /= NotSent) ]
+        , Components.btn [ class "mt-1", disabled (model.status /= NotSent) ]
             [ text "Sign up" ]
         ]
 
@@ -301,10 +295,10 @@ passwordSuggestions model =
     in
     case model.zxcvbn of
         Nothing ->
-            div [] []
+            text ""
 
         Just z ->
-            div [ id "password-strength-suggestions" ]
+            div [ id "password-strength-suggestions", class "text-sm mt-2" ]
                 [ ul [] (List.map formatSuggestion z.feedback.suggestions)
                 ]
 

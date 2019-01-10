@@ -4,7 +4,7 @@ import AnswersForm
 import Api
 import Browser.Dom
 import Data.Session as Session exposing (Cache, Role(..), Session, authorization, findStoryById)
-import Data.Settings exposing (Settings, defaultSettings)
+import Data.Settings exposing (Settings)
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -106,9 +106,8 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session m =
     { title = m.story.title
     , content =
-        div [ class "container page" ]
-            [ RobotPanel.view
-            , viewIf (Session.isTeacher session) (printButton PrintWindow "Print this story")
+        div [ class "max-w-lg mx-auto px-2" ]
+            [ viewIf (Session.isTeacher session) (div [ class "print:none mb-2" ] [ printButton PrintWindow "Print this story" ])
             , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) m.story m.storyView
             , m.dictLookup
                 |> Maybe.map List.singleton
@@ -117,8 +116,8 @@ view session m =
             , viewIf (Session.isStudent session) (viewAnswersForm m)
             , viewIf (Session.isTeacher session) (viewPrintAnswerSections m.story)
             , viewIf (m.answersForm == Nothing && not (List.isEmpty m.answers))
-                (div [ class "hidden-print" ]
-                    (h2 [] [ text "Story answers" ] :: Answers.view m.story m.answers)
+                (div [ class "hidden-print mt-8" ]
+                    (h2 [ class "text-lg text-center font-bold mb-2" ] [ text "Story answers" ] :: Answers.view m.story m.answers)
                 )
             ]
     }
@@ -132,7 +131,7 @@ viewAnswersForm m =
 
         Just f ->
             Html.map AnswersFormMsg <|
-                div [ id "activities" ]
+                div [ id "activities", class "mt-8" ]
                     [ h2 [] [ text "Answers" ]
                     , AnswersForm.view f
                     ]
@@ -140,11 +139,15 @@ viewAnswersForm m =
 
 viewPrintAnswerSections : Api.Story -> Html Msg
 viewPrintAnswerSections story =
-    div [ id "printactivities", class "visible-print-block" ]
-        [ h4 [] [ text "Connect this story with yourself or something you know about." ]
-        , h4 [] [ text "Think of a question the story makes you want to ask." ]
-        , h4 [] [ text "Write one sentence that captures the main idea." ]
-        , h4 [] [ text ("What do you think the word \"" ++ story.clarifyWord ++ "\" means?") ]
+    let
+        cls =
+            class "text-base font-bold mb-24"
+    in
+    div [ id "printactivities", class "mt-2" ]
+        [ h2 [ cls ] [ text "Connect this story with yourself or something you know about." ]
+        , h2 [ cls ] [ text "Think of a question the story makes you want to ask." ]
+        , h2 [ cls ] [ text "Write one sentence that captures the main idea." ]
+        , h2 [ cls ] [ text ("What do you think the word \"" ++ story.clarifyWord ++ "\" means?") ]
         ]
 
 
@@ -188,11 +191,13 @@ updateCacheAnswers a c =
     { c | answers = Dict.insert a.storyId a c.answers }
 
 
-settingsFromSession : Session -> Settings
+settingsFromSession : Session -> Maybe Settings
 settingsFromSession session =
-    session.user
-        |> Maybe.map .settings
-        |> Maybe.withDefault defaultSettings
+    if Session.isTeacher session then
+        Nothing
+
+    else
+        Maybe.andThen .settings session.user
 
 
 resetAnswersForm : Model -> Model

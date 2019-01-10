@@ -2,6 +2,7 @@ module Page.Editor exposing (Model, Msg, init, subscriptions, update, view)
 
 import Api
 import Browser.Dom
+import Components
 import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Data.Settings exposing (defaultSettings)
 import Html exposing (..)
@@ -121,18 +122,21 @@ selectConfig msg =
 curriculumSelectConfig : Select.Config Msg String
 curriculumSelectConfig =
     selectConfig OnCurriculumSelect
+        |> Select.withInputId "story_curriculum"
         |> Select.withPrompt "Select a curriculum"
 
 
 qualificationSelectConfig : Select.Config Msg String
 qualificationSelectConfig =
     selectConfig OnQualificationSelect
+        |> Select.withInputId "story_qualification"
         |> Select.withPrompt "Select a qualification"
 
 
 tagSelectConfig : Select.Config Msg String
 tagSelectConfig =
     selectConfig OnTagSelect
+        |> Select.withInputId "story_tags"
         |> Select.withOnRemoveItem OnRemoveTag
         |> Select.withPrompt "Select a tag"
 
@@ -282,108 +286,87 @@ view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Story editor"
     , content =
-        div [ id "editor", class "container page" ]
-            [ nav [ class "row" ]
-                [ ul [ class "pager" ]
-                    [ li [ class "previous" ] [ a [ href "#", onClick Previous ] [ text "Prev" ] ]
-                    , li [ class "next" ] [ a [ class "pull-right", href "#", onClick Next ] [ text "Next" ] ]
+        div [ id "editor", class "max-w-2xl mx-auto" ]
+            [ div [ class "flex flex-wrap justify-between mb-3" ]
+                [ Components.link [ href "#", onClick Previous ] "Prev"
+                , Components.toolbar
+                    [ ( Save, model.story == Zipper.current model.stories, "Save Changes" )
+                    , ( CancelChanges, model.story == Zipper.current model.stories, "Cancel Changes" )
                     ]
+                    []
+                , Components.link [ href "#", onClick Next ] "Next"
                 ]
-            , div [ class "row" ]
-                [ Form.viewErrorMsgs model.errors
-                , div [ class "col-md-6" ]
-                    [ Html.map TagSelectMsg
-                        (Select.viewMulti tagSelectConfig
-                            model.tagsSelect
-                            model.allTags
-                            model.story.tags
-                        )
-                    ]
-                , div [ class "col-md-3" ]
-                    [ button
-                        [ class "btn btn-default"
-                        , onClick Save
-                        , disabled (model.story == Zipper.current model.stories)
-                        ]
-                        [ text "Save Changes" ]
-                    ]
-                , div [ class "col-md-3" ]
-                    [ button
-                        [ class "btn btn-default"
-                        , onClick CancelChanges
-                        , disabled (model.story == Zipper.current model.stories)
-                        ]
-                        [ text "Cancel Changes" ]
-                    ]
-                ]
-            , div [ class "row" ]
-                [ div [ class "col-md-6" ]
-                    [ Html.map CurriculumSelectMsg
-                        (Select.view curriculumSelectConfig
-                            model.curriculumSelect
-                            model.curriculumTags
-                            model.story.curriculum
-                        )
-                    ]
-                , div [ class "col-md-6" ]
-                    [ Html.map QualificationSelectMsg
-                        (Select.view qualificationSelectConfig
-                            model.qualificationSelect
-                            model.qualificationTags
-                            model.story.qualification
-                        )
-                    ]
-                ]
-            , div [ class "row" ]
-                [ div [ class "col-md-6" ]
-                    [ Form.input
-                        [ class "form-control-lg"
+            , Form.viewErrorMsgs model.errors
+            , div [ class "flex flex-wrap items-center justify-between my-2" ]
+                [ div [ class "flex items-center pr-1" ]
+                    [ Form.label [ class "mr-2", for "story_title" ] [ text "Title" ]
+                    , Form.input
+                        [ id "story_title"
                         , placeholder "Title"
                         , value model.story.title
                         , onInput SetTitle
                         ]
                         []
                     ]
-                , div [ class "col-md-3" ]
-                    [ Form.input
-                        [ class "form-control-lg"
+                , div [ class "flex items-center pr-1" ]
+                    [ Form.label [ class "mr-2", for "clarify_word" ] [ text "Clarify word" ]
+                    , Form.input
+                        [ id "clarify_word"
                         , placeholder "Clarify word"
                         , value model.story.clarifyWord
                         , onInput SetClarifyWord
                         ]
                         []
                     ]
-                , div [ class "col-md-1", style "display" "flex", style "align-items" "center" ]
-                    [ button [ class "btn btn-small", onClick DecrementLevel ] [ text "-" ]
-                    , div [ style "padding-left" "0.5em", style "padding-right" "0.5em" ]
+                , div [ class "flex items-center my-2 pr-1" ]
+                    [ Form.label [ class "mr-2", for "story_level" ] [ text "Level" ]
+                    , Components.btnSmall [ onClick DecrementLevel ] [ text "-" ]
+                    , div [ id "story_level", class "px-1" ]
                         [ text (String.fromInt model.story.level)
                         ]
-                    , button [ class "btn btn-small", onClick IncrementLevel ] [ text "+" ]
+                    , Components.btnSmall [ onClick IncrementLevel ] [ text "+" ]
                     ]
-                , div [ class "col-md-2" ]
-                    [ button [ class "btn pull-right", onClick ToggleEnabled ]
-                        [ text
-                            (if model.story.enabled then
-                                "Enabled"
-
-                             else
-                                "Disabled"
-                            )
-                        ]
+                , div [ class "flex items-center my-2 pr-1" ]
+                    [ Form.label [ class "mr-2", for "story_tags" ] [ text "Tags" ]
+                    , Html.map TagSelectMsg
+                        (Select.viewMulti tagSelectConfig
+                            model.tagsSelect
+                            model.allTags
+                            model.story.tags
+                        )
                     ]
+                , div [ class "flex items-center my-2 pr-1" ]
+                    [ Form.label [ class "mr-2", for "story_curriculum" ] [ text "Curriculum" ]
+                    , Html.map CurriculumSelectMsg
+                        (Select.view curriculumSelectConfig
+                            model.curriculumSelect
+                            model.curriculumTags
+                            model.story.curriculum
+                        )
+                    ]
+                , div [ class "flex items-center my-2 pr-1" ]
+                    [ Form.label [ class "mr-2", for "story_qualification" ] [ text "Qualification" ]
+                    , Html.map QualificationSelectMsg
+                        (Select.view qualificationSelectConfig
+                            model.qualificationSelect
+                            model.qualificationTags
+                            model.story.qualification
+                        )
+                    ]
+                , Form.checkbox ToggleEnabled model.story.enabled "Enabled"
                 ]
-            , div [ class "row panes" ]
-                [ div [ class "col-md-6 contentinput" ]
-                    [ textarea
+            , div [ class "flex mt-2" ]
+                [ div [ class "flex-1 px-2 mr-2" ]
+                    [ Form.textarea
                         [ value model.story.content
-                        , class "form-control"
                         , onInput ContentInput
+                        , class "w-full"
                         , rows 30
                         ]
                         []
                     ]
-                , div [ class "col-md-6" ]
-                    [ Html.map StoryViewMsg <| StoryView.view defaultSettings model.story model.storyView ]
+                , div [ class "flex-1 mx-2" ]
+                    [ Html.map StoryViewMsg <| StoryView.view Nothing model.story model.storyView ]
                 ]
             ]
     }

@@ -2,9 +2,10 @@ module AddClassForm exposing (Model, Msg, init, update, view)
 
 import Api
 import Bootstrap exposing (errorClass)
+import Components
 import Data.Session exposing (Session, authorization)
 import Html exposing (..)
-import Html.Attributes exposing (class, id, placeholder)
+import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onSubmit)
 import Http
 import List.Extra
@@ -115,33 +116,25 @@ validName name =
 
 view : Model -> Html Msg
 view model =
-    let
-        submitButton =
-            Html.button [ class "btn btn-primary pull-xs-right" ] [ text "Create class" ]
-
-        viewForm =
-            Html.form
-                [ onSubmit SubmitForm ]
-                [ Html.fieldset []
-                    [ div [ class (errorClass (fieldError Name model.errors)) ]
-                        [ Form.input
-                            [ onInput SetName
-                            , placeholder "Class name"
-                            ]
-                            []
-                        ]
-                    , div [ class (errorClass (fieldError Description model.errors)) ]
-                        [ Form.input
-                            [ onInput SetDescription
-                            , placeholder "Class description"
-                            ]
-                            []
-                        ]
-                    , submitButton
-                    ]
-                ]
-    in
     div []
         [ Form.viewErrors model.errors
-        , viewForm
+        , Html.form [ onSubmit SubmitForm ]
+            [ Form.input
+                [ class "w-full mb-2"
+                , class (errorClass (fieldError Name model.errors))
+                , onInput SetName
+                , placeholder "Class name"
+                , tabindex 1
+                ]
+                []
+            , Form.input
+                [ class "w-full mb-2"
+                , class (errorClass (fieldError Description model.errors))
+                , onInput SetDescription
+                , placeholder "Class description"
+                , tabindex 2
+                ]
+                []
+            , Components.btn [ type_ "submit", tabindex 3 ] [ text "Create class" ]
+            ]
         ]

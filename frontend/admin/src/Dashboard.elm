@@ -1,6 +1,5 @@
 port module Dashboard exposing (Stats, decodeStats, elmToVega, vegaSpec, view)
 
-import Axis
 import Color exposing (Color)
 import Dict exposing (Dict)
 import Html exposing (..)

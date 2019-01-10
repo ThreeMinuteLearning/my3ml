@@ -10,6 +10,7 @@ assets/pix
 assets/app.js
 assets/admin.js
 assets/app.css
+assets/app.min.css
 frontend/src/Api.elm
 backend/Version.hs
 token_key.json
@@ -19,3 +20,4 @@ token_key.json
 *.prof
 .ghc.environment*
 node_modules
+package-lock.json

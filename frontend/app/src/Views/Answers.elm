@@ -12,9 +12,7 @@ view story answers =
 
 viewAnswer : Api.Story -> Api.Answer -> Html msg
 viewAnswer story answer =
-    div [ class "row" ]
-        [ div [ class "col-md-9" ] (viewDetails story answer)
-        ]
+    div [ class "rounded shadow-md mt-2 py-2" ] (viewDetails story answer)
 
 
 viewWithStories : List ( Api.Answer, Api.Story ) -> Html msg
@@ -25,10 +23,8 @@ viewWithStories answers =
 
 viewStoryAnswer : ( Api.Answer, Api.Story ) -> Html msg
 viewStoryAnswer ( answer, story ) =
-    div [ class "row" ]
-        [ div [ class "col-md-9" ]
-            (h2 [] [ text story.title ] :: viewDetails story answer)
-        ]
+    div [ class "rounded shadow-md mt-2 py-2" ]
+        (h2 [ class "text-xl text-center font-light" ] [ text story.title ] :: viewDetails story answer)
 
 
 viewDetails : Api.Story -> Api.Answer -> List (Html msg)
@@ -42,5 +38,5 @@ viewDetails story answer =
 
 cqsc : String -> List (Html msg) -> Html msg
 cqsc answerType content =
-    div [ class "cqsc-answer" ]
-        (h3 [] [ text answerType ] :: content)
+    div [ class "px-6 py-2" ]
+        (h3 [ class "text-base font-bold text-grey-dark" ] [ text answerType ] :: content)

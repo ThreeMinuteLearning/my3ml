@@ -1,30 +1,17 @@
 module Modal exposing (view)
 
+import Bootstrap
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 
 
-modalHeader : String -> msg -> Html msg
-modalHeader title onClose =
-    div [ class "modal-header" ]
-        [ button [ type_ "button", class "close", onClick onClose ]
-            [ span [] [ text "×" ]
-            ]
-        , h3 [ class "modal-title" ] [ text title ]
-        ]
-
-
 view : String -> msg -> Html msg -> Html msg
 view title onClose content =
-    div []
-        [ div [ class "modal in", style "display" "block" ]
-            [ div [ class "modal-dialog" ]
-                [ div [ class "modal-content" ]
-                    [ modalHeader title onClose
-                    , div [ class "modal-body" ] [ content ]
-                    ]
-                ]
+    div [ class "fixed pin bg-grey-lightest" ]
+        [ Bootstrap.closeBtn2 onClose
+        , h1 [ class "text-grey-darker text-center border-b shadow py-4 mb-4" ] [ text title ]
+        , div [ class "h-full flex justify-center mt-8" ]
+            [ content
             ]
-        , div [ class "modal-backdrop in" ] []
         ]

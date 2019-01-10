@@ -1,57 +1,23 @@
-html, body {
-    height: 100%;
-    font-size: 16px;
+@tailwind preflight;
+@tailwind components;
+@tailwind utilities;
+
+@media print {
+    .print\:none, .hidden-print {
+        display: none;
+    }
+    .print\:text-sm {
+        font-size: .875rem;
+    }
 }
 
-#app {
-    margin-bottom: 5px;
+/* Menu-toggle button */
+.menu {
+    display: none;
 }
 
-.container {
-    max-width: 990px;
-    height: 100%;
-}
-.row {
-    margin-bottom: 20px;
-}
-
-.form-inline .form-group {
-    margin-right:4px;
-}
-
-.form-inline label {
-    margin-right:4px;
-}
-
-.pager {
-    margin: 0;
-}
-
-#editor.container {
-    max-width: 1500px;
-}
-
-#editor contentinput {
-    padding-right: 5em;
-    height: 100%;
-}
-
-#editor textarea.form-control {
-    height: 100%;
-    width: 100%;
-}
-
-/* Registration */
-.registration-code {
-    font-size: 1.5em;
-    font-weight: bold;
-}
-
-
-/* Form error styling */
-.error-messages {
-    color: #b85c5c !important;
-    font-weight: bold;
+#menu-toggle:checked ~ .menu {
+    display: block;
 }
 
 /* Password strength */
@@ -80,76 +46,30 @@ meter[value="4"]::-moz-meter-bar { background: green; }
 /* Tables */
 
 /* Make sortable table icons more obvious */
-th span {
-    font-size: 1.2em;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-/* Story tiles view */
-
-.storytile {
-    width: 150px;
-    height: 135px;
-    display: inline-block;
-    position: relative;
-    margin-right: 10px;
-    margin-bottom: 10px;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
-}
-
-.storytile h3 {
-    position: relative;
-    padding-left: 10px;
-    font-weight: 600;
-    font-size: 14px;
-    text-align: left;
-    background: none;
-    color: #fff;
-    position: absolute;
-    top: 0px;
-    left: 0px;
+.sortable-table {
     width: 100%;
 }
 
-.smalltile {
-    width: 90px;
-    height: 82px;
+.sortable-table th {
+    cursor: pointer;
+    text-align: left;
+    padding: 0.5rem;
 }
 
-.smalltile h3 {
-    margin: 10px 3px 0 3px;
-    font-size: 11px;
+.sortable-table th span {
+    font-size: 1.0rem;
+    font-weight: bold;
 }
+
+.sortable-table td {
+    border-top: 1px solid #ddd;
+    padding: 0.5rem;
+    vertical-align: top;
+}
+
 /* Story content styling */
-.storytitle {
-    background-color: #56a826;
-    color: #fff;
-    text-align: center;
-    padding: 5px;
-}
-
-#storyfooter {
-    font-size: 14px;
-    padding-top: 20px;
-}
-
-#storypic {
-    padding-bottom: 20px;
-}
-
-#storypic img {
-    max-width: 100%;
-}
-
-.rightimage {
-    float: right;
-    padding: 0 0 20px 20px;
-}
-
-#printactivities {
-    margin-top: 25px;
+#storycontent p {
+    margin-bottom: 0.75rem;
 }
 
 #printactivities h4 {
@@ -283,25 +203,6 @@ th span {
     padding: 0.3em;
 }
 
-
-/* Alerts */
-
-#alerts {
-    margin-bottom: 15px;
-}
-
-#alerts .alert {
-    margin-bottom: 2px;
-    opacity: 1;
-    transition:opacity 0.5s, height 1s ease 1s;
-}
-
-#alerts .closed {
-    opacity: 0;
-    height: 0;
-    border: 0;
-    padding: 0;
-}
 /* Story fade-in animation */
 
 .u-selectable:hover {

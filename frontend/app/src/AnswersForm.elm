@@ -1,7 +1,6 @@
 module AnswersForm exposing (Model, Msg, init, update, view)
 
 import Api
-import Bootstrap exposing (errorClass)
 import Data.Session exposing (Session, authorization)
 import Dict exposing (Dict)
 import Drawer exposing (DrawerType)
@@ -243,10 +242,16 @@ view m =
 viewForm : Model -> Html Msg
 viewForm model =
     let
-        answerField field msg lbl tx =
-            div [ class (errorClass (fieldError field model.errors)) ]
-                [ label [ for (fieldToString field ++ "Input") ] lbl
-                , Form.textarea [ class "form-control", id (fieldToString field ++ "Input"), onInput msg, tabindex tx, disabled model.formSubmitted ] []
+        errorClass field =
+            classList [ ( "border-red", fieldError field model.errors /= Nothing ) ]
+
+        answerField field msg btn lbl tx =
+            div [ class "w-full mt-3" ]
+                [ div [ class "flex justify-between items-center" ]
+                    [ btn
+                    , label [ class "font-bold text-sm", for (fieldToString field ++ "Input") ] lbl
+                    ]
+                , Form.textarea [ class "h-12 border rounded w-full text-sm mt-1", errorClass field, id (fieldToString field ++ "Input"), onInput msg, tabindex tx, disabled model.formSubmitted ] []
                 ]
 
         mkOption ( v, txt ) =
@@ -268,20 +273,35 @@ viewForm model =
             on "change" (Json.map msg targetValue)
 
         submitButton =
-            Html.button [ class "btn btn-primary pull-xs-right", tabindex 6, disabled model.formSubmitted ] [ text "Submit your answers" ]
+            Html.button [ class "bg-blue hover:bg-blue-dark text-white font-bold py-2 px-4 mt-2 rounded", tabindex 6, disabled model.formSubmitted ] [ text "Submit your answers" ]
 
         drwrBtn s evt =
-            button [ class "btn btn-sm btn-default", tabindex -1, onClick (ToggleDrawer evt), type_ "button" ] [ text s ]
+            let
+                activityColour =
+                    case evt of
+                        Drawer.Connect ->
+                            "bg-blue hover:bg-blue-dark"
+
+                        Drawer.Question ->
+                            "bg-red hover:bg-red-dark"
+
+                        Drawer.Summarise ->
+                            "bg-green-dark hover:bg-green-darker"
+
+                        Drawer.Clarify ->
+                            "bg-pink hover:bg-pink-dark"
+            in
+            button [ class "text-white text-sm py-1 px-2 mr-2 rounded", tabindex -1, class activityColour, onClick (ToggleDrawer evt), type_ "button" ] [ text s ]
     in
-    Html.form [ onSubmit SubmitForm ]
-        [ div [ class "form-group" ]
-            [ answerField Connection SetConnection [ drwrBtn "?" Drawer.Connect, text " Connect this story with yourself or something you know about." ] 1
-            , answerField Question SetQuestion [ drwrBtn "?" Drawer.Question, text " Think of a question the story makes you want to ask and type it here." ] 2
-            , answerField Summary SetSummary [ drwrBtn "?" Drawer.Summarise, text " Write one sentence that captures the main idea." ] 3
-            , answerField Clarification SetClarification [ drwrBtn "?" Drawer.Clarify, text " Work through the clarify methods then type what you think this word means: ", em [ class "clarify-word" ] [ text (.clarifyWord model.story) ] ] 4
-            , div [ class (errorClass (fieldError ClarificationMethod model.errors)) ]
-                [ label [ for "clarifyMethod" ] [ text "Which clarify method worked best for you?" ]
-                , Html.select [ id "clarifyMethod", class "form-control", onSelect SetClarifyMethod, tabindex 5 ] clarifyMethodOptions
+    Html.form [ class "w-full", onSubmit SubmitForm ]
+        [ div [ class "flex flex-wrap mb-6" ]
+            [ answerField Connection SetConnection (drwrBtn "Connect" Drawer.Connect) [ text "Connect this story with yourself or something you know about." ] 1
+            , answerField Question SetQuestion (drwrBtn "Question" Drawer.Question) [ text "Think of a question the story makes you want to ask and type it here." ] 2
+            , answerField Summary SetSummary (drwrBtn "Summarise" Drawer.Summarise) [ text "Write one sentence that captures the main idea." ] 3
+            , answerField Clarification SetClarification (drwrBtn "Clarify" Drawer.Clarify) [ text "Work through the clarify methods then type what you think this word means: ", em [ class "clarify-word" ] [ text (.clarifyWord model.story) ] ] 4
+            , div [ class "mt-3", errorClass ClarificationMethod ]
+                [ label [ class "text-sm font-bold", for "clarifyMethod" ] [ text "Which clarify method worked best for you?" ]
+                , Form.select [ id "clarifyMethod", class "border rounded mt-1", onSelect SetClarifyMethod, tabindex 5 ] clarifyMethodOptions
                 ]
             , submitButton
             ]

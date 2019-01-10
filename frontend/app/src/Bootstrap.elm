@@ -1,8 +1,11 @@
-module Bootstrap exposing (Alert(..), alert, btn, btnGroup, closeBtn, errorClass, formGroup, row, tableCustomizations, toolbar)
+module Bootstrap exposing (Alert(..), alert, btn, closeBtn, closeBtn2, errorClass, link, tableCustomizations)
 
-import Html exposing (Html, button, div, span, text, tr)
+import Components
+import Html exposing (Attribute, Html, button, div, span, text, tr)
 import Html.Attributes exposing (attribute, class, id, type_)
 import Html.Events exposing (onClick)
+import Svg
+import Svg.Attributes as Svga
 import Table
 
 
@@ -11,47 +14,55 @@ type Alert
     | Danger
 
 
-row : List (Html msg) -> Html msg
-row =
-    div [ class "row" ]
-
-
-formGroup : List (Html msg) -> Html msg
-formGroup =
-    div [ class "form-group" ]
-
-
 alert : Alert -> String -> msg -> Html msg
 alert a txt dismiss =
     let
         alertClass =
             case a of
                 Success ->
-                    "alert-success"
+                    "bg-green-lightest border border-green-light text-green-dark px-4 py-3 rounded relative"
 
                 Danger ->
-                    "alert-danger"
+                    "bg-red-lightest border border-red-light text-red-dark px-4 py-3 rounded relative"
     in
-    div [ class ("alert alert-dismissable " ++ alertClass), role "alert" ]
-        [ closeBtn dismiss
-        , text txt
+    div [ class alertClass, role "alert" ]
+        [ span [ class "block" ] [ text txt ]
+        , closeBtn dismiss
         ]
 
 
-toolbar id_ =
-    div [ id id_, class "btn-toolbar hidden-print", role "toolbar" ]
+closeBtn msg =
+    span [ class "absolute pin-t pin-r px-4 py-3", ariaLabel "Close", onClick msg ]
+        [ closeIcon ]
 
 
-btnGroup =
-    div [ class "btn-group", role "group" ]
+closeBtn2 msg =
+    span [ class "absolute pin-t pin-r p-4", onClick msg ]
+        [ closeIcon2 ]
 
 
-btn id_ action =
-    button [ id id_, class "btn btn-default", onClick action ]
+closeIcon =
+    Svg.svg [ Svga.class "fill-current h-6 w-6", role "button", Svga.viewBox "0 0 20 20" ]
+        [ Svg.title [] [ Svg.text "Close" ]
+        , Svg.path [ Svga.d "M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" ] []
+        ]
 
 
-closeBtn action =
-    button [ class "close", ariaLabel "Close", onClick action ] [ span [ ariaHidden ] [ text "×" ] ]
+closeIcon2 =
+    Svg.svg [ Svga.class "h-12 w-12 text-grey-dark hover:text-grey-darker fill-current", role "button", Svga.viewBox "0 0 20 20" ]
+        [ Svg.title [] [ Svg.text "Close" ]
+        , Svg.path [ Svga.d "M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" ] []
+        ]
+
+
+link : Attribute msg -> String -> Html msg
+link href_ txt =
+    Components.link [ href_ ] txt
+
+
+btn : String -> msg -> String -> Html msg
+btn id_ action txt =
+    Components.btn [ id id_, onClick action, type_ "button" ] [ text txt ]
 
 
 role =
@@ -76,4 +87,4 @@ c =
 
 
 tableCustomizations =
-    { c | tableAttrs = [ class "table table-striped" ] }
+    { c | tableAttrs = [ class "sortable-table" ] }

@@ -1,6 +1,7 @@
 module Views.ChangePasswordForm exposing (ExternalMsg(..), Model, Msg, init, update, view)
 
 import Api
+import Components
 import Data.Session exposing (Session, authorization)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -84,16 +85,16 @@ view : Model -> Html Msg
 view model =
     let
         viewForm =
-            Html.form [ onSubmit SubmitForm ]
+            Html.form [ class "flex flex-col", onSubmit SubmitForm ]
                 [ Form.password
-                    [ class "form-control-lg"
+                    [ class "w-full"
                     , placeholder "Password"
                     , tabindex 1
                     , onInput SetPassword
                     ]
                     []
                 , Form.password
-                    [ class "form-control-lg"
+                    [ class "w-full mt-2"
                     , placeholder "Confirm password"
                     , tabindex 2
                     , onInput SetConfirm
@@ -103,7 +104,7 @@ view model =
                 ]
 
         submitButton =
-            Html.button [ class "btn btn-primary pull-xs-right", tabindex 3 ] [ text "Save new password" ]
+            Components.btn [ class "mt-2", tabindex 2 ] [ text "Save new password" ]
     in
     div []
         [ Form.viewErrorMsgs model.errors

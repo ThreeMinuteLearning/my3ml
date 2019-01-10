@@ -8,6 +8,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
+import Route
 import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
@@ -89,8 +90,10 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Teachers"
     , content =
-        div [ class "container page" ]
-            [ TeacherToolbar.view session [ newRegistrationCodeButton ]
+        div [ class "flex flex-col" ]
+            [ div [ class "mb-16" ]
+                [ TeacherToolbar.view session Route.Teachers [ newRegistrationCodeButton ]
+                ]
             , viewCode model.registrationCode
             , viewTable model
             ]
@@ -111,10 +114,10 @@ viewCode code =
             div [] []
 
         Just c ->
-            div [ class "row" ]
-                [ p [] [ text "Copy the code below and give it to the person you want to create an account for. They should then register for an account and enter the code to become a member of your school. The code is valid for 20 minutes." ]
+            div [ class "leading-normal mb-4" ]
+                [ p [ class "mb-4" ] [ text "Copy the code below and give it to the person you want to create an account for. They should then register for an account and enter the code to become a member of your school. The code is valid for 20 minutes." ]
                 , p [] [ text "Once they have completed their registration, they should tell you and you can activate their account from this page (reload the page if necessary)." ]
-                , div [ class "registration-code text-center" ]
+                , div [ class "text-center font-bold text-xl mt-3" ]
                     [ p [] [ text c ]
                     ]
                 ]
@@ -122,7 +125,7 @@ viewCode code =
 
 newRegistrationCodeButton : Html Msg
 newRegistrationCodeButton =
-    Bootstrap.btn "new-registration-code-button" GenerateRegistrationCode [ text "New Teacher Account" ]
+    Bootstrap.btn "new-registration-code-button" GenerateRegistrationCode "New Teacher Account"
 
 
 tableConfig : Table.Config ( Api.Teacher, Bool ) Msg

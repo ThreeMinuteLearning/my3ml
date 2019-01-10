@@ -4,6 +4,7 @@ import Api
 import Bootstrap exposing (closeBtn)
 import Browser.Dom exposing (getViewport)
 import Browser.Events exposing (onResize)
+import Components
 import Data.Session as Session exposing (Cache, Session, authorization, findStoryById, isEditor, updateCache)
 import Data.Settings exposing (Settings, defaultSettings)
 import Html exposing (..)
@@ -339,7 +340,7 @@ loadMore m =
 
             else
                 ( { m | viewType = Tiles (n + (4 * StoryTiles.tilesPerRow (first m.windowSize))) }
-                , Ports.isLastEltVisible "storytiles"
+                , Ports.isLastEltVisible StoryTiles.divId
                 )
 
         _ ->
@@ -356,7 +357,7 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session m =
     { title = "Find a Story"
     , content =
-        div [ class "container page" ]
+        div [ class "max-w-lg mx-auto px-2" ]
             [ case m.browser of
                 Nothing ->
                     div []
@@ -383,90 +384,95 @@ view session m =
     }
 
 
-settingsFromSession : Session -> Settings
+settingsFromSession : Session -> Maybe Settings
 settingsFromSession session =
     session.user
-        |> Maybe.map .settings
-        |> Maybe.withDefault defaultSettings
+        |> Maybe.andThen .settings
 
 
 viewBrowserToolbar : Session -> Api.Story -> List Api.Story -> Html Msg
 viewBrowserToolbar session s selected =
-    nav []
-        [ ul [ class "pager" ]
-            [ li [ class "previous" ] [ a [ href "#", onClick Previous ] [ text "Prev" ] ]
-            , viewIf (isEditor session) <| li [] [ a [ href (Route.routeToString (Route.Editor s.id)) ] [ text "Edit" ] ]
-            , li [] [ a [ href "#", onClick CloseBrowser ] [ text "Back to stories" ] ]
-            , viewUnless (Session.isStudent session || List.member s selected) <| li [] [ a [ href "#", onClick (SelectStory s) ] [ text "Add to basket" ] ]
-            , viewIf (Session.isStudent session) <| li [] [ a [ href (Route.routeToString (Route.Story s.id)) ] [ text "Work on story" ] ]
-            , li [ class "next" ] [ a [ class "pull-right", href "#", onClick Next ] [ text "Next" ] ]
+    let
+        mkBtn attrs txt =
+            li [] [ a (class "block no-underline bg-transparent hover:bg-blue text-sm md:text-base text-center text-blue-dark font-semibold hover:text-white py-1 px-4 border border-blue hover:border-transparent rounded-full cursor-pointer" :: attrs) [ text txt ] ]
+    in
+    nav [ class "w-full mb-4" ]
+        [ ul [ class "list-reset flex flex-wrap justify-between" ]
+            [ mkBtn [ href "#", onClick Previous ] "Prev"
+            , ul [ class "list-reset flex justify-between" ]
+                [ viewIf (isEditor session) <| mkBtn [ href (Route.routeToString (Route.Editor s.id)) ] "Edit"
+                , mkBtn [ href "#", onClick CloseBrowser ] "Back to stories"
+                , viewUnless (Session.isStudent session || List.member s selected) <| mkBtn [ href "#", onClick (SelectStory s) ] "Add to basket"
+                , viewIf (Session.isStudent session) <| mkBtn [ href (Route.routeToString (Route.Story s.id)) ] "Work on story"
+                ]
+            , mkBtn [ href "#", onClick Next ] "Next"
             ]
         ]
 
 
 viewStoriesFilter : Session -> Model -> Html Msg
 viewStoriesFilter session m =
-    div [ class "form-group" ]
-        [ input
-            [ type_ "text"
-            , value m.storyFilter
-            , onInput StoryFilterInput
-            , placeholder "Search text"
-            , id "storyfilter"
+    let
+        btn ( msg, txt ) =
+            Components.btnSmall [ class "mr-1", type_ "button", onClick msg ] [ text txt ]
+    in
+    div [ class "flex items-center justify-between flex-wrap" ]
+        [ div [ class "flex flex-wrap items-center" ]
+            [ Form.input
+                [ value m.storyFilter
+                , onInput StoryFilterInput
+                , placeholder "Search text"
+                , id "storyfilter"
+                , class "mr-2 mb-2"
+                ]
+                []
+            , label [ class "mr-2 mb-2", for "storyfilter" ]
+                [ text (String.fromInt (List.length m.stories) ++ " matching stories ")
+                ]
             ]
-            []
-        , label [ style "margin-left" "5px", for "storyfilter" ]
-            [ text (" " ++ String.fromInt (List.length m.stories) ++ " matching stories ")
+        , div [ class "flex items-center mb-2" ]
+            [ viewIf (isEditor session) (btn (toggleDisabledStoriesOnly m))
+            , btn (cycleDisplay session m)
             ]
-        , viewIf (isEditor session) (viewToggleDisabledStoriesOnly m)
-        , text "  "
-        , viewCycleDisplayButton session m
         ]
 
 
-viewCycleDisplayButton : Session -> Model -> Html Msg
-viewCycleDisplayButton session m =
+cycleDisplay : Session -> Model -> ( Msg, String )
+cycleDisplay session m =
     let
         viewTiles =
-            ( Tiles (StoryTiles.tilesPerPage m.windowSize), "Switch view (tiles)" )
+            ( SetViewType (Tiles (StoryTiles.tilesPerPage m.windowSize)), "Switch view (tiles)" )
 
         viewTable =
-            ( Table, "Switch view (table)" )
-
-        ( nextViewType, displayTxt ) =
-            case m.viewType of
-                Tiles _ ->
-                    if List.isEmpty session.cache.anthologies then
-                        viewTable
-
-                    else
-                        ( Anthologies, "Switch view (anthologies)" )
-
-                Anthologies ->
-                    viewTable
-
-                Table ->
-                    viewTiles
+            ( SetViewType Table, "Switch view (table)" )
     in
-    button [ class "btn btn-default", onClick (SetViewType nextViewType) ] [ text displayTxt ]
-
-
-viewToggleDisabledStoriesOnly : Model -> Html Msg
-viewToggleDisabledStoriesOnly m =
-    let
-        txt =
-            if m.showDisabledStoriesOnly then
-                "Show all stories"
+    case m.viewType of
+        Tiles _ ->
+            if List.isEmpty session.cache.anthologies then
+                viewTable
 
             else
-                "Hide enabled stories"
-    in
-    a [ href "#", onClick ToggleShowDisabledOnly ] [ text txt ]
+                ( SetViewType Anthologies, "Switch view (anthologies)" )
+
+        Anthologies ->
+            viewTable
+
+        Table ->
+            viewTiles
+
+
+toggleDisabledStoriesOnly : Model -> ( Msg, String )
+toggleDisabledStoriesOnly m =
+    if m.showDisabledStoriesOnly then
+        ( ToggleShowDisabledOnly, "Show all stories" )
+
+    else
+        ( ToggleShowDisabledOnly, "Hide enabled stories" )
 
 
 viewStoriesTable : Model -> Html Msg
 viewStoriesTable m =
-    div [ class "table-responsive" ]
+    div []
         [ Table.view tableConfig m.tableState m.stories ]
 
 
@@ -539,7 +545,7 @@ tableConfig =
 
 viewStoryLink : Api.Story -> Html Msg
 viewStoryLink s =
-    Html.a [ href "#", onClick (BrowseFrom s.id) ] [ text s.title ]
+    Components.link [ href "#", onClick (BrowseFrom s.id) ] s.title
 
 
 viewStoryBasket : Model -> List Api.Story -> Html Msg
@@ -551,66 +557,49 @@ viewStoryBasket m stories =
         createAnthology =
             case m.anthologyForm of
                 Nothing ->
-                    button [ class "btn btn-default", onClick CreateAnthology ] [ text "Create Anthology" ]
+                    Components.btn [ class "text-sm", onClick CreateAnthology ] [ text "Create Anthology" ]
 
                 Just f ->
-                    Html.form [ onSubmit SubmitAnthologyForm ]
+                    Html.form [ class "flex flex-col md:flex-row", onSubmit SubmitAnthologyForm ]
                         [ Form.input
-                            [ class "form-control-lg"
+                            [ class "mb-2 md:mb-0 md:mr-2"
                             , placeholder "Anthology name"
                             , tabindex 1
                             , onInput SetAnthologyName
                             ]
                             []
                         , Form.input
-                            [ class "form-control-lg"
+                            [ class "mb-2 md:mb-0 md:mr-2"
                             , placeholder "Anthology description"
                             , tabindex 2
                             , onInput SetAnthologyDescription
                             ]
                             []
-                        , submitButton
+                        , Components.btn [ tabindex 3 ] [ text "Save anthology" ]
                         ]
-
-        submitButton =
-            Html.button [ class "btn btn-primary pull-xs-right", tabindex 3 ] [ text "Save anthology" ]
-
-        basketContents =
-            if isEmpty then
-                [ p [ title "Click on a story in the table to open the story browser" ] [ text "Your story basket is empty. You can browse the search results and add stories, then use them to create an anthology." ]
+    in
+    Components.panel [ class "p-4 mb-4 relative" ]
+        [ viewUnless isEmpty (span [ class "text-grey-dark" ] [ closeBtn ClearSelectedStories ])
+        , h1 [ class "text-xl font-light mb-2" ] [ text "Story basket" ]
+        , div [ id "storybasket" ]
+            (if isEmpty then
+                [ p [ title "Click on a story in the table to open the story browser" ] [ text "Your story basket is empty. You can browse the search results by clicking on a story title in the table, add stories to the basket, then use them to create an anthology." ]
                 ]
 
-            else
+             else
                 [ StoryTiles.view True stories
                 , createAnthology
                 ]
-    in
-    div [ class "panel panel-default" ]
-        [ div [ class "panel-heading" ]
-            [ div [ class "btn-group pull-right" ]
-                [ viewUnless isEmpty (closeBtn ClearSelectedStories) ]
-            , h4 [ class "panel-title" ] [ text "Story basket" ]
-            ]
-        , div [ id "storybasket", class "panel-body" ]
-            basketContents
+            )
         ]
-
-
-viewStoryTable : List Api.Story -> Html Msg
-viewStoryTable stories =
-    let
-        storyRow s =
-            tr []
-                [ td [] [ viewStoryLink s ]
-                ]
-    in
-    table [ class "table" ]
-        [ tbody [] (List.map storyRow stories) ]
 
 
 viewAnthologies : Session -> Html Msg
 viewAnthologies session =
     let
+        btn msg disable txt =
+            Components.btnBase [ class "text-xs bg-blue py-1 px-2 mr-1", classList [ ( "hover:bg-blue-dark", not disable ), ( "opacity-50 cursor-not-allowed", disable ) ], disabled disable, onClick msg ] [ text txt ]
+
         anthologiesWithStories =
             List.map pickStories session.cache.anthologies
 
@@ -621,39 +610,24 @@ viewAnthologies session =
             (a.schoolId /= Nothing && Session.isTeacher session) || Session.isEditor session
 
         render ( a, astories ) =
-            div [ class "anthology" ]
-                [ h3 [] [ text a.name ]
-                , viewIf (canDelete a)
-                    (button
-                        [ class "btn btn-default btn-xs"
-                        , onClick (DeleteAnthology a.id)
-                        ]
-                        [ text "Delete" ]
-                    )
-                , viewIf (isEditor session)
-                    (button
-                        [ class "btn btn-default btn-xs"
-                        , onClick (UpdateAnthology { a | hidden = not a.hidden })
-                        ]
-                        [ text
+            Components.panel [ class "p-4 mb-4" ]
+                [ h1 [ class "text-xl font-light mb-1" ] [ text a.name ]
+                , p [ class "text-sm text-grey-dark mb-1" ] [ text a.description ]
+                , div [ class "mb-2" ]
+                    [ viewIf (canDelete a)
+                        (btn (DeleteAnthology a.id) False "Delete")
+                    , viewIf (isEditor session)
+                        (btn (UpdateAnthology { a | hidden = not a.hidden })
+                            False
                             (if a.hidden then
                                 "Un-hide"
 
                              else
                                 "Hide"
                             )
-                        ]
-                    )
-                , viewIf (isEditor session)
-                    (button
-                        [ class "btn btn-default btn-xs"
-                        , onClick (SetStarterStories a.id)
-                        , disabled (List.length a.stories < 24)
-                        ]
-                        [ text "Set Starter Stories" ]
-                    )
-                , div []
-                    [ p [] [ text a.description ]
+                        )
+                    , viewIf (isEditor session)
+                        (btn (SetStarterStories a.id) (List.length a.stories < 24) "Set Starter Stories")
                     ]
                 , StoryTiles.view True astories
                 ]

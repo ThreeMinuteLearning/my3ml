@@ -2,7 +2,8 @@ module Page.Students exposing (Model, Msg, init, update, view)
 
 import AddStudentsForm
 import Api
-import Bootstrap exposing (formGroup, row)
+import Bootstrap
+import Components
 import Data.Session as Session exposing (Session, authorization, updateCache)
 import Dict exposing (Dict)
 import Html exposing (..)
@@ -14,11 +15,13 @@ import Modal
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Ports
 import Regex
+import Route
 import Table
 import Task exposing (Task)
 import Tuple exposing (first, second)
 import Util exposing (defaultHttpErrorMsg, maybeView, viewIf)
 import Views.ClassSelect as ClassSelect
+import Views.Form as Form
 import Views.NewAccounts as NewAccounts
 import Views.StudentTable as StudentTable
 import Views.TeacherToolbar as TeacherToolbar
@@ -171,11 +174,26 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Students"
     , content =
-        div [ class "container page" ]
-            [ TeacherToolbar.view session (subtools session)
+        div [ class "flex flex-col" ]
+            [ div [ class "mb-4" ] [ TeacherToolbar.view session Route.Students (subtools session) ]
             , viewNotification model.notification
-            , row [ NewAccounts.view PrintWindow ClearNewAccounts session.cache.newAccounts ]
-            , viewStudentsFilter session.cache model
+            , div [ class "mb-4" ] [ NewAccounts.view PrintWindow ClearNewAccounts session.cache.newAccounts ]
+            , div [ class "print:none flex flex-col" ]
+                [ div [ class "flex mb-4" ]
+                    [ Form.input
+                        [ class "mr-1"
+                        , type_ "text"
+                        , value (first model.studentFilter)
+                        , onInput StudentFilterInput
+                        , placeholder "Name search"
+                        , id "studentNameFilter"
+                        ]
+                        []
+                    , ClassSelect.view session.cache.classes (second model.studentFilter) "Filter by class" SetClassFilter
+                    ]
+                , Util.viewUnless (Dict.isEmpty model.selectedStudents)
+                    (Components.toolbar [ ( ClearSelectedStudents, False, "Clear selection" ) ] [ ClassSelect.view session.cache.classes Nothing "Add selected students to class" AddStudentsToClass ])
+                ]
             , viewTable session.cache model
             , maybeView addStudentsDialog model.addStudentsForm
             ]
@@ -185,7 +203,7 @@ view session model =
 subtools : Session -> List (Html Msg)
 subtools session =
     if Session.isSchoolAdmin session then
-        [ Bootstrap.btn "add-students-button" ShowAddStudents [ text "Add Students" ]
+        [ Components.btn [ id "add-students-button", onClick ShowAddStudents ] [ text "Add Students" ]
         ]
 
     else
@@ -199,10 +217,10 @@ viewNotification n =
             text ""
 
         Error msg ->
-            row [ Bootstrap.alert Bootstrap.Danger msg DismissNotification ]
+            div [ class "my-4" ] [ Bootstrap.alert Bootstrap.Danger msg DismissNotification ]
 
         Msg msg ->
-            row [ Bootstrap.alert Bootstrap.Success msg DismissNotification ]
+            div [ class "my-4" ] [ Bootstrap.alert Bootstrap.Success msg DismissNotification ]
 
 
 viewTable : Session.Cache -> Model -> Html Msg
@@ -217,7 +235,7 @@ viewTable cache model =
         isChecked s =
             Dict.member s.id model.selectedStudents
     in
-    div [ class "row hidden-print" ]
+    div [ class "print:none" ]
         [ StudentTable.view tableConfig model.tableState elements isChecked
         ]
 
@@ -256,56 +274,13 @@ filterStudentsByName nameFilter students =
         |> (\r -> List.filter (\s -> Regex.contains r s.name) students)
 
 
-viewStudentsFilter : Session.Cache -> Model -> Html Msg
-viewStudentsFilter cache model =
-    let
-        onSelect msg classId =
-            msg <|
-                if classId == "" then
-                    Nothing
-
-                else
-                    Just classId
-
-        inputGroupBtn msg txt =
-            span [ class "input-group-btn" ]
-                [ button [ class "btn btn-default", onClick msg, type_ "button" ] [ text txt ]
-                ]
-    in
-    div [ class "row hidden-print" ]
-        [ div [ class "form-inline" ]
-            [ formGroup
-                [ input
-                    [ class "form-control"
-                    , type_ "text"
-                    , value (first model.studentFilter)
-                    , onInput StudentFilterInput
-                    , placeholder "Name search"
-                    , id "studentNameFilter"
-                    ]
-                    []
-                , ClassSelect.view cache.classes (second model.studentFilter) "Filter by class" (onSelect SetClassFilter)
-                ]
-            , if Dict.isEmpty model.selectedStudents then
-                div [] []
-
-              else
-                div [ class "input-group" ]
-                    [ span [ class "input-group-btn" ]
-                        [ button [ class "btn btn-default", onClick ClearSelectedStudents, type_ "button" ] [ text "Clear selection" ]
-                        ]
-                    , ClassSelect.view cache.classes Nothing "Add selected students to class" (onSelect AddStudentsToClass)
-                    ]
-            ]
-        ]
-
-
 addStudentsDialog : AddStudentsForm.Model -> Html Msg
 addStudentsDialog form =
     Modal.view "Add Students"
         DismissAddStudents
-        (div []
-            [ p [] [ text "Enter the names of the students you want to add accounts for, separated by commas or on separate lines. You can enter up to 100 names." ]
+        (div [ class "w-full max-w-md p-4 flex flex-col" ]
+            [ p [ class "mb-2 text-lg" ] [ text "Enter the names of the students you want to add accounts for, separated by commas or on separate lines." ]
+            , p [ class "mb-2 text-lg" ] [ text "You can enter up to 100 names." ]
             , Html.map AddStudentsFormMsg (AddStudentsForm.view form)
             ]
         )

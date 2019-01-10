@@ -2,7 +2,7 @@ module Page.Classes exposing (Model, Msg, init, update, view)
 
 import AddClassForm
 import Api
-import Bootstrap
+import Bootstrap exposing (link)
 import Data.Session as Session exposing (Session, authorization)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -80,8 +80,8 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Classes"
     , content =
-        div [ class "container page" ]
-            [ TeacherToolbar.view session subtools
+        div [ class "flex flex-col" ]
+            [ div [ class "mb-16" ] [ TeacherToolbar.view session Route.Classes subtools ]
             , viewTable session model
             , maybeView addClassesDialog model.addClassForm
             ]
@@ -119,23 +119,21 @@ nameColumn =
 viewClassLink : Api.Class -> Table.HtmlDetails Msg
 viewClassLink class =
     Table.HtmlDetails []
-        [ a [ Route.href (Route.Teacher (Route.Class class.id)) ]
-            [ text class.name
-            ]
+        [ link (Route.href (Route.Teacher (Route.Class class.id))) class.name
         ]
 
 
 subtools : List (Html Msg)
 subtools =
-    [ Bootstrap.btn "add-class-button" ShowAddClass [ text "Add Class" ] ]
+    [ Bootstrap.btn "add-class-button" ShowAddClass "Add Class" ]
 
 
 addClassesDialog : AddClassForm.Model -> Html Msg
 addClassesDialog form =
     Modal.view "Add Class"
         DismissAddClass
-        (div []
-            [ p [] [ text "Enter the new class name and a description" ]
+        (div [ class "w-full max-w-md p-4 flex flex-col" ]
+            [ p [ class "mb-2 text-lg" ] [ text "Please enter a name and a description for the new class" ]
             , Html.map AddClassFormMsg (AddClassForm.view form)
             ]
         )
