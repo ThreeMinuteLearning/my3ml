@@ -5,6 +5,7 @@ import Browser exposing (Document)
 import Browser.Navigation as Nav
 import Data.Session as Session exposing (Role(..), Session, User, decodeSession, storeSession)
 import Html exposing (..)
+import Http
 import Json.Decode as Decode exposing (Value)
 import Page.Account as Account
 import Page.Class as Class
@@ -101,7 +102,7 @@ viewPage session isLoading page =
                 |> frame Page.Other
 
         Home subModel ->
-            Home.view session subModel
+            Home.view session ClearWorkQueue subModel
                 |> frame Page.Home
 
         Errored subModel ->
@@ -176,6 +177,8 @@ type Msg
     | PageLoaded PageLoaded
     | PageMsg PageMsg
     | CloseAlert Session.Alert
+    | ClearWorkQueue
+    | SaveWorkQueueResponse (Result Http.Error Api.NoContent)
     | Tick Time.Posix
 
 
@@ -377,6 +380,17 @@ update msg model =
                     { session | alerts = newAlerts }
             in
             ( { model | tick = newTick, session = newSession }, Cmd.none )
+
+        ClearWorkQueue ->
+            let
+                ( cmd, newSession ) =
+                    Session.clearWorkQueue model.session
+                        |> Session.saveWorkQueue SaveWorkQueueResponse
+            in
+            ( { model | session = newSession }, cmd )
+
+        SaveWorkQueueResponse _ ->
+            ( model, Cmd.none )
 
 
 pageLoaded : PageLoaded -> Model -> ( Model, Cmd Msg )

@@ -1,7 +1,7 @@
-module Data.Session exposing (AccessToken, Alert(..), Cache, Role(..), Session, User, authorization, closeAlert, decodeSession, emptySession, error, findStoryById, isEditor, isSchoolAdmin, isStudent, isTeacher, loadAnthologies, loadClasses, loadDictionary, loadStories, loadStudents, loadUserAnswers, newLogin, storeSession, success, updateCache, warn)
+module Data.Session exposing (AccessToken, Alert(..), Cache, Role(..), Session, User, addToWorkQueue, authorization, clearWorkQueue, closeAlert, decodeSession, emptySession, error, findStoryById, isEditor, isSchoolAdmin, isStudent, isTeacher, loadAnthologies, loadClasses, loadDictionary, loadStories, loadStudents, loadUserAnswers, newLogin, saveWorkQueue, storeSession, success, updateCache, warn)
 
 import Api
-import Data.Settings as Settings exposing (Settings)
+import Data.Settings as Settings exposing (Settings, defaultSettings)
 import Data.Words exposing (WordDict)
 import Dict exposing (Dict)
 import Http
@@ -30,6 +30,7 @@ type AccessToken
 type alias Session =
     { cache : Cache
     , alerts : List ( Alert, Bool )
+    , workQueue : List Api.Story
     , user : Maybe User
     }
 
@@ -60,7 +61,7 @@ type Alert
 
 emptySession : Session
 emptySession =
-    Session emptyCache [] Nothing
+    Session emptyCache [] [] Nothing
 
 
 emptyCache : Cache
@@ -178,7 +179,7 @@ newLogin s { sub, name, level, token, role, settings } =
         user =
             User name sub userRole level (AccessToken token) userSettings
     in
-    Session (clearCache s.cache) [] (Just user)
+    Session (clearCache s.cache) [] [] (Just user)
 
 
 loadStories : Session -> Task Http.Error Session
@@ -186,11 +187,68 @@ loadStories session =
     loadToCache (.stories >> List.isEmpty) Api.getStories (\newStories cache -> { cache | stories = List.reverse (List.sortBy .id newStories) }) session
 
 
+populateWorkQueue : Session -> Task e Session
+populateWorkQueue sesh =
+    let
+        answers =
+            sesh.cache.answers
+
+        workQueue =
+            Maybe.andThen .settings sesh.user
+                |> Maybe.map .workQueue
+                |> Maybe.withDefault []
+                |> List.filter (\id -> not (Dict.member id answers))
+                |> List.filterMap (findStoryById sesh.cache)
+    in
+    Task.succeed { sesh | workQueue = workQueue }
+
+
+addToWorkQueue : List Api.Story -> Session -> Session
+addToWorkQueue stories session =
+    let
+        newQueue =
+            List.Extra.uniqueBy .id (List.append session.workQueue stories)
+    in
+    { session | workQueue = newQueue }
+
+
+saveWorkQueue : (Result Http.Error Api.NoContent -> msg) -> Session -> ( Cmd msg, Session )
+saveWorkQueue toMsg session =
+    let
+        newSettings =
+            session.user
+                |> Maybe.andThen .settings
+                |> Maybe.withDefault defaultSettings
+                |> (\s -> { s | workQueue = List.map .id session.workQueue })
+
+        newUser =
+            session.user
+                |> Maybe.map (\u -> { u | settings = Just newSettings })
+
+        newSession =
+            { session | user = newUser }
+
+        save =
+            Cmd.batch
+                [ storeSession newSession
+                , Api.postAccountSettings (authorization session) (Settings.encode newSettings)
+                    |> Http.send toMsg
+                ]
+    in
+    ( save, newSession )
+
+
+clearWorkQueue : Session -> Session
+clearWorkQueue session =
+    { session | workQueue = [] }
+
+
 loadUserAnswers : Session -> Task Http.Error Session
 loadUserAnswers session =
     case Maybe.map .role session.user of
         Just Student ->
             loadToCache (.answers >> Dict.isEmpty) (\token -> Api.getSchoolAnswers token Nothing Nothing) (\newAnswers cache -> { cache | answers = answersToDict newAnswers }) session
+                |> Task.andThen populateWorkQueue
 
         _ ->
             Task.succeed session
@@ -260,7 +318,7 @@ decodeSession json =
         |> Decode.decodeValue Decode.string
         |> Result.toMaybe
         |> Maybe.andThen (Decode.decodeString userDecoder >> Result.toMaybe)
-        |> Session emptyCache []
+        |> Session emptyCache [] []
 
 
 encodeUser : User -> Encode.Value

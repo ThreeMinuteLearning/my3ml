@@ -179,16 +179,25 @@ update session msg model =
                     ( ( { model | answersForm = Just subModel }, Cmd.map AnswersFormMsg cmd ), session )
 
                 Just ( ( _, cmd ), Just submittedAnswer ) ->
-                    ( ( { model | answersForm = Nothing, answers = submittedAnswer :: model.answers }
-                      , Cmd.map AnswersFormMsg cmd
-                      )
-                    , { session | cache = updateCacheAnswers submittedAnswer session.cache }
-                    )
+                    storyCompleted session cmd submittedAnswer model
 
 
-updateCacheAnswers : Api.Answer -> Cache -> Cache
-updateCacheAnswers a c =
-    { c | answers = Dict.insert a.storyId a c.answers }
+storyCompleted : Session -> Cmd AnswersForm.Msg -> Api.Answer -> Model -> ( ( Model, Cmd Msg ), Session )
+storyCompleted session cmd answer model =
+    let
+        newModel =
+            { model | answersForm = Nothing, answers = answer :: model.answers }
+
+        updateCacheAnswers a c =
+            { c | answers = Dict.insert a.storyId a c.answers }
+
+        newWorkQueue =
+            List.filter (\s -> s.id /= model.story.id) session.workQueue
+
+        newSession =
+            { session | cache = updateCacheAnswers answer session.cache, workQueue = newWorkQueue }
+    in
+    ( ( newModel, Cmd.map AnswersFormMsg cmd ), newSession )
 
 
 settingsFromSession : Session -> Maybe Settings

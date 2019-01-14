@@ -5,7 +5,7 @@ import Bootstrap exposing (closeBtn)
 import Browser.Dom exposing (getViewport)
 import Browser.Events exposing (onResize)
 import Components
-import Data.Session as Session exposing (Cache, Session, authorization, findStoryById, isEditor, updateCache)
+import Data.Session as Session exposing (Cache, Session, addToWorkQueue, authorization, findStoryById, isEditor, isStudent, updateCache)
 import Data.Settings exposing (Settings, defaultSettings)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -71,6 +71,8 @@ type Msg
     | SetStarterStoriesResponse (Result Http.Error Api.NoContent)
     | UpdateAnthology Api.Anthology
     | UpdateAnthologyResponse (Result Http.Error Api.Anthology)
+    | AddAnthologyToWorkQueue (List Api.Story)
+    | SaveWorkQueueResponse (Result Http.Error Api.NoContent)
 
 
 type ViewType
@@ -312,6 +314,14 @@ update session msg model =
         UpdateAnthologyResponse (Err e) ->
             ( ( { model | errors = [ "Couldn't update the anthology: " ++ defaultHttpErrorMsg e ] }, Cmd.none ), session )
 
+        AddAnthologyToWorkQueue stories ->
+            Session.addToWorkQueue stories session
+                |> Session.saveWorkQueue SaveWorkQueueResponse
+                |> (\( cmd, newSession ) -> ( ( model, cmd ), newSession ))
+
+        SaveWorkQueueResponse _ ->
+            ( ( model, Cmd.none ), session )
+
 
 updateAnthologies : (List Api.Anthology -> List Api.Anthology) -> Session -> Session
 updateAnthologies f =
@@ -366,7 +376,7 @@ view session m =
                         , viewUnless (Session.isStudent session) <| viewStoryBasket m session.cache.selectedStories
                         , case m.viewType of
                             Tiles n ->
-                                StoryTiles.view False (List.take n m.stories)
+                                StoryTiles.view False Nothing (List.take n m.stories)
 
                             Table ->
                                 viewStoriesTable m
@@ -587,7 +597,7 @@ viewStoryBasket m stories =
                 ]
 
              else
-                [ StoryTiles.view True stories
+                [ StoryTiles.view True Nothing stories
                 , createAnthology
                 ]
             )
@@ -628,8 +638,10 @@ viewAnthologies session =
                         )
                     , viewIf (isEditor session)
                         (btn (SetStarterStories a.id) (List.length a.stories < 24) "Set Starter Stories")
+                    , viewIf (isStudent session)
+                        (btn (AddAnthologyToWorkQueue astories) False "Add to my stories")
                     ]
-                , StoryTiles.view True astories
+                , StoryTiles.view True Nothing astories
                 ]
     in
     div [ class "anthologies" ]

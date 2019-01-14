@@ -1,21 +1,23 @@
 module Page.Home exposing (Model, init, update, view)
 
 import Api
-import Data.Session as Session exposing (Role(..), Session, User)
+import Data.Session as Session exposing (Role(..), Session, User, isStudent)
 import Dict exposing (Dict)
 import Html exposing (..)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, href)
 import List.Extra as List
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
 import Tuple exposing (first, pair)
-import Util exposing (defaultHttpErrorMsg)
+import Util exposing (defaultHttpErrorMsg, viewIf, viewUnless)
 import Views.RobotPanel as RobotPanel
 import Views.StoryTiles as StoryTiles
+import Views.WorkQueue as WorkQueue
 
 
 type alias Model =
     { stories : List Api.Story
+    , myStories : List Api.Story
     }
 
 
@@ -37,10 +39,10 @@ initModel session =
         model =
             case Maybe.map (\u -> ( u.role, u.level )) session.user of
                 Just ( Student, level ) ->
-                    Model (pickStories session level)
+                    Model (pickStories session level) []
 
                 _ ->
-                    Model session.cache.stories
+                    Model session.cache.stories []
     in
     ( model, session )
 
@@ -157,13 +159,14 @@ update session model =
     ( model, Cmd.none )
 
 
-view : Session -> Model -> { title : String, content : Html msg }
-view session model =
+view : Session -> msg -> Model -> { title : String, content : Html msg }
+view session clearWorkQueue model =
     { title = "Home"
     , content =
         div [ class "max-w-lg mx-2 md:mx-auto" ]
-            [ h1 [ class "text-xl font-light my-4" ] [ text (storiesTitle session) ]
-            , StoryTiles.view False (List.take 24 model.stories)
+            [ viewIf (isStudent session) (WorkQueue.view session.workQueue clearWorkQueue)
+            , h1 [ class "text-xl font-light my-4" ] [ text (storiesTitle session) ]
+            , StoryTiles.view False Nothing (List.take 25 model.stories)
             ]
     }
 

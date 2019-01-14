@@ -3,7 +3,7 @@ module Data.Settings exposing (Settings, decoder, defaultSettings, encode, fontO
 import Html exposing (Attribute)
 import Html.Attributes exposing (style)
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline as Pipeline exposing (required)
+import Json.Decode.Pipeline as Pipeline exposing (optional, required)
 import Json.Encode as Encode
 
 
@@ -12,12 +12,13 @@ type alias Settings =
     , colour : String
     , font : String
     , size : String
+    , workQueue : List Int
     }
 
 
 defaultSettings : Settings
 defaultSettings =
-    Settings "#ffffff" "#000000" "\"Helvetica Neue\",Helvetica,Arial,sans-serif" "1.25rem"
+    Settings "#ffffff" "#000000" "\"Helvetica Neue\",Helvetica,Arial,sans-serif" "1.25rem" []
 
 
 toStyle : Settings -> List (Attribute msg)
@@ -36,16 +37,26 @@ decoder =
         |> required "colour" Decode.string
         |> required "font" Decode.string
         |> required "size" Decode.string
+        |> optional "workQueue" (Decode.list Decode.int) []
 
 
 encode : Settings -> Encode.Value
 encode s =
+    let
+        displaySettings =
+            [ ( "background", Encode.string s.background )
+            , ( "colour", Encode.string s.colour )
+            , ( "font", Encode.string s.font )
+            , ( "size", Encode.string s.size )
+            ]
+    in
     Encode.object
-        [ ( "background", Encode.string s.background )
-        , ( "colour", Encode.string s.colour )
-        , ( "font", Encode.string s.font )
-        , ( "size", Encode.string s.size )
-        ]
+        (if List.isEmpty s.workQueue then
+            displaySettings
+
+         else
+            ( "workQueue", Encode.list Encode.int s.workQueue ) :: displaySettings
+        )
 
 
 fontOptions : List ( String, String )
