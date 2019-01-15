@@ -30,7 +30,7 @@ view : Model -> { title : String, content : Html msg }
 view model =
     { title = "Leaderboard"
     , content =
-        div [ class "max-w-md p-4" ]
+        div [ class "max-w-md mx-auto p-4" ]
             [ h1 [ class "text-2xl font-light mb-2" ] [ text "Leaderboard" ]
             , p [ class "mb-6" ]
                 [ text "Scores are re-calculated periodically so it may be a while before you see changes."
