@@ -248,7 +248,14 @@ loadUserAnswers session =
     case Maybe.map .role session.user of
         Just Student ->
             loadToCache (.answers >> Dict.isEmpty) (\token -> Api.getSchoolAnswers token Nothing Nothing) (\newAnswers cache -> { cache | answers = answersToDict newAnswers }) session
-                |> Task.andThen populateWorkQueue
+                |> Task.andThen
+                    (\s ->
+                        if List.isEmpty s.workQueue then
+                            populateWorkQueue s
+
+                        else
+                            Task.succeed s
+                    )
 
         _ ->
             Task.succeed session
