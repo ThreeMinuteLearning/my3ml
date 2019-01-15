@@ -5,8 +5,9 @@ import Bootstrap exposing (closeBtn)
 import Browser.Dom exposing (getViewport)
 import Browser.Events exposing (onResize)
 import Components
-import Data.Session as Session exposing (Cache, Session, addToWorkQueue, authorization, findStoryById, isEditor, isStudent, updateCache)
+import Data.Session as Session exposing (Cache, Session, authorization, findStoryById, isEditor, isStudent, updateCache)
 import Data.Settings exposing (Settings, defaultSettings)
+import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onSubmit)
@@ -118,6 +119,7 @@ init session =
 
         loadData =
             Session.loadStories session
+                |> Task.andThen Session.loadUserAnswers
                 |> Task.andThen Session.loadAnthologies
                 |> Task.mapError handleLoadError
     in
@@ -196,7 +198,11 @@ update session msg model =
             ( ( { model | showDisabledStoriesOnly = flag, stories = newStories }, Cmd.none ), session )
 
         SelectStory s ->
-            ( ( model, Cmd.none ), updateCache (\c -> { c | selectedStories = s :: c.selectedStories }) session )
+            if isStudent session then
+                saveWorkQueue model session [ s ]
+
+            else
+                ( ( model, Cmd.none ), updateCache (\c -> { c | selectedStories = s :: c.selectedStories }) session )
 
         ClearSelectedStories ->
             ( ( model, Cmd.none ), updateCache (\c -> { c | selectedStories = [] }) session )
@@ -315,12 +321,17 @@ update session msg model =
             ( ( { model | errors = [ "Couldn't update the anthology: " ++ defaultHttpErrorMsg e ] }, Cmd.none ), session )
 
         AddAnthologyToWorkQueue stories ->
-            Session.addToWorkQueue stories session
-                |> Session.saveWorkQueue SaveWorkQueueResponse
-                |> (\( cmd, newSession ) -> ( ( model, cmd ), newSession ))
+            saveWorkQueue model session stories
 
         SaveWorkQueueResponse _ ->
             ( ( model, Cmd.none ), session )
+
+
+saveWorkQueue : Model -> Session -> List Api.Story -> ( ( Model, Cmd Msg ), Session )
+saveWorkQueue model session stories =
+    Session.addToWorkQueue stories session
+        |> Session.saveWorkQueue SaveWorkQueueResponse
+        |> (\( cmd, newSession ) -> ( ( model, cmd ), newSession ))
 
 
 updateAnthologies : (List Api.Anthology -> List Api.Anthology) -> Session -> Session
@@ -376,7 +387,7 @@ view session m =
                         , viewUnless (Session.isStudent session) <| viewStoryBasket m session.cache.selectedStories
                         , case m.viewType of
                             Tiles n ->
-                                StoryTiles.view False Nothing (List.take n m.stories)
+                                StoryTiles.view False (Just BrowseFrom) (List.take n m.stories)
 
                             Table ->
                                 viewStoriesTable m
@@ -412,8 +423,9 @@ viewBrowserToolbar session s selected =
             , ul [ class "list-reset flex justify-between" ]
                 [ viewIf (isEditor session) <| mkBtn [ href (Route.routeToString (Route.Editor s.id)) ] "Edit"
                 , mkBtn [ href "#", onClick CloseBrowser ] "Back to stories"
+                , mkBtn [ href (Route.routeToString (Route.Story s.id)) ] "View"
                 , viewUnless (Session.isStudent session || List.member s selected) <| mkBtn [ href "#", onClick (SelectStory s) ] "Add to basket"
-                , viewIf (Session.isStudent session) <| mkBtn [ href (Route.routeToString (Route.Story s.id)) ] "Work on story"
+                , viewIf (Session.isStudent session && not (List.member s session.workQueue) && not (Dict.member s.id session.cache.answers)) <| mkBtn [ href "#", onClick (SelectStory s) ] "Add to work queue"
                 ]
             , mkBtn [ href "#", onClick Next ] "Next"
             ]
@@ -639,7 +651,7 @@ viewAnthologies session =
                     , viewIf (isEditor session)
                         (btn (SetStarterStories a.id) (List.length a.stories < 24) "Set Starter Stories")
                     , viewIf (isStudent session)
-                        (btn (AddAnthologyToWorkQueue astories) False "Add to my stories")
+                        (btn (AddAnthologyToWorkQueue astories) False "Add to my work queue")
                     ]
                 , StoryTiles.view True Nothing astories
                 ]
