@@ -1,4 +1,4 @@
-module Data.Session exposing (AccessToken, Alert(..), Cache, Role(..), Session, User, addToWorkQueue, authorization, clearWorkQueue, closeAlert, decodeSession, emptySession, error, findStoryById, isEditor, isSchoolAdmin, isStudent, isTeacher, loadAnthologies, loadClasses, loadDictionary, loadStories, loadStudents, loadUserAnswers, newLogin, saveWorkQueue, storeSession, success, updateCache, warn)
+module Data.Session exposing (AccessToken, Alert(..), Cache, Role(..), Session, User, addToWorkQueue, authorization, clearWorkQueue, closeAlert, decodeSession, emptySession, error, findStoryById, isEditor, isSchoolAdmin, isStudent, isTeacher, loadAnthologies, loadClasses, loadDictionary, loadStories, loadStudents, loadUserAnswers, newLogin, saveWorkQueue, storeSession, success, updateCache, warn, workQueueHasSpace)
 
 import Api
 import Data.Settings as Settings exposing (Settings, defaultSettings)
@@ -201,6 +201,11 @@ populateWorkQueue sesh =
                 |> List.filterMap (findStoryById sesh.cache)
     in
     Task.succeed { sesh | workQueue = workQueue }
+
+
+workQueueHasSpace : Session -> Bool
+workQueueHasSpace s =
+    List.length s.workQueue < 30
 
 
 addToWorkQueue : List Api.Story -> Session -> Session

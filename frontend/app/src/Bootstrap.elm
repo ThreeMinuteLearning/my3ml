@@ -15,7 +15,7 @@ type Alert
 
 
 alert : Alert -> String -> msg -> Html msg
-alert a txt dismiss =
+alert a txt onClose =
     let
         alertClass =
             case a of
@@ -27,12 +27,12 @@ alert a txt dismiss =
     in
     div [ class alertClass, role "alert" ]
         [ span [ class "block" ] [ text txt ]
-        , closeBtn dismiss
+        , closeBtn onClose
         ]
 
 
 closeBtn msg =
-    span [ class "absolute pin-t pin-r px-4 py-3", ariaLabel "Close", onClick msg ]
+    span [ class "absolute pin-t pin-r px-4 py-3", ariaLabel "close", onClick msg ]
         [ closeIcon ]
 
 

@@ -323,9 +323,11 @@ update session msg model =
         AddAnthologyToWorkQueue stories ->
             saveWorkQueue model session stories
 
-        SaveWorkQueueResponse _ ->
-            ( ( model, Cmd.none ), session )
+        SaveWorkQueueResponse (Ok _) ->
+            ( ( model, Cmd.none ), Session.success "Updated work queue" session )
 
+        SaveWorkQueueResponse (Err e) ->
+            ( ( model, Cmd.none ), Session.error ("Couldn't save work queue: " ++ defaultHttpErrorMsg e) session )
 
 saveWorkQueue : Model -> Session -> List Api.Story -> ( ( Model, Cmd Msg ), Session )
 saveWorkQueue model session stories =
@@ -385,6 +387,12 @@ view session m =
                         [ viewStoriesFilter session m
                         , Form.viewErrorMsgs m.errors
                         , viewUnless (Session.isStudent session) <| viewStoryBasket m session.cache.selectedStories
+                        , viewUnless (Session.workQueueHasSpace session)
+                            (p [ class "my-3" ]
+                                [ text "Your work queue is full. Perhaps you should "
+                                , a [ href (Route.routeToString Route.Home) ] [ text "complete some of the stories in it." ]
+                                ]
+                            )
                         , case m.viewType of
                             Tiles n ->
                                 StoryTiles.view False (Just BrowseFrom) (List.take n m.stories)
@@ -425,7 +433,13 @@ viewBrowserToolbar session s selected =
                 , mkBtn [ href "#", onClick CloseBrowser ] "Back to stories"
                 , mkBtn [ href (Route.routeToString (Route.Story s.id)) ] "View"
                 , viewUnless (Session.isStudent session || List.member s selected) <| mkBtn [ href "#", onClick (SelectStory s) ] "Add to basket"
-                , viewIf (Session.isStudent session && not (List.member s session.workQueue) && not (Dict.member s.id session.cache.answers)) <| mkBtn [ href "#", onClick (SelectStory s) ] "Add to work queue"
+                , viewIf
+                    (Session.isStudent session
+                        && not (List.member s session.workQueue)
+                        && not (Dict.member s.id session.cache.answers)
+                        && Session.workQueueHasSpace session
+                    )
+                    (mkBtn [ href "#", onClick (SelectStory s) ] "Add to work queue")
                 ]
             , mkBtn [ href "#", onClick Next ] "Next"
             ]
@@ -650,7 +664,7 @@ viewAnthologies session =
                         )
                     , viewIf (isEditor session)
                         (btn (SetStarterStories a.id) (List.length a.stories < 24) "Set Starter Stories")
-                    , viewIf (isStudent session)
+                    , viewIf (isStudent session && Session.workQueueHasSpace session)
                         (btn (AddAnthologyToWorkQueue astories) False "Add to my work queue")
                     ]
                 , StoryTiles.view True Nothing astories

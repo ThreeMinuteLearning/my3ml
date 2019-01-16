@@ -12,7 +12,7 @@ import Html.Lazy exposing (lazy2)
 import Route exposing (Route)
 import Svg
 import Svg.Attributes as Svga
-import Util
+import Util exposing (viewUnless)
 import Views.Spinner exposing (spinner)
 
 
@@ -64,35 +64,26 @@ viewHeader page user isLoading =
 
 viewAlerts : List ( Alert, Bool ) -> (Alert -> msg) -> Html msg
 viewAlerts alerts onAlertClose =
-    div [ id "alerts" ]
-        (List.map (viewAlert onAlertClose) alerts)
+    viewUnless (List.isEmpty alerts) <|
+        div [ id "alerts", class "max-w-lg mb-2 mx-auto" ]
+            (List.map (viewAlert onAlertClose) alerts)
 
 
 viewAlert : (Alert -> msg) -> ( Alert, Bool ) -> Html msg
 viewAlert onAlertClose ( a, closed ) =
     let
-        ( cls, msg ) =
+        ( bAlert, txt ) =
             case a of
                 Success m ->
-                    ( "alert alert-success", m )
+                    ( Bootstrap.Success, m )
 
                 Error m ->
-                    ( "alert alert-danger", m )
+                    ( Bootstrap.Danger, m )
 
                 Warning m ->
-                    ( "alert alert-warning", m )
-
-        hide =
-            if closed then
-                " closed"
-
-            else
-                ""
+                    ( Bootstrap.Danger, m )
     in
-    div [ class (cls ++ hide), attribute "role" "alert" ]
-        [ closeBtn (onAlertClose a)
-        , text msg
-        ]
+    Bootstrap.alert bAlert txt (onAlertClose a)
 
 
 menuToggleButton : Html msg
