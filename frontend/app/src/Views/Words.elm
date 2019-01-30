@@ -27,7 +27,7 @@ view dict words =
                     |> Maybe.withDefault Dict.empty
 
         render ( w, d ) =
-            div [ class "dict-definition" ]
+            div [ class "dict-definition py-1" ]
                 [ Html.p
                     []
                     [ Html.strong [] [ Html.text w ]
@@ -48,4 +48,4 @@ view dict words =
             List.partition (\( w, d ) -> List.member w originalWords) uniqueDefinitions
                 |> (\( defs, subdefs ) -> List.append defs subdefs)
     in
-    div [] (List.map render sortedDefinitions)
+    div [ class "p-4" ] (List.map render sortedDefinitions)
