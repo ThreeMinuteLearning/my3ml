@@ -64,4 +64,4 @@ viewErrorMsgs errors =
     else
         errors
             |> List.map (\error -> li [ class "ml-2 mb-1" ] [ text error ])
-            |> ul [ class "list-reset text-red-dark font-bold py-2 mb-1" ]
+            |> ul [ id "error-messages", class "list-reset text-red-dark font-bold py-2 mb-1" ]

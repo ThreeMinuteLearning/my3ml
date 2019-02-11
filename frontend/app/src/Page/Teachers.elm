@@ -118,7 +118,7 @@ viewCode code =
                 [ p [ class "mb-4" ] [ text "Copy the code below and give it to the person you want to create an account for. They should then register for an account and enter the code to become a member of your school. The code is valid for 20 minutes." ]
                 , p [] [ text "Once they have completed their registration, they should tell you and you can activate their account from this page (reload the page if necessary)." ]
                 , div [ class "text-center font-bold text-xl mt-3" ]
-                    [ p [] [ text c ]
+                    [ p [ id "registration-code" ] [ text c ]
                     ]
                 ]
 

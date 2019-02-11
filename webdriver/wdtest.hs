@@ -65,7 +65,7 @@ main = finally runTests deleteTestData
 runTests = myRunSession defaultConfig $ do
     openPage "http://localhost:8000"
     title <- getTitle
-    expect (title == "3ml")
+    expect (title == "Home")
     setImplicitWait 5000
     smokeTests
     closeSession
@@ -102,7 +102,7 @@ smokeTests = do
 
     -- Attempt login as new teacher (fail - wrong password)
     login "ahg@mt.zoo" "gobananas"
-    expectFormError "Username or password is incorrect"
+    expectFormError "Login failed. Check your username and password"
 
     -- Attempt login again as new teacher (fail - not active)
     login "ahg@mt.zoo" "gobananasagain"
@@ -138,17 +138,19 @@ deleteTestData = callCommand "psql my3ml -f delete_monkey_school.sql"
 
 expectFormError :: Text -> MyWD ()
 expectFormError msg = do
-    elts <- findElems (ByXPath "//ul[@class='error-messages']/li")
+    elts <- findElems (ByXPath "//ul[@id='error-messages']/li")
     errors <- mapM getText elts
     expect (msg `elem` errors)
 
 activateNewRegistrations = liftIO $ callCommand "psql my3ml -c \"UPDATE login SET active = true WHERE active = false AND user_type = 'SchoolAdmin'\""
 
-goHome = findElem (ByLinkText "Home") >>= click
+goHome = findElem (ById "nav-home") >>= click
+
+goTeacherAdmin = findElem (ById "nav-teacher-admin") >>= click
 
 
 createStudents = do
-    findElem (ByLinkText "Teacher") >>= click
+    goTeacherAdmin
     findElem (ById "add-students-button") >>= click
     newStudentsForm <- findElem (ByTag "form")
     newStudentsTextArea <- findElemFrom newStudentsForm (ByTag "textarea")
@@ -176,10 +178,10 @@ fillInAndSubmitRegForm codeOrSchoolName teacherName email password confirmPasswo
 
 addNewTeacher = do
     goHome
-    findElem (ByLinkText "Teacher") >>= click
+    goTeacherAdmin
     findElem (ById "teachers-button") >>= click
     findElem (ById "new-registration-code-button") >>= click
-    findElem (ByXPath "//div[contains(@class, 'registration-code')]/p") >>= getText
+    findElem (ById "registration-code") >>= getText
 
 registerNewTeacher code teacherName email password confirmPassword = do
     goHome
@@ -189,7 +191,7 @@ registerNewTeacher code teacherName email password confirmPassword = do
 
 login name pass = do
     goHome
-    findElem (ByLinkText "Sign in") >>= click
+    findElem (ById "nav-login") >>= click
     loginForm <- findElem (ByTag "form")
     [nameInput, passwordInput] <- findElemsFrom loginForm (ByTag "input")
     sendKeys name nameInput
@@ -197,4 +199,4 @@ login name pass = do
     -- submit loginForm
     findElemFrom loginForm (ByTag "button") >>= click
 
-logout = findElem (ByLinkText "Sign out") >>= click
+logout = findElem (ById "nav-logout") >>= click

@@ -33,7 +33,7 @@ while true; do
   fi
 
   echo "Server PID is $server_pid"
-  CHANGES=$(inotifywait -q --exclude '(\.git|elm-stuff|\.#.*|elm-stuff|\.ghc.*|dist-newstyle|flycheck_.*)' -r -e close_write -e modify -e delete -e create -e move .)
+  CHANGES=$(inotifywait -q --exclude '(\.git|elm-stuff|webdriver|\.#.*|elm-stuff|\.ghc.*|dist-newstyle|flycheck_.*)' -r -e close_write -e modify -e delete -e create -e move .)
 
   if [ $server_pid -gt 0 ]; then
     TOKILL=$(list_descendants $server_pid)

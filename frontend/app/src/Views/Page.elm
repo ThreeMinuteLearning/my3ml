@@ -104,27 +104,27 @@ menuItems : ActivePage -> Maybe User -> List (Html msg)
 menuItems page user =
     let
         home =
-            navbarLink (page == Home) Route.Home [ text "Home" ]
+            navbarLink (page == Home) Route.Home "nav-home" [ text "Home" ]
 
         findStory =
-            navbarLink (page == FindStory) Route.FindStory [ text "Find a story" ]
+            navbarLink (page == FindStory) Route.FindStory "nav-find-story" [ text "Find a story" ]
 
         my3ml =
-            navbarLink (page == Account) Route.Account [ text "My3ml" ]
+            navbarLink (page == Account) Route.Account "nav-account" [ text "My3ml" ]
 
         leaderboard =
-            navbarLink (page == LeaderBoard) Route.LeaderBoard [ text "Leaderboard" ]
+            navbarLink (page == LeaderBoard) Route.LeaderBoard "nav-leaderboard" [ text "Leaderboard" ]
 
         logout =
-            navbarLink False Route.Logout [ text "Sign out" ]
+            navbarLink False Route.Logout "nav-logout" [ text "Sign out" ]
 
         -- lazy2 Util.viewIf isLoading spinner
     in
     case user of
         Nothing ->
             [ home
-            , navbarLink (page == Login) Route.Login [ text "Sign in" ]
-            , navbarLink (page == Register) Route.Register [ text "Sign up" ]
+            , navbarLink (page == Login) Route.Login "nav-login" [ text "Sign in" ]
+            , navbarLink (page == Register) Route.Register "nav-register" [ text "Sign up" ]
             ]
 
         Just u ->
@@ -137,7 +137,7 @@ menuItems page user =
 
                 Session.Teacher _ ->
                     [ home
-                    , navbarLink (page == Teacher) (Route.Teacher Route.Students) [ text "Admin" ]
+                    , navbarLink (page == Teacher) (Route.Teacher Route.Students) "nav-teacher-admin" [ text "Admin" ]
                     , findStory
                     , my3ml
                     , leaderboard
@@ -145,6 +145,6 @@ menuItems page user =
                     ]
 
 
-navbarLink : Bool -> Route -> List (Html msg) -> Html msg
-navbarLink isActive route linkContent =
-    a [ classList [ ( "no-underline", not isActive ) ], class "block mt-4 md:inline-block md:mt-0 text-teal-lighter hover:text-white mr-4", classList [ ( "border-red", isActive ) ], Route.href route ] linkContent
+navbarLink : Bool -> Route -> String -> List (Html msg) -> Html msg
+navbarLink isActive route id_ linkContent =
+    a [ id id_, classList [ ( "no-underline", not isActive ) ], class "block mt-4 md:inline-block md:mt-0 text-teal-lighter hover:text-white mr-4", classList [ ( "border-red", isActive ) ], Route.href route ] linkContent
