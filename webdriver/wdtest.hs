@@ -11,6 +11,7 @@ import Control.Monad.Fix
 import Control.Monad.Trans.State.Strict (StateT, get, put)
 import Data.Aeson
 import Data.Text (Text)
+import qualified Data.Text as T
 import Test.WebDriver
 import Test.WebDriver.Class (WebDriver(..), Method)
 import Test.WebDriver.Internal (mkRequest, sendHTTPRequest, getJSONResult)
@@ -62,6 +63,19 @@ myRunSession conf (MyWD wd) = do
 
 main = finally runTests deleteTestData
 
+chromiumConfig :: WDConfig
+chromiumConfig =
+    useBrowser chromium defaultConfig { wdHost = "0.0.0.0", wdPort = 9515, wdHTTPRetryCount = 50 }
+  where
+    chromium = chrome
+        { chromeBinary = Just "/usr/bin/chromium"
+        , chromeOptions = [ "--mute-audio"
+                          , "--disable-gpu"
+                          , "--no-sandbox"
+                          -- , "--headless"
+                          ]
+        }
+
 runTests = myRunSession defaultConfig $ do
     openPage "http://localhost:8000"
     title <- getTitle
@@ -95,24 +109,10 @@ smokeTests = do
     login "hg@mt.zoo" "gobananasagain"
     -- Create student accounts
     createStudents
-    -- Register new teacher in same school
-    code <- addNewTeacher
-    logout
-    registerNewTeacher code "Assistant Head Gorilla" "ahg@mt.zoo" "gobananasagain" "gobananasagain"
+    -- Register new teacher in same school and switch to this account
+    -- createSecondTeacherAccountAndLogin
 
-    -- Attempt login as new teacher (fail - wrong password)
-    login "ahg@mt.zoo" "gobananas"
-    expectFormError "Login failed. Check your username and password"
-
-    -- Attempt login again as new teacher (fail - not active)
-    login "ahg@mt.zoo" "gobananasagain"
-    expectFormError "Please wait till your account is enabled before signing in"
-    -- Log in as original teacher
-
-    login "hg@mt.zoo" "gobananasagain"
-    -- Activate account and logout
-
-    -- Log in as new teacher
+    addNewClass "Breakfast Club"
     -- Create class and add students to it
     -- Find a story
     --    Search for something
@@ -132,6 +132,29 @@ smokeTests = do
     -- Find a story
     -- Complete story
     -- View leaderboard
+
+
+createSecondTeacherAccountAndLogin = do
+    code <- addNewTeacher
+    logout
+    registerNewTeacher code "Assistant Head Gorilla" "ahg@mt.zoo" "gobananasagain" "gobananasagain"
+
+    -- Attempt login as new teacher (fail - wrong password)
+    login "ahg@mt.zoo" "gobananas"
+    expectFormError "Login failed. Check your username and password"
+
+    -- Attempt login again as new teacher (fail - not active)
+    login "ahg@mt.zoo" "gobananasagain"
+    expectFormError "Please wait till your account is enabled before signing in"
+
+    -- Log in as original teacher
+    login "hg@mt.zoo" "gobananasagain"
+    -- Activate account and logout
+    activateTeacherAccount "Assistant Head Gorilla"
+    logout
+
+    -- Log in as new teacher
+    login "ahg@mt.zoo" "gobananasagain"
 
 
 deleteTestData = callCommand "psql my3ml -f delete_monkey_school.sql"
@@ -177,17 +200,31 @@ fillInAndSubmitRegForm codeOrSchoolName teacherName email password confirmPasswo
     findElemFrom regForm (ByTag "button") >>= click
 
 addNewTeacher = do
-    goHome
     goTeacherAdmin
     findElem (ById "teachers-button") >>= click
     findElem (ById "new-registration-code-button") >>= click
     findElem (ById "registration-code") >>= getText
+
+addNewClass name = do
+    goTeacherAdmin
+    findElem (ById "classes-button") >>= click
+    findElem (ById "add-class-button") >>= click
+    newClassForm <- findElem (ByTag "form")
+    [nameInput, descriptionInput] <- findElemsFrom newClassForm (ByTag "input")
+    sendKeys name nameInput
+    sendKeys (T.concat ["Description for class ", name]) descriptionInput
+    findElemFrom newClassForm (ByTag "button") >>= click
 
 registerNewTeacher code teacherName email password confirmPassword = do
     goHome
     findElem (ByLinkText "Sign up") >>= click
     findElem (ById "register-teacher") >>= click
     fillInAndSubmitRegForm code teacherName email password confirmPassword
+
+activateTeacherAccount teacherName = do
+    goTeacherAdmin
+    findElem (ById "teachers-button") >>= click
+    findElem (ByXPath $ T.concat ["//table/tbody/tr/td[text()='", teacherName, "']/../td/button"]) >>= click
 
 login name pass = do
     goHome
@@ -198,5 +235,6 @@ login name pass = do
     sendKeys pass passwordInput
     -- submit loginForm
     findElemFrom loginForm (ByTag "button") >>= click
+    waitUntil 5 (findElem (ById "nav-logout"))
 
 logout = findElem (ById "nav-logout") >>= click
