@@ -329,6 +329,7 @@ update session msg model =
         SaveWorkQueueResponse (Err e) ->
             ( ( model, Cmd.none ), Session.error ("Couldn't save work queue: " ++ defaultHttpErrorMsg e) session )
 
+
 saveWorkQueue : Model -> Session -> List Api.Story -> ( ( Model, Cmd Msg ), Session )
 saveWorkQueue model session stories =
     Session.addToWorkQueue stories session
@@ -405,7 +406,7 @@ view session m =
                         ]
 
                 Just b ->
-                    div []
+                    div [ class "mb-12" ]
                         [ viewBrowserToolbar session (Zipper.current b) session.cache.selectedStories
                         , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) (Zipper.current b) m.storyView
                         ]
@@ -549,7 +550,7 @@ tableConfig =
         levelColumn =
             Table.veryCustomColumn
                 { name = "Level"
-                , viewData = \s -> Table.HtmlDetails [ style "width" "6em" ] [ Html.text (String.fromInt s.level) ]
+                , viewData = \s -> Table.HtmlDetails [ class "text-center", style "width" "5em" ] [ Html.text (String.fromInt s.level) ]
                 , sorter = Table.increasingOrDecreasingBy .level
                 }
 
