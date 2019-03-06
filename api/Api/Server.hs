@@ -32,7 +32,7 @@ import           Data.ByteArray.Encoding
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import           Data.Maybe (isNothing)
-import           Data.Monoid ((<>), Sum(..))
+import           Data.Monoid ((<>))
 import           Data.List (scanl', last, uncons)
 import           Data.Text (Text)
 import qualified Data.Text as T
@@ -95,8 +95,10 @@ decryptSchoolKey pbeKey esk = sk
 
 encryptRsaKey :: (BA.ByteArrayAccess bin, MonadIO m) => Jwk -> bin -> m B.ByteString
 encryptRsaKey kPr pbeKey = do
-    Right (Jwt eKpr) <- liftIO $ Jwe.jwkEncode A256KW A256GCM (SymmetricJwk (BA.convert pbeKey) Nothing Nothing Nothing) (Claims (BL.toStrict (JSON.encode kPr)))
-    return eKpr
+    encoded <- liftIO $ Jwe.jwkEncode A256KW A256GCM (SymmetricJwk (BA.convert pbeKey) Nothing Nothing Nothing) (Claims (BL.toStrict (JSON.encode kPr)))
+    case encoded of
+        Right (Jwt eKpr) -> return eKpr
+        _ -> error "Failed to encrypt RSA key"
 
 decryptSchoolKeyWithRsaKey :: ScrubbedBytes -> B.ByteString -> B.ByteString -> IO ScrubbedBytes
 decryptSchoolKeyWithRsaKey pbeKey rsaKeyJwt schoolKey = do
@@ -181,6 +183,7 @@ loginServer authReq = do
             "SchoolAdmin" -> getTeacher subId True userKey
             "Editor" -> return (EditorScope subId, "Anonymous")
             "Admin" -> pure (AdminScope subId, uName)
+            x -> error ("Unexpected user type " ++ show x)
         jwk <- fmap tokenKey ask
         token_ <- mkAccessToken jwk scope
         return (token_, nm)

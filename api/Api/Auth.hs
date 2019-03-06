@@ -76,5 +76,7 @@ authServerContext k = authHandler k :. EmptyContext
 
 mkAccessToken :: MonadIO m => Jwk -> AccessScope -> m Text
 mkAccessToken jwk scope = do
-    Right (Jwt jwt) <- liftIO $ jwkEncode A128KW A128GCM jwk (Claims (toStrict (encode scope)))
-    return $ decodeUtf8 jwt
+    encoded <- liftIO $ jwkEncode A128KW A128GCM jwk (Claims (toStrict (encode scope)))
+    case encoded of
+        Right (Jwt jwt) -> return $ decodeUtf8 jwt
+        _ -> error "Failed to decode access token"
