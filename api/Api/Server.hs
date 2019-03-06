@@ -425,16 +425,17 @@ studentsServer scp@(TeacherScope _ _ (TenantKey key) _) schoolId_ = getStudents 
         runDB $ DB.undeleteStudent studId schoolId_
         return NoContent
 
-    clean = T.filter (\c -> c /= ' ' && c /= '-' && c /= '\'')
-
-    generatePassword minLength= do
-        ws <- map clean <$> runDB DB.generateWords
-        let wls = zip ws (map (Sum . T.length) ws)
-            scan = scanl' (<>) mempty wls
+    generatePassword minLength = do
+        ws <- take 4 <$> runDB DB.generateWords
+        let lengths = map T.length ws
+            cumlLengths = scanl' (+) (head lengths) (tail lengths)
+            joinWithDash w1 w2 = w1 <> "-" <> w2
+            cumlWords = scanl' joinWithDash (head ws) (tail ws)
+            cumlWordsLengths = zip cumlWords cumlLengths
             pass =
-                case uncons (dropWhile ((< minLength) . snd) scan) of
+                case uncons (dropWhile ((< minLength) . snd) cumlWordsLengths) of
                     Just ((p, _), _) -> p
-                    Nothing -> fst (last scan)
+                    Nothing -> last cumlWords
 
         return (T.toLower pass)
 

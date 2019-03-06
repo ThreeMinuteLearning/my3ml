@@ -136,6 +136,10 @@ CREATE TABLE famous_name
     ( name text PRIMARY KEY
     );
 
+CREATE TABLE word_list
+    ( word text PRIMARY KEY
+    );
+
 CREATE TABLE config
     ( starter_stories uuid REFERENCES anthology
     );

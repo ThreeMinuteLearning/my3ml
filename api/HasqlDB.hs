@@ -225,7 +225,7 @@ instance DB HasqlDB where
 
     generateWords db =
       let
-        query = Q.Statement "SELECT word FROM dict WHERE sensitive = FALSE ORDER BY random() LIMIT 10" E.unit (D.rowList (D.column D.text)) True
+        query = Q.Statement "SELECT word FROM word_list WHERE length(word) <= 7 ORDER BY random() LIMIT 4" E.unit (D.rowList (D.column D.text)) True
       in
         runSession db (S.statement () query)
 
