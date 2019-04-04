@@ -35,11 +35,11 @@ view showDrawer toggleDrawer =
             Maybe.withDefault Connect showDrawer
 
         listItem s =
-            li [] [ text s ]
+            li [ class "py-1" ] [ text s ]
 
         mkList is =
             List.map listItem is
-                |> ul []
+                |> ul [ class "mt-4" ]
 
         drawerHeader =
             div [ class "panelheader" ]
@@ -66,7 +66,7 @@ view showDrawer toggleDrawer =
                     )
 
                 Summarise ->
-                    ( [ p [] [ text "We want one sentence on what this story is all about." ]
+                    ( [ p [ class "mb-2" ] [ text "We want one sentence on what this story is all about." ]
                       , p [] [ text "It doesn't have to be your own words. If there's a sentence in the story that does the job, copy and paste it. Here's what to do if there isn't:" ]
                       , mkList
                             [ "Skim the story fast, looking for good words or phrases."
@@ -120,6 +120,6 @@ view showDrawer toggleDrawer =
             []
         , div [ id "drawer", class panelStyle ]
             [ drawerHeader
-            , div [ id "drawercontent" ] content
+            , div [ id "drawercontent", class "leading-normal" ] content
             ]
         ]
