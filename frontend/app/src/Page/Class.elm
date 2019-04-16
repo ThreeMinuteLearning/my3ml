@@ -1,6 +1,7 @@
 module Page.Class exposing (ExternalMsg(..), Model, Msg, init, update, view)
 
 import Api
+import Cache exposing (Cache)
 import Components
 import Data.Session as Session exposing (Session, authorization)
 import Dict exposing (Dict)
@@ -121,15 +122,12 @@ update session msg model =
 
         ClassMembersResponse (Ok updatedClass) ->
             let
-                cache =
-                    session.cache
-
-                newClasses =
+                updateClasses cs =
                     updatedClass
-                        :: List.filter (\c -> c.id /= updatedClass.id) cache.classes
+                        :: List.filter (\c -> c.id /= updatedClass.id) cs
 
                 newSession =
-                    { session | cache = { cache | classes = newClasses } }
+                    Session.updateCache (\c -> { c | classes = updateClasses c.classes }) session
             in
             ( ( { model | errors = [], class = updatedClass }, Cmd.none ), Updated newSession )
 
@@ -139,12 +137,8 @@ update session msg model =
 
 deleteFromCache : Api.Class -> Session -> Session
 deleteFromCache _ session =
-    let
-        cache =
-            session.cache
-    in
     -- Just clear the cache completely for now
-    { session | cache = { cache | classes = [] } }
+    Session.updateCache (\c -> { c | classes = [] }) session
 
 
 view : Session -> Model -> { title : String, content : Html Msg }
@@ -169,14 +163,14 @@ view session model =
                     ]
 
               else
-                viewTable session.cache model
+                viewTable (Session.getCache session) model
             , viewIf model.showConfirmDelete
-                (confirmDeleteDialog (userIsOwner session.user model.class))
+                (confirmDeleteDialog (userIsOwner session model.class))
             ]
     }
 
 
-viewTable : Session.Cache -> Model -> Html Msg
+viewTable : Cache -> Model -> Html Msg
 viewTable cache model =
     let
         tableConfig =
@@ -196,14 +190,14 @@ viewTable cache model =
         ]
 
 
-userIsOwner : Maybe Session.User -> Api.Class -> Bool
-userIsOwner user class =
-    case user of
+userIsOwner : Session -> Api.Class -> Bool
+userIsOwner session class =
+    case Session.subjectId session of
         Nothing ->
             False
 
-        Just u ->
-            u.sub == class.createdBy
+        Just subId ->
+            subId == class.createdBy
 
 
 viewToolbar : Model -> Html Msg

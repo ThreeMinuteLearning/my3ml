@@ -3,6 +3,7 @@ module Page.Classes exposing (Model, Msg, init, update, view)
 import AddClassForm
 import Api
 import Bootstrap exposing (link)
+import Cache exposing (Cache)
 import Data.Session as Session exposing (Session, authorization)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -65,13 +66,13 @@ update session msg model =
                 Just ( _, Just newClass ) ->
                     let
                         cache =
-                            session.cache
+                            Session.getCache session
 
                         newClasses =
                             newClass :: cache.classes
 
                         newSession =
-                            { session | cache = { cache | classes = newClasses } }
+                            Session.updateCache (\c -> { c | classes = newClasses }) session
                     in
                     ( ( { model | addClassForm = Nothing }, Cmd.none ), newSession )
 
@@ -82,15 +83,15 @@ view session model =
     , content =
         div [ class "flex flex-col" ]
             [ div [ class "mb-16" ] [ TeacherToolbar.view session Route.Classes subtools ]
-            , viewTable session model
+            , viewTable (Session.getCache session) model
             , maybeView addClassesDialog model.addClassForm
             ]
     }
 
 
-viewTable : Session -> Model -> Html Msg
-viewTable session model =
-    Table.view classesTableConfig model.tableState (.classes session.cache)
+viewTable : Cache -> Model -> Html Msg
+viewTable cache model =
+    Table.view classesTableConfig model.tableState cache.classes
 
 
 classesTableConfig : Table.Config Api.Class Msg

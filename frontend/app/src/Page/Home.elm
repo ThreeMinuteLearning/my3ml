@@ -1,7 +1,8 @@
 module Page.Home exposing (Model, init, update, view)
 
 import Api
-import Data.Session as Session exposing (Role(..), Session, User, isStudent)
+import Cache exposing (Cache)
+import Data.Session as Session exposing (Session, isStudent)
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (class, href)
@@ -36,30 +37,33 @@ init session =
 initModel : Session -> ( Model, Session )
 initModel session =
     let
+        cache =
+            Session.getCache session
+
         model =
-            case Maybe.map (\u -> ( u.role, u.level )) session.user of
-                Just ( Student, level ) ->
-                    Model (pickStories session level) []
+            case Session.userLevel session of
+                Just level ->
+                    Model (pickStories cache level) []
 
                 _ ->
-                    Model session.cache.stories []
+                    Model cache.stories []
     in
     ( model, session )
 
 
-isBeginner : Session -> Bool
+isBeginner : Cache -> Bool
 isBeginner =
-    (>) 20 << Dict.size << .answers << .cache
+    (>) 20 << Dict.size << .answers
 
 
-pickStories : Session -> Int -> List Api.Story
-pickStories session level =
+pickStories : Cache -> Int -> List Api.Story
+pickStories cache level =
     let
         answers =
-            session.cache.answers
+            cache.answers
 
         stories =
-            List.filter (\s -> s.level < level + 2) session.cache.stories
+            List.filter (\s -> s.level < level + 2) cache.stories
 
         unansweredStories =
             List.filter (\s -> not (Dict.member s.id answers)) stories
@@ -110,18 +114,18 @@ pickStories session level =
                     _ ->
                         [ 0, 0, 0, 2, 2, 5, 5, 5, 10, 5, 0 ]
     in
-    if isBeginner session then
-        List.concatMap (\( l, n ) -> takeLevel l n [] unansweredStories) (bumpLevels (answerLevels session answers) storiesPerLevel)
+    if isBeginner cache then
+        List.concatMap (\( l, n ) -> takeLevel l n [] unansweredStories) (bumpLevels (answerLevels cache answers) storiesPerLevel)
 
     else
         sortForLevel level unansweredStories
 
 
-answerLevels : Session -> Dict Int Api.Answer -> Dict Int Int
-answerLevels session answers =
+answerLevels : Cache -> Dict Int Api.Answer -> Dict Int Int
+answerLevels cache answers =
     let
         answerLevel a =
-            Session.findStoryById session.cache a.storyId
+            Session.findStoryById cache a.storyId
                 |> Maybe.map .level
                 |> Maybe.withDefault 0
 
@@ -164,7 +168,7 @@ view session clearWorkQueue model =
     { title = "Home"
     , content =
         div [ class "max-w-lg mx-2 md:mx-auto" ]
-            [ viewIf (isStudent session) (WorkQueue.view session.workQueue clearWorkQueue)
+            [ viewIf (isStudent session) (WorkQueue.view (Session.getWorkQueue session) clearWorkQueue)
             , h1 [ class "text-xl font-light my-4" ] [ text (storiesTitle session) ]
             , StoryTiles.view False Nothing (List.take 25 model.stories)
             ]
@@ -174,7 +178,7 @@ view session clearWorkQueue model =
 storiesTitle : Session -> String
 storiesTitle session =
     if Session.isStudent session then
-        if isBeginner session then
+        if isBeginner (Session.getCache session) then
             "Starter Stories"
 
         else

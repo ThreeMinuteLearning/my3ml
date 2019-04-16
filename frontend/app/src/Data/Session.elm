@@ -1,8 +1,8 @@
-module Data.Session exposing (AccessToken, Alert(..), Cache, Role(..), Session, User, addToWorkQueue, authorization, clearWorkQueue, closeAlert, decodeSession, emptySession, error, findStoryById, isEditor, isSchoolAdmin, isStudent, isTeacher, loadAnthologies, loadClasses, loadDictionary, loadStories, loadStudents, loadUserAnswers, newLogin, saveWorkQueue, storeSession, success, updateCache, warn, workQueueHasSpace)
+module Data.Session exposing (AccessToken, Alert(..), Session, addToWorkQueue, authorization, clearWorkQueue, closeAlert, decodeSession, emptySession, error, findStoryById, getAlerts, getCache, getSettings, getWorkQueue, isEditor, isSchoolAdmin, isStudent, isTeacher, loadAnthologies, loadClasses, loadDictionary, loadStories, loadStudents, loadUserAnswers, logout, newLogin, saveWorkQueue, storeSession, storyCompleted, subjectId, success, tick, updateCache, updateSettings, userLevel, warn, workQueueHasSpace)
 
 import Api
+import Cache exposing (..)
 import Data.Settings as Settings exposing (Settings, defaultSettings)
-import Data.Words exposing (WordDict)
 import Dict exposing (Dict)
 import Http
 import Json.Decode as Decode exposing (Decoder, nullable)
@@ -11,6 +11,8 @@ import Json.Encode as Encode
 import List.Extra
 import Ports
 import Task exposing (Task)
+import Time
+import Tuple exposing (second)
 
 
 type alias User =
@@ -27,24 +29,14 @@ type AccessToken
     = AccessToken String
 
 
-type alias Session =
-    { cache : Cache
-    , alerts : List ( Alert, Bool )
-    , workQueue : List Api.Story
-    , user : Maybe User
-    }
-
-
-type alias Cache =
-    { dict : WordDict
-    , stories : List Api.Story
-    , answers : Dict Int Api.Answer
-    , students : List Api.Student
-    , classes : List Api.Class
-    , anthologies : List Api.Anthology
-    , newAccounts : List ( Api.Student, ( String, String ) )
-    , selectedStories : List Api.Story
-    }
+type Session
+    = Session
+        { cache : Cache
+        , alerts : List ( Alert, Bool )
+        , workQueue : List Api.Story
+        , user : Maybe User
+        , tick : Time.Posix
+        }
 
 
 type Role
@@ -59,18 +51,98 @@ type Alert
     | Warning String
 
 
+getCache : Session -> Cache
+getCache (Session s) =
+    s.cache
+
+
+getSettings : Session -> Maybe Settings
+getSettings (Session session) =
+    Maybe.andThen .settings session.user
+
+
+getWorkQueue : Session -> List Api.Story
+getWorkQueue (Session session) =
+    session.workQueue
+
+
+getAlerts : Session -> List ( Alert, Bool )
+getAlerts (Session session) =
+    session.alerts
+
+
+userLevel : Session -> Maybe Int
+userLevel (Session session) =
+    Maybe.map .level session.user
+
+
+subjectId : Session -> Maybe String
+subjectId (Session session) =
+    Maybe.map .sub session.user
+
+
+storyCompleted : Session -> Api.Answer -> Session
+storyCompleted (Session session) answer =
+    let
+        cache =
+            session.cache
+
+        newWorkQueue =
+            List.filter (\s -> s.id /= answer.storyId) session.workQueue
+
+        newCache =
+            { cache | answers = Dict.insert answer.storyId answer cache.answers }
+    in
+    Session { session | cache = newCache, workQueue = newWorkQueue }
+
+
+updateSettings : Session -> Settings -> Session
+updateSettings ((Session session) as sesh) newSettings =
+    session.user
+        |> Maybe.map (\u -> { u | settings = Just newSettings })
+        |> Maybe.map (\u -> Session { session | user = Just u })
+        |> Maybe.withDefault sesh
+
+
+logout : Session -> Session
+logout (Session session) =
+    Session { session | user = Nothing }
+
+
 emptySession : Session
 emptySession =
-    Session emptyCache [] [] Nothing
+    Session { cache = emptyCache, alerts = [], workQueue = [], user = Nothing, tick = Time.millisToPosix 0 }
 
 
-emptyCache : Cache
-emptyCache =
-    Cache Dict.empty [] Dict.empty [] [] [] [] []
+tick : Session -> Time.Posix -> Session
+tick (Session session) t =
+    let
+        interval =
+            Time.posixToMillis t - Time.posixToMillis session.tick
+
+        alerts =
+            List.filter (not << second) session.alerts
+
+        ( newAlerts, newTick ) =
+            if interval < 3000 then
+                ( alerts, session.tick )
+
+            else
+                ( List.map closeUnlessError alerts, t )
+
+        closeUnlessError ( a, c ) =
+            case a of
+                Success _ ->
+                    ( a, True )
+
+                _ ->
+                    ( a, c )
+    in
+    Session { session | tick = newTick, alerts = newAlerts }
 
 
 hasRole : Role -> Session -> Bool
-hasRole r session =
+hasRole r (Session session) =
     Maybe.map .role session.user
         |> Maybe.map ((==) r)
         |> Maybe.withDefault False
@@ -97,7 +169,7 @@ isSchoolAdmin =
 
 
 authorization : Session -> String
-authorization session =
+authorization (Session session) =
     Maybe.map .token session.user
         |> Maybe.map (\(AccessToken s) -> s)
         |> Maybe.withDefault ""
@@ -110,8 +182,8 @@ clearCache oldCache =
 
 
 updateCache : (Cache -> Cache) -> Session -> Session
-updateCache f session =
-    { session | cache = f session.cache }
+updateCache f (Session session) =
+    Session { session | cache = f session.cache }
 
 
 success : String -> Session -> Session
@@ -130,24 +202,25 @@ warn =
 
 
 alert : Alert -> Session -> Session
-alert a session =
-    { session | alerts = ( a, False ) :: session.alerts }
+alert a (Session session) =
+    Session { session | alerts = ( a, False ) :: session.alerts }
 
 
 closeAlert : Alert -> Session -> Session
-closeAlert a session =
-    { session
-        | alerts =
-            List.map
-                (\( a_, closed ) ->
-                    if a_ == a then
-                        ( a_, True )
+closeAlert a (Session session) =
+    Session
+        { session
+            | alerts =
+                List.map
+                    (\( a_, closed ) ->
+                        if a_ == a then
+                            ( a_, True )
 
-                    else
-                        ( a_, closed )
-                )
-                session.alerts
-    }
+                        else
+                            ( a_, closed )
+                    )
+                    session.alerts
+        }
 
 
 stringToRole : String -> Role
@@ -167,7 +240,7 @@ stringToRole s =
 
 
 newLogin : Session -> Api.Login -> Session
-newLogin s { sub, name, level, token, role, settings } =
+newLogin (Session s) { sub, name, level, token, role, settings } =
     let
         userRole =
             stringToRole role.userType
@@ -179,7 +252,7 @@ newLogin s { sub, name, level, token, role, settings } =
         user =
             User name sub userRole level (AccessToken token) userSettings
     in
-    Session (clearCache s.cache) [] [] (Just user)
+    Session { cache = clearCache s.cache, alerts = [], workQueue = [], user = Just user, tick = s.tick }
 
 
 loadStories : Session -> Task Http.Error Session
@@ -188,7 +261,7 @@ loadStories session =
 
 
 populateWorkQueue : Session -> Task e Session
-populateWorkQueue sesh =
+populateWorkQueue (Session sesh) =
     let
         answers =
             sesh.cache.answers
@@ -200,25 +273,25 @@ populateWorkQueue sesh =
                 |> List.filter (\id -> not (Dict.member id answers))
                 |> List.filterMap (findStoryById sesh.cache)
     in
-    Task.succeed { sesh | workQueue = workQueue }
+    Task.succeed (Session { sesh | workQueue = workQueue })
 
 
 workQueueHasSpace : Session -> Bool
-workQueueHasSpace s =
+workQueueHasSpace (Session s) =
     List.length s.workQueue < 30
 
 
 addToWorkQueue : List Api.Story -> Session -> Session
-addToWorkQueue stories session =
+addToWorkQueue stories (Session session) =
     let
         newQueue =
             List.Extra.uniqueBy .id (List.append session.workQueue stories)
     in
-    { session | workQueue = newQueue }
+    Session { session | workQueue = newQueue }
 
 
 saveWorkQueue : (Result Http.Error Api.NoContent -> msg) -> Session -> ( Cmd msg, Session )
-saveWorkQueue toMsg session =
+saveWorkQueue toMsg ((Session session) as sesh) =
     let
         newSettings =
             session.user
@@ -231,12 +304,12 @@ saveWorkQueue toMsg session =
                 |> Maybe.map (\u -> { u | settings = Just newSettings })
 
         newSession =
-            { session | user = newUser }
+            Session { session | user = newUser }
 
         save =
             Cmd.batch
                 [ storeSession newSession
-                , Api.postAccountSettings (authorization session) (Settings.encode newSettings)
+                , Api.postAccountSettings (authorization sesh) (Settings.encode newSettings)
                     |> Http.send toMsg
                 ]
     in
@@ -244,26 +317,26 @@ saveWorkQueue toMsg session =
 
 
 clearWorkQueue : Session -> Session
-clearWorkQueue session =
-    { session | workQueue = [] }
+clearWorkQueue (Session session) =
+    Session { session | workQueue = [] }
 
 
 loadUserAnswers : Session -> Task Http.Error Session
-loadUserAnswers session =
+loadUserAnswers ((Session session) as sesh) =
     case Maybe.map .role session.user of
         Just Student ->
-            loadToCache (.answers >> Dict.isEmpty) (\token -> Api.getSchoolAnswers token Nothing Nothing) (\newAnswers cache -> { cache | answers = answersToDict newAnswers }) session
+            loadToCache (.answers >> Dict.isEmpty) (\token -> Api.getSchoolAnswers token Nothing Nothing) (\newAnswers cache -> { cache | answers = answersToDict newAnswers }) sesh
                 |> Task.andThen
-                    (\s ->
+                    (\((Session s) as newSession) ->
                         if List.isEmpty s.workQueue then
-                            populateWorkQueue s
+                            populateWorkQueue newSession
 
                         else
-                            Task.succeed s
+                            Task.succeed newSession
                     )
 
         _ ->
-            Task.succeed session
+            Task.succeed sesh
 
 
 answersToDict : List Api.Answer -> Dict Int Api.Answer
@@ -292,18 +365,18 @@ loadAnthologies =
 
 
 loadToCache : (Cache -> Bool) -> (String -> Http.Request a) -> (a -> Cache -> Cache) -> Session -> Task Http.Error Session
-loadToCache isDirty mkAuthorizedRequest mkCache session =
+loadToCache isDirty mkAuthorizedRequest mkCache ((Session session) as sesh) =
     let
         cache =
             session.cache
     in
     if isDirty cache then
-        mkAuthorizedRequest (authorization session)
+        mkAuthorizedRequest (authorization sesh)
             |> Http.toTask
-            |> Task.map (\a -> { session | cache = mkCache a cache })
+            |> Task.map (\a -> Session { session | cache = mkCache a cache })
 
     else
-        Task.succeed session
+        Task.succeed (Session session)
 
 
 findStoryById : Cache -> Int -> Maybe Api.Story
@@ -312,7 +385,7 @@ findStoryById cache storyId =
 
 
 storeSession : Session -> Cmd msg
-storeSession session =
+storeSession (Session session) =
     Maybe.map encodeUser session.user
         |> Maybe.withDefault (Encode.string "")
         |> Encode.encode 0
@@ -330,7 +403,7 @@ decodeSession json =
         |> Decode.decodeValue Decode.string
         |> Result.toMaybe
         |> Maybe.andThen (Decode.decodeString userDecoder >> Result.toMaybe)
-        |> Session emptyCache [] []
+        |> (\u -> Session { cache = emptyCache, alerts = [], workQueue = [], user = u, tick = Time.millisToPosix 0 })
 
 
 encodeUser : User -> Encode.Value

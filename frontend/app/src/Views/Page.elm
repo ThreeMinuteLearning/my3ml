@@ -5,7 +5,7 @@ module Views.Page exposing (ActivePage(..), frame)
 
 import Bootstrap exposing (closeBtn)
 import Browser exposing (Document)
-import Data.Session as Session exposing (Alert(..), Session, User)
+import Data.Session as Session exposing (Alert(..), Session)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Lazy exposing (lazy2)
@@ -36,9 +36,9 @@ frame isLoading session onAlertClose page { title, content } =
     { title = title
     , body =
         [ div [ id "app" ]
-            [ viewHeader page session.user isLoading
+            [ viewHeader page session isLoading
             , div [ class "container mx-auto" ]
-                [ viewAlerts session.alerts onAlertClose
+                [ viewAlerts (Session.getAlerts session) onAlertClose
                 , content
                 ]
             ]
@@ -46,8 +46,8 @@ frame isLoading session onAlertClose page { title, content } =
     }
 
 
-viewHeader : ActivePage -> Maybe User -> Bool -> Html msg
-viewHeader page user isLoading =
+viewHeader : ActivePage -> Session -> Bool -> Html msg
+viewHeader page session isLoading =
     nav [ class "print:none bg-tml-blue px-6 py-2 mb-4" ]
         [ div [ class "container mx-auto flex items-center justify-between flex-wrap" ]
             [ div [ class "flex items-center flex-no-shrink mr-8" ]
@@ -57,7 +57,7 @@ viewHeader page user isLoading =
             , menuToggleButton
             , div [ class "menu w-full flex-grow md:flex md:items-center md:w-auto" ]
                 [ div [ class "text-base md:flex-grow" ]
-                    (menuItems page user)
+                    (menuItems page session)
                 , lazy2 Util.viewIf isLoading (div [ class "spinner bg-white" ] [])
                 ]
             ]
@@ -72,7 +72,7 @@ viewAlerts alerts onAlertClose =
 
 
 viewAlert : (Alert -> msg) -> ( Alert, Bool ) -> Html msg
-viewAlert onAlertClose ( a, closed ) =
+viewAlert onAlertClose ( a, _ ) =
     let
         ( bAlert, txt ) =
             case a of
@@ -100,8 +100,8 @@ menuToggleButton =
         ]
 
 
-menuItems : ActivePage -> Maybe User -> List (Html msg)
-menuItems page user =
+menuItems : ActivePage -> Session -> List (Html msg)
+menuItems page session =
     let
         home =
             navbarLink (page == Home) Route.Home "nav-home" [ text "Home" ]
@@ -117,32 +117,27 @@ menuItems page user =
 
         logout =
             navbarLink False Route.Logout "nav-logout" [ text "Sign out" ]
-
-        -- lazy2 Util.viewIf isLoading spinner
     in
-    case user of
-        Nothing ->
-            [ home
-            , navbarLink (page == Login) Route.Login "nav-login" [ text "Sign in" ]
-            , navbarLink (page == Register) Route.Register "nav-register" [ text "Sign up" ]
-            ]
+    if Session.isStudent session then
+        [ home, findStory, my3ml, leaderboard, logout ]
 
-        Just u ->
-            case u.role of
-                Session.Student ->
-                    [ home, findStory, my3ml, leaderboard, logout ]
+    else if Session.isEditor session then
+        [ home, findStory, my3ml, logout ]
 
-                Session.Editor ->
-                    [ home, findStory, my3ml, logout ]
+    else if Session.isTeacher session then
+        [ home
+        , navbarLink (page == Teacher) (Route.Teacher Route.Students) "nav-teacher-admin" [ text "Admin" ]
+        , findStory
+        , my3ml
+        , leaderboard
+        , logout
+        ]
 
-                Session.Teacher _ ->
-                    [ home
-                    , navbarLink (page == Teacher) (Route.Teacher Route.Students) "nav-teacher-admin" [ text "Admin" ]
-                    , findStory
-                    , my3ml
-                    , leaderboard
-                    , logout
-                    ]
+    else
+        [ home
+        , navbarLink (page == Login) Route.Login "nav-login" [ text "Sign in" ]
+        , navbarLink (page == Register) Route.Register "nav-register" [ text "Sign up" ]
+        ]
 
 
 navbarLink : Bool -> Route -> String -> List (Html msg) -> Html msg

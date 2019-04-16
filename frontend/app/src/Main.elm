@@ -3,7 +3,7 @@ module Main exposing (main)
 import Api
 import Browser exposing (Document)
 import Browser.Navigation as Nav
-import Data.Session as Session exposing (Role(..), Session, User, decodeSession, storeSession)
+import Data.Session as Session exposing (Session, decodeSession, storeSession)
 import Html exposing (..)
 import Http
 import Json.Decode as Decode exposing (Value)
@@ -57,7 +57,6 @@ type PageState
 
 type alias Model =
     { session : Session
-    , tick : Time.Posix
     , pageState : PageState
     , navKey : Nav.Key
     }
@@ -68,7 +67,6 @@ init value url navKey =
     changeRouteTo (Route.fromUrl url)
         { pageState = Loaded Blank
         , session = decodeSession value
-        , tick = Time.millisToPosix 0
         , navKey = navKey
         }
 
@@ -235,7 +233,7 @@ changeRouteTo maybeRoute model =
             model.session
 
         requireRole hasRole transition_ =
-            case session.user of
+            case Session.subjectId session of
                 Nothing ->
                     errored "You are signed out. You need to sign-in to view this page."
 
@@ -283,7 +281,7 @@ changeRouteTo maybeRoute model =
         Just Route.Logout ->
             let
                 s =
-                    { session | user = Nothing }
+                    Session.logout session
             in
             ( { model | session = s }
             , Cmd.batch [ storeSession s, Route.modifyUrl model.navKey Route.Home ]
@@ -348,38 +346,7 @@ update msg model =
             ( { model | session = Session.closeAlert a model.session }, Cmd.none )
 
         Tick t ->
-            let
-                session =
-                    model.session
-
-                alerts =
-                    List.filter (not << second) session.alerts
-
-                interval =
-                    Time.posixToMillis t - Time.posixToMillis model.tick
-
-                ( newAlerts, newTick ) =
-                    if interval < 3000 then
-                        ( alerts, model.tick )
-
-                    else if interval > 10000 then
-                        ( alerts, t )
-
-                    else
-                        ( List.map closeUnlessError alerts, t )
-
-                closeUnlessError ( a, c ) =
-                    case a of
-                        Session.Success _ ->
-                            ( a, True )
-
-                        _ ->
-                            ( a, c )
-
-                newSession =
-                    { session | alerts = newAlerts }
-            in
-            ( { model | tick = newTick, session = newSession }, Cmd.none )
+            ( { model | session = Session.tick model.session t }, Cmd.none )
 
         ClearWorkQueue ->
             let
@@ -522,7 +489,7 @@ updatePage page msg model =
                 ( newSession, cmd ) =
                     maybeLoggedIn
                         |> Maybe.map (Session.newLogin model.session)
-                        |> Maybe.map (\s -> ( s, Cmd.batch [ storeSession s, chooseStartPage model.navKey s.user ] ))
+                        |> Maybe.map (\s -> ( s, Cmd.batch [ storeSession s, chooseStartPage model.navKey s ] ))
                         |> Maybe.withDefault ( model.session, Cmd.none )
             in
             ( { model | session = newSession, pageState = Loaded (Login pageModel) }
@@ -545,15 +512,14 @@ updatePage page msg model =
             ( model, Cmd.none )
 
 
-chooseStartPage : Nav.Key -> Maybe User -> Cmd msg
-chooseStartPage navKey user =
+chooseStartPage : Nav.Key -> Session -> Cmd msg
+chooseStartPage navKey session =
     Route.modifyUrl navKey <|
-        case Maybe.map .role user of
-            Just (Teacher _) ->
-                Route.Teacher Route.Students
+        if Session.isTeacher session then
+            Route.Teacher Route.Students
 
-            _ ->
-                Route.Home
+        else
+            Route.Home
 
 
 subscriptions : Model -> Sub Msg
@@ -565,7 +531,7 @@ subscriptions m =
 
 sessionSubscriptions : Session -> Sub Msg
 sessionSubscriptions s =
-    case s.alerts of
+    case Session.getAlerts s of
         [] ->
             Sub.none
 
