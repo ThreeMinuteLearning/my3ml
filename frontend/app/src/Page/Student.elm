@@ -59,11 +59,11 @@ init session_ slug =
             Api.getSchoolAnswers (authorization session_) Nothing (Just slug)
                 |> Http.toTask
 
-        zipWithStory session a =
-            Maybe.map (pair a) (findStoryById session.cache a.storyId)
+        zipWithStory cache a =
+            Maybe.map (pair a) (findStoryById cache a.storyId)
 
         mkModel newSession student answers =
-            ( Model [] student (List.filterMap (zipWithStory newSession) answers) Nothing Nothing False False (Session.isSchoolAdmin newSession), newSession )
+            ( Model [] student (List.filterMap (zipWithStory (Session.getCache newSession)) answers) Nothing Nothing False False (Session.isSchoolAdmin newSession), newSession )
     in
     Task.map3 mkModel (Session.loadStories session_) loadStudent loadAnswers
         |> Task.mapError handleLoadError
@@ -170,12 +170,12 @@ updateSession : Session -> Api.Student -> Session
 updateSession session student =
     let
         cache =
-            session.cache
+            Session.getCache session
 
         newStudents =
             student :: List.filter (\s -> s.id /= student.id) cache.students
     in
-    { session | cache = { cache | students = newStudents } }
+    Session.updateCache (\c -> { c | students = newStudents }) session
 
 
 sendUpdateStudent : Session -> Api.Student -> Cmd Msg

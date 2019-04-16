@@ -3,7 +3,7 @@ module Page.Story exposing (Model, Msg, init, subscriptions, update, view)
 import AnswersForm
 import Api
 import Browser.Dom
-import Data.Session as Session exposing (Cache, Role(..), Session, authorization, findStoryById)
+import Data.Session as Session exposing (Session, authorization, findStoryById)
 import Data.Settings exposing (Settings)
 import Dict
 import Html exposing (..)
@@ -43,20 +43,20 @@ init originalSession slug =
             pageLoadError e ("Story is currently unavailable. " ++ defaultHttpErrorMsg e)
 
         user =
-            originalSession.user
+            Session.subjectId originalSession
 
         mkAnswersForm story answers =
             Maybe.andThen (createFormIfUnanswered story answers) user
 
-        createFormIfUnanswered story answers usr =
-            if List.any (\a -> a.studentId == .sub usr) answers then
+        createFormIfUnanswered story answers subId =
+            if List.any (\a -> a.studentId == subId) answers then
                 Nothing
 
             else
                 Just (AnswersForm.init story)
 
         lookupStoryAndCreateModel session =
-            case findStoryById session.cache slug of
+            case findStoryById (Session.getCache session) slug of
                 Just story ->
                     Task.map2
                         (\answers { viewport } ->
@@ -79,20 +79,16 @@ init originalSession slug =
                                )
 
         lookupAnswers session story =
-            case Maybe.map .role user of
-                Nothing ->
-                    Task.succeed []
+            if Session.isStudent session || Session.isTeacher session then
+                Api.getSchoolAnswers (authorization session) (Just story.id) Nothing
+                    |> Http.toTask
+                    |> Task.mapError handleLoadError
 
-                Just Editor ->
-                    Task.succeed []
-
-                _ ->
-                    Api.getSchoolAnswers (authorization session) (Just story.id) Nothing
-                        |> Http.toTask
-                        |> Task.mapError handleLoadError
+            else
+                Task.succeed []
     in
     Session.loadDictionary originalSession
-        |> Task.andThen (\newSession -> Session.loadStories newSession)
+        |> Task.andThen Session.loadStories
         |> Task.mapError handleLoadError
         |> Task.andThen lookupStoryAndCreateModel
 
@@ -104,15 +100,19 @@ subscriptions =
 
 view : Session -> Model -> { title : String, content : Html Msg }
 view session m =
+    let
+        cache =
+            Session.getCache session
+    in
     { title = m.story.title
     , content =
         div [ class "max-w-lg mx-auto px-2" ]
             [ viewIf (Session.isTeacher session) (div [ class "print:none mb-2" ] [ printButton PrintWindow "Print this story" ])
-            , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) m.story m.storyView
+            , Html.map StoryViewMsg <| StoryView.view (Session.getSettings session) m.story m.storyView
             , m.dictLookup
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
-                |> Words.view session.cache.dict
+                |> Words.view cache.dict
             , viewIf (Session.isStudent session) (viewAnswersForm m)
             , viewIf (Session.isTeacher session) (viewPrintAnswerSections m.story)
             , viewIf (m.answersForm == Nothing && not (List.isEmpty m.answers))
@@ -187,26 +187,8 @@ storyCompleted session cmd answer model =
     let
         newModel =
             { model | answersForm = Nothing, answers = answer :: model.answers }
-
-        updateCacheAnswers a c =
-            { c | answers = Dict.insert a.storyId a c.answers }
-
-        newWorkQueue =
-            List.filter (\s -> s.id /= model.story.id) session.workQueue
-
-        newSession =
-            { session | cache = updateCacheAnswers answer session.cache, workQueue = newWorkQueue }
     in
-    ( ( newModel, Cmd.map AnswersFormMsg cmd ), newSession )
-
-
-settingsFromSession : Session -> Maybe Settings
-settingsFromSession session =
-    if Session.isTeacher session then
-        Nothing
-
-    else
-        Maybe.andThen .settings session.user
+    ( ( newModel, Cmd.map AnswersFormMsg cmd ), Session.storyCompleted session answer )
 
 
 resetAnswersForm : Model -> Model

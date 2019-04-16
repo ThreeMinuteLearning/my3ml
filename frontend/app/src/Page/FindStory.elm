@@ -4,8 +4,9 @@ import Api
 import Bootstrap exposing (closeBtn)
 import Browser.Dom exposing (getViewport)
 import Browser.Events exposing (onResize)
+import Cache exposing (Cache)
 import Components
-import Data.Session as Session exposing (Cache, Session, authorization, findStoryById, isEditor, isStudent, updateCache)
+import Data.Session as Session exposing (Session, authorization, findStoryById, isEditor, isStudent, updateCache)
 import Data.Settings exposing (Settings, defaultSettings)
 import Dict
 import Html exposing (..)
@@ -98,9 +99,6 @@ initialModel session { viewport } =
         size =
             ( Basics.min maxWidth (round viewport.width), round viewport.height )
 
-        stories =
-            session.cache.stories
-
         viewType =
             if Session.isStudent session then
                 Tiles (StoryTiles.tilesPerPage size)
@@ -108,7 +106,19 @@ initialModel session { viewport } =
             else
                 Table
     in
-    ( Model [] "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init (first size)) viewType size Nothing, session )
+    ( { errors = []
+      , storyFilter = ""
+      , showDisabledStoriesOnly = False
+      , stories = (Session.getCache session).stories
+      , tableState = Table.initialSort sortColumn
+      , browser = Nothing
+      , storyView = StoryView.init (first size)
+      , viewType = viewType
+      , windowSize = size
+      , anthologyForm = Nothing
+      }
+    , session
+    )
 
 
 init : Session -> Task PageLoadError ( Model, Session )
@@ -143,9 +153,13 @@ subscriptions m =
 
 update : Session -> Msg -> Model -> ( ( Model, Cmd Msg ), Session )
 update session msg model =
+    let
+        cache =
+            Session.getCache session
+    in
     case msg of
         StoryFilterInput f ->
-            ( ( { model | storyFilter = f, stories = filterStories f session.cache.stories }
+            ( ( { model | storyFilter = f, stories = filterStories f cache.stories }
               , Cmd.none
               )
             , session
@@ -193,7 +207,7 @@ update session msg model =
                         List.filter (\s -> not s.enabled) model.stories
 
                     else
-                        filterStories model.storyFilter session.cache.stories
+                        filterStories model.storyFilter cache.stories
             in
             ( ( { model | showDisabledStoriesOnly = flag, stories = newStories }, Cmd.none ), session )
 
@@ -232,7 +246,7 @@ update session msg model =
                     case validateAnthologyForm f of
                         [] ->
                             ( ( { model | errors = [], anthologyForm = Nothing }
-                              , Api.postAnthologies (authorization session) (Api.Anthology "" f.name f.description "" (Just "") (List.map .id session.cache.selectedStories) False)
+                              , Api.postAnthologies (authorization session) (Api.Anthology "" f.name f.description "" (Just "") (List.map .id cache.selectedStories) False)
                                     |> Http.send CreateAnthologyResponse
                               )
                             , session
@@ -379,6 +393,10 @@ zipperFrom storyId stories =
 
 view : Session -> Model -> { title : String, content : Html Msg }
 view session m =
+    let
+        cache =
+            Session.getCache session
+    in
     { title = "Find a Story"
     , content =
         div [ class "max-w-lg mx-auto px-2" ]
@@ -387,7 +405,7 @@ view session m =
                     div []
                         [ viewStoriesFilter session m
                         , Form.viewErrorMsgs m.errors
-                        , viewUnless (Session.isStudent session) <| viewStoryBasket m session.cache.selectedStories
+                        , viewUnless (Session.isStudent session) <| viewStoryBasket m cache.selectedStories
                         , viewUnless (Session.workQueueHasSpace session)
                             (p [ class "my-3" ]
                                 [ text "Your work queue is full. Perhaps you should "
@@ -407,22 +425,19 @@ view session m =
 
                 Just b ->
                     div [ class "mb-12" ]
-                        [ viewBrowserToolbar session (Zipper.current b) session.cache.selectedStories
-                        , Html.map StoryViewMsg <| StoryView.view (settingsFromSession session) (Zipper.current b) m.storyView
+                        [ viewBrowserToolbar session (Zipper.current b) cache.selectedStories
+                        , Html.map StoryViewMsg <| StoryView.view (Session.getSettings session) (Zipper.current b) m.storyView
                         ]
             ]
     }
 
 
-settingsFromSession : Session -> Maybe Settings
-settingsFromSession session =
-    session.user
-        |> Maybe.andThen .settings
-
-
 viewBrowserToolbar : Session -> Api.Story -> List Api.Story -> Html Msg
 viewBrowserToolbar session s selected =
     let
+        cache =
+            Session.getCache session
+
         mkBtn attrs txt =
             li [] [ a (class "block no-underline bg-transparent hover:bg-blue text-sm md:text-base text-center text-blue-dark font-semibold hover:text-white py-1 px-4 border border-blue hover:border-transparent rounded-full cursor-pointer" :: attrs) [ text txt ] ]
     in
@@ -436,8 +451,8 @@ viewBrowserToolbar session s selected =
                 , viewUnless (Session.isStudent session || List.member s selected) <| mkBtn [ href "#", onClick (SelectStory s) ] "Add to basket"
                 , viewIf
                     (Session.isStudent session
-                        && not (List.member s session.workQueue)
-                        && not (Dict.member s.id session.cache.answers)
+                        && not (List.member s (Session.getWorkQueue session))
+                        && not (Dict.member s.id cache.answers)
                         && Session.workQueueHasSpace session
                     )
                     (mkBtn [ href "#", onClick (SelectStory s) ] "Add to work queue")
@@ -469,13 +484,13 @@ viewStoriesFilter session m =
             ]
         , div [ class "flex items-center mb-2" ]
             [ viewIf (isEditor session) (btn (toggleDisabledStoriesOnly m))
-            , btn (cycleDisplay session m)
+            , btn (cycleDisplay (Session.getCache session) m)
             ]
         ]
 
 
-cycleDisplay : Session -> Model -> ( Msg, String )
-cycleDisplay session m =
+cycleDisplay : Cache -> Model -> ( Msg, String )
+cycleDisplay cache m =
     let
         viewTiles =
             ( SetViewType (Tiles (StoryTiles.tilesPerPage m.windowSize)), "Switch view (tiles)" )
@@ -485,7 +500,7 @@ cycleDisplay session m =
     in
     case m.viewType of
         Tiles _ ->
-            if List.isEmpty session.cache.anthologies then
+            if List.isEmpty cache.anthologies then
                 viewTable
 
             else
@@ -634,14 +649,17 @@ viewStoryBasket m stories =
 viewAnthologies : Session -> Html Msg
 viewAnthologies session =
     let
+        cache =
+            Session.getCache session
+
         btn msg disable txt =
             Components.btnBase [ class "text-xs bg-blue py-1 px-2 mr-1", classList [ ( "hover:bg-blue-dark", not disable ), ( "opacity-50 cursor-not-allowed", disable ) ], disabled disable, onClick msg ] [ text txt ]
 
         anthologiesWithStories =
-            List.map pickStories session.cache.anthologies
+            List.map pickStories cache.anthologies
 
         pickStories a =
-            ( a, List.filterMap (findStoryById session.cache) a.stories )
+            ( a, List.filterMap (findStoryById cache) a.stories )
 
         canDelete a =
             (a.schoolId /= Nothing && Session.isTeacher session) || Session.isEditor session

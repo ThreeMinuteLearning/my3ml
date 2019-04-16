@@ -39,23 +39,21 @@ init origSession =
             pageLoadError e (defaultHttpErrorMsg e)
 
         settings =
-            origSession.user
-                |> Maybe.andThen .settings
+            Session.getSettings origSession
                 |> Maybe.withDefault defaultSettings
 
-        zipWithStory session a =
-            Maybe.map (pair a) (findStoryById session.cache a.storyId)
+        zipWithStory cache a =
+            Maybe.map (pair a) (findStoryById cache a.storyId)
 
-        mkModel sesh =
-            sesh.cache.answers
+        mkModel cache =
+            cache.answers
                 |> Dict.values
-                |> List.filterMap (zipWithStory sesh)
+                |> List.filterMap (zipWithStory cache)
                 |> Model settings
-                |> (\model -> ( model, sesh ))
     in
     Session.loadUserAnswers origSession
-        |> Task.andThen (\newSession -> Session.loadStories newSession)
-        |> Task.map mkModel
+        |> Task.andThen Session.loadStories
+        |> Task.map (\newSession -> ( mkModel (Session.getCache newSession), newSession ))
         |> Task.mapError handleLoadError
 
 
@@ -83,18 +81,10 @@ update session msg ({ settings } as model) =
             )
 
         SaveSettingsResponse (Ok _) ->
-            ( ( model, Cmd.none ), updateSessionSettings session model.settings )
+            ( ( model, Cmd.none ), Session.updateSettings session model.settings )
 
         SaveSettingsResponse (Err _) ->
             ( ( model, Cmd.none ), session )
-
-
-updateSessionSettings : Session -> Settings -> Session
-updateSessionSettings session newSettings =
-    session.user
-        |> Maybe.map (\u -> { u | settings = Just newSettings })
-        |> Maybe.map (\u -> { session | user = Just u })
-        |> Maybe.withDefault session
 
 
 view : Model -> { title : String, content : Html Msg }

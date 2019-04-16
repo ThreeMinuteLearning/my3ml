@@ -3,6 +3,7 @@ module Page.Students exposing (Model, Msg, init, update, view)
 import AddStudentsForm
 import Api
 import Bootstrap
+import Cache exposing (Cache)
 import Components
 import Data.Session as Session exposing (Session, authorization, updateCache)
 import Dict exposing (Dict)
@@ -146,15 +147,12 @@ update session msg model =
 
         ClassMembersResponse (Ok updatedClass) ->
             let
-                cache =
-                    session.cache
-
-                newClasses =
+                updateClasses cs =
                     updatedClass
-                        :: List.filter (\c -> c.id /= updatedClass.id) cache.classes
+                        :: List.filter (\c -> c.id /= updatedClass.id) cs
 
                 newSession =
-                    { session | cache = { cache | classes = newClasses } }
+                    updateCache (\c -> { c | classes = updateClasses c.classes }) session
             in
             ( ( { model | notification = Msg "Class members updated" }, Cmd.none ), newSession )
 
@@ -172,12 +170,16 @@ clearNotification m =
 
 view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
+    let
+        cache =
+            Session.getCache session
+    in
     { title = "Students"
     , content =
         div [ class "flex flex-col" ]
             [ div [ class "mb-4" ] [ TeacherToolbar.view session Route.Students (subtools session) ]
             , viewNotification model.notification
-            , div [ class "mb-4" ] [ NewAccounts.view PrintWindow ClearNewAccounts session.cache.newAccounts ]
+            , div [ class "mb-4" ] [ NewAccounts.view PrintWindow ClearNewAccounts cache.newAccounts ]
             , div [ class "print:none flex flex-col" ]
                 [ div [ class "flex mb-4" ]
                     [ Form.input
@@ -189,12 +191,12 @@ view session model =
                         , id "studentNameFilter"
                         ]
                         []
-                    , ClassSelect.view session.cache.classes (second model.studentFilter) "Filter by class" SetClassFilter
+                    , ClassSelect.view cache.classes (second model.studentFilter) "Filter by class" SetClassFilter
                     ]
                 , Util.viewUnless (Dict.isEmpty model.selectedStudents)
-                    (Components.toolbar [ ( ClearSelectedStudents, False, "Clear selection" ) ] [ ClassSelect.view session.cache.classes Nothing "Add selected students to class" AddStudentsToClass ])
+                    (Components.toolbar [ ( ClearSelectedStudents, False, "Clear selection" ) ] [ ClassSelect.view cache.classes Nothing "Add selected students to class" AddStudentsToClass ])
                 ]
-            , viewTable session.cache model
+            , viewTable cache model
             , maybeView addStudentsDialog model.addStudentsForm
             ]
     }
@@ -223,7 +225,7 @@ viewNotification n =
             div [ class "my-4" ] [ Bootstrap.alert Bootstrap.Success msg DismissNotification ]
 
 
-viewTable : Session.Cache -> Model -> Html Msg
+viewTable : Cache -> Model -> Html Msg
 viewTable cache model =
     let
         elements =
@@ -240,7 +242,7 @@ viewTable cache model =
         ]
 
 
-filterStudents : Session.Cache -> Model -> List Api.Student
+filterStudents : Cache -> Model -> List Api.Student
 filterStudents cache model =
     case model.studentFilter of
         ( _, Just classId ) ->
@@ -256,7 +258,7 @@ filterStudents cache model =
                 filterStudentsByName nameFilter cache.students
 
 
-findStudentsInClass : Session.Cache -> String -> Maybe (List String)
+findStudentsInClass : Cache -> String -> Maybe (List String)
 findStudentsInClass cache classId =
     List.Extra.find (\c -> c.id == classId) cache.classes
         |> Maybe.map .students

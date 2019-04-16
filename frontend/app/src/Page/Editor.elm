@@ -63,8 +63,8 @@ init originalSession slug =
         handleLoadError e =
             pageLoadError e ("Story is currently unavailable. " ++ defaultHttpErrorMsg e)
 
-        lookupStoryAndCreateModel session =
-            case makeZipper session.cache.stories slug of
+        lookupStoryAndCreateModel cache =
+            case makeZipper cache.stories slug of
                 Just zipper ->
                     Task.map
                         (\{ viewport } ->
@@ -72,9 +72,9 @@ init originalSession slug =
                             , story = Zipper.current zipper
                             , stories = zipper
                             , storyView = StoryView.init (round viewport.width)
-                            , qualificationTags = makeTags (List.filterMap .qualification session.cache.stories)
-                            , curriculumTags = makeTags (List.filterMap .curriculum session.cache.stories)
-                            , allTags = makeTags (List.concatMap .tags session.cache.stories)
+                            , qualificationTags = makeTags (List.filterMap .qualification cache.stories)
+                            , curriculumTags = makeTags (List.filterMap .curriculum cache.stories)
+                            , allTags = makeTags (List.concatMap .tags cache.stories)
                             , tagsSelect = Select.newState "Tags"
                             , curriculumSelect = Select.newState "Curriculum"
                             , qualificationSelect = Select.newState "Qualification"
@@ -86,11 +86,11 @@ init originalSession slug =
                     Task.fail (PageLoadError "Sorry. That story couldn't be found.")
     in
     Session.loadDictionary originalSession
-        |> Task.andThen (\newSession -> Session.loadStories newSession)
+        |> Task.andThen Session.loadStories
         |> Task.mapError handleLoadError
         |> Task.andThen
             (\newSession ->
-                lookupStoryAndCreateModel newSession
+                lookupStoryAndCreateModel (Session.getCache newSession)
                     |> Task.map (\m -> ( m, newSession ))
             )
 
