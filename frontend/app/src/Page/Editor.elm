@@ -108,7 +108,21 @@ makeTags =
 
 selectConfig : (Maybe String -> Msg) -> Select.Config Msg String
 selectConfig msg =
-    Select.newConfig msg identity
+    let
+        strContainsFilter query items =
+            if String.length query < 2 then
+                Nothing
+
+            else
+                items
+                    |> List.filter (\item -> String.contains (String.toLower query) (String.toLower item))
+                    |> Just
+    in
+    Select.newConfig
+        { onSelect = msg
+        , toLabel = identity
+        , filter = strContainsFilter
+        }
         |> Select.withCutoff 12
         |> Select.withInputWrapperStyles
             [ ( "padding", "0.4rem" ) ]
@@ -139,6 +153,7 @@ tagSelectConfig =
         |> Select.withInputId "story_tags"
         |> Select.withOnRemoveItem OnRemoveTag
         |> Select.withPrompt "Select a tag"
+        |> Select.withMultiSelection True
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
@@ -329,7 +344,7 @@ view model =
                 , div [ class "flex items-center my-2 pr-1" ]
                     [ Form.label [ class "mr-2", for "story_tags" ] [ text "Tags" ]
                     , Html.map TagSelectMsg
-                        (Select.viewMulti tagSelectConfig
+                        (Select.view tagSelectConfig
                             model.tagsSelect
                             model.allTags
                             model.story.tags
@@ -341,7 +356,10 @@ view model =
                         (Select.view curriculumSelectConfig
                             model.curriculumSelect
                             model.curriculumTags
-                            model.story.curriculum
+                            (model.story.curriculum
+                                |> Maybe.map List.singleton
+                                |> Maybe.withDefault []
+                            )
                         )
                     ]
                 , div [ class "flex items-center my-2 pr-1" ]
@@ -350,7 +368,10 @@ view model =
                         (Select.view qualificationSelectConfig
                             model.qualificationSelect
                             model.qualificationTags
-                            model.story.qualification
+                            (model.story.qualification
+                                |> Maybe.map List.singleton
+                                |> Maybe.withDefault []
+                            )
                         )
                     ]
                 , Form.checkbox ToggleEnabled model.story.enabled "Enabled"
