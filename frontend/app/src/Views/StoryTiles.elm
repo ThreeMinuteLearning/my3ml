@@ -25,10 +25,18 @@ view useSmallTiles action stories =
                 Just doThis ->
                     [ onClick (doThis s.id), href "" ]
 
+        ( flex, flexItem, ( width, height ) ) =
+            if useSmallTiles then
+                ( "flex flex-wrap", "flex-initial", ( "4.5rem", "3.75rem" ) )
+
+            else
+                ( "flex flex-wrap flex-between", "flex-auto lg:flex-initial", ( "9rem", "7.5rem" ) )
+
         styleAttrs s =
-            [ class "inline-block flex-auto no-underline shadow px-2 py-1 mr-2 mb-2"
-            , style "width" "9rem"
-            , style "height" "7.5rem"
+            [ class "inline-block no-underline shadow px-2 py-1 mr-2 mb-2"
+            , class flexItem
+            , style "width" width
+            , style "height" height
             , style "background" ("url(pix/" ++ s.img ++ ")")
             , style "background-size" "cover"
             , style "box-shadow" "1px 1px 3px rgba(0,0,0,0.3)"
@@ -40,7 +48,7 @@ view useSmallTiles action stories =
                 [ h3 [ class "text-sm text-white", classList [ ( "hidden", useSmallTiles ) ] ] [ text s.title ]
                 ]
     in
-    div [ id divId, class "flex flex-wrap justify-between" ] (List.map storyTile stories)
+    div [ id divId, class flex ] (List.map storyTile stories)
 
 
 tilesPerPage : ( Int, Int ) -> Int
