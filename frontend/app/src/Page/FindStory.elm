@@ -152,7 +152,7 @@ update session msg model =
             )
 
         SetTableState t ->
-            ( ( { model | tableState = t }, Cmd.none ), session )
+            ( ( { model | tableState = t, stories = Table.getSortedData tableConfig t model.stories }, Cmd.none ), session )
 
         BrowseFrom storyId ->
             ( ( { model | browser = zipperFrom storyId model.stories }, Cmd.none ), session )
