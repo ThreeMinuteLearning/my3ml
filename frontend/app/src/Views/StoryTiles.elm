@@ -37,7 +37,7 @@ view useSmallTiles action stories =
             , class flexItem
             , style "width" width
             , style "height" height
-            , style "background" ("url(pix/" ++ s.img ++ ")")
+            , style "background" ("url(thumbs/" ++ s.img ++ ")")
             , style "background-size" "cover"
             , style "box-shadow" "1px 1px 3px rgba(0,0,0,0.3)"
             , title s.title
