@@ -52,6 +52,7 @@ type Msg
     | StoryViewMsg StoryView.Msg
     | SetTableState Table.State
     | BrowseFrom Int
+    | BrowseAnthologyFrom (List Api.Story) Int
     | Next
     | Previous
     | Scroll Bool
@@ -156,6 +157,9 @@ update session msg model =
 
         BrowseFrom storyId ->
             ( ( { model | browser = zipperFrom storyId model.stories }, Cmd.none ), session )
+
+        BrowseAnthologyFrom stories storyId ->
+            ( ( { model | browser = zipperFrom storyId stories }, Cmd.none ), session )
 
         StoryViewMsg svm ->
             let
@@ -668,7 +672,7 @@ viewAnthologies session =
                     , viewIf (isStudent session && Session.workQueueHasSpace session)
                         (btn (AddAnthologyToWorkQueue astories) False "Add to my work queue")
                     ]
-                , StoryTiles.view True Nothing astories
+                , StoryTiles.view True (Just (BrowseAnthologyFrom astories)) astories
                 ]
     in
     div [ class "anthologies" ]
