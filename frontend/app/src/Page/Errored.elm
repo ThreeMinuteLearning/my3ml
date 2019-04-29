@@ -4,7 +4,6 @@ module Page.Errored exposing (PageLoadError(..), pageLoadError, view)
 for example a Page Not Found error.
 -}
 
-import Data.Session as Session exposing (Session)
 import Html exposing (Html, a, div, h3, img, main_, p, text)
 import Html.Attributes exposing (class, id, tabindex)
 import Http
@@ -31,8 +30,8 @@ pageLoadError err msg =
             PageLoadError msg
 
 
-view : Session -> PageLoadError -> { title : String, content : Html msg }
-view session error =
+view : PageLoadError -> { title : String, content : Html msg }
+view error =
     { title = "Error loading page"
     , content =
         main_ [ id "content", class "container", tabindex -1 ]

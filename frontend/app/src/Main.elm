@@ -106,7 +106,7 @@ viewPage session isLoading page =
                 |> frame Page.Home
 
         Errored subModel ->
-            Errored.view session subModel
+            Errored.view subModel
                 |> frame Page.Other
 
         Story subModel ->
