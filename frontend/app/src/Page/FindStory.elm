@@ -93,6 +93,9 @@ initialModel session { viewport } =
             else
                 "Title"
 
+        tableState =
+            Table.initialSort sortColumn
+
         maxWidth =
             990
 
@@ -100,7 +103,7 @@ initialModel session { viewport } =
             ( Basics.min maxWidth (round viewport.width), round viewport.height )
 
         stories =
-            session.cache.stories
+            Table.getSortedData tableConfig tableState session.cache.stories
 
         viewType =
             if Session.isStudent session then
@@ -109,7 +112,7 @@ initialModel session { viewport } =
             else
                 Table
     in
-    ( Model [] "" False stories (Table.initialSort sortColumn) Nothing (StoryView.init (first size)) viewType size Nothing, session )
+    ( Model [] "" False stories tableState Nothing (StoryView.init (first size)) viewType size Nothing, session )
 
 
 init : Session -> Task PageLoadError ( Model, Session )
