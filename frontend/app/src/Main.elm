@@ -369,7 +369,7 @@ pageLoaded msg model =
                     f a
 
                 Err AuthenticationRequired ->
-                    ( { model | session = Session.emptySession, pageState = Loaded (Errored AuthenticationRequired) }
+                    ( { model | session = Session.logout model.session, pageState = Loaded (Errored AuthenticationRequired) }
                     , Cmd.none
                     )
 

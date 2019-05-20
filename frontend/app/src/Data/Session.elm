@@ -1,4 +1,4 @@
-module Data.Session exposing (AccessToken, Alert(..), Session, addToWorkQueue, authorization, clearWorkQueue, closeAlert, decodeSession, emptySession, error, findStoryById, getAlerts, getCache, getSettings, getWorkQueue, isEditor, isSchoolAdmin, isStudent, isTeacher, loadAnthologies, loadClasses, loadDictionary, loadStories, loadStudents, loadUserAnswers, logout, newLogin, saveWorkQueue, storeSession, storyCompleted, subjectId, success, tick, updateCache, updateSettings, userLevel, warn, workQueueHasSpace)
+module Data.Session exposing (AccessToken, Alert(..), Session, addToWorkQueue, authorization, clearWorkQueue, closeAlert, currentTime, decodeSession, error, findStoryById, getAlerts, getCache, getSettings, getWorkQueue, isEditor, isSchoolAdmin, isStudent, isTeacher, loadAnthologies, loadClasses, loadDictionary, loadStories, loadStudents, loadUserAnswers, logout, newLogin, saveWorkQueue, storeSession, storyCompleted, subjectId, success, tick, updateCache, updateSettings, userLevel, warn, workQueueHasSpace)
 
 import Api
 import Cache exposing (..)
@@ -106,12 +106,7 @@ updateSettings ((Session session) as sesh) newSettings =
 
 logout : Session -> Session
 logout (Session session) =
-    Session { session | user = Nothing }
-
-
-emptySession : Session
-emptySession =
-    Session { cache = emptyCache, alerts = [], workQueue = [], user = Nothing, tick = Time.millisToPosix 0 }
+    Session { session | user = Nothing, workQueue = [], cache = clearCache session.cache }
 
 
 tick : Session -> Time.Posix -> Session
@@ -173,12 +168,6 @@ authorization (Session session) =
     Maybe.map .token session.user
         |> Maybe.map (\(AccessToken s) -> s)
         |> Maybe.withDefault ""
-
-
-clearCache : Cache -> Cache
-clearCache oldCache =
-    emptyCache
-        |> (\c -> { c | dict = oldCache.dict })
 
 
 updateCache : (Cache -> Cache) -> Session -> Session
