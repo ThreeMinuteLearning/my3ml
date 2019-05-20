@@ -131,7 +131,7 @@ instance DB HasqlDB where
             Just id_ -> getAnthologyStories (UUID.toText id_) db
             Nothing -> do
                 stories <- take 100 . reverse . sortOn (id :: Story -> StoryId) <$> getStories False db
-                take 24 <$> liftIO (shuffle stories)
+                take 25 <$> liftIO (shuffle stories)
 
     setStarterStories = runStatement updateStarterStories
 
