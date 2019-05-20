@@ -10,6 +10,7 @@
 module Api.Types where
 
 import           Data.Aeson
+import           Data.Time.Clock (UTCTime)
 import           Data.Time.Clock.POSIX (POSIXTime)
 import qualified Data.Map.Strict as Map
 import           Data.ByteString (ByteString)
@@ -32,6 +33,7 @@ data Story = Story
     , words :: [DictEntry]
     , clarifyWord :: Text
     , enabled :: Bool
+    , createdAt :: Int
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 data DictEntry = DictEntry

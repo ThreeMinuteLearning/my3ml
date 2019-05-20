@@ -11,8 +11,9 @@ import Data.Settings exposing (Settings, defaultSettings)
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, onSubmit)
+import Html.Events exposing (on, onClick, onInput, onSubmit, targetValue)
 import Http
+import Json.Decode as Json
 import List.Extra
 import List.Zipper.Infinite as Zipper exposing (Zipper)
 import Page.Errored exposing (PageLoadError, pageLoadError)
@@ -21,6 +22,7 @@ import Regex
 import Route
 import Table
 import Task exposing (Task)
+import Time
 import Tuple exposing (first)
 import Util exposing (defaultHttpErrorMsg, viewIf, viewUnless)
 import Views.Form as Form
@@ -28,9 +30,15 @@ import Views.Story as StoryView
 import Views.StoryTiles as StoryTiles
 
 
+type DateFilter
+    = AllStories
+    | After Int
+
+
 type alias Model =
     { errors : List Error
     , storyFilter : String
+    , dateFilter : DateFilter
     , showDisabledStoriesOnly : Bool
     , stories : List Api.Story
     , tableState : Table.State
@@ -50,6 +58,7 @@ type alias AnthologyForm =
 
 type Msg
     = StoryFilterInput String
+    | SetDateFilter DateFilter
     | StoryViewMsg StoryView.Msg
     | SetTableState Table.State
     | BrowseFrom Int
@@ -105,6 +114,7 @@ initialModel session { viewport } =
     in
     ( { errors = []
       , storyFilter = ""
+      , dateFilter = AllStories
       , showDisabledStoriesOnly = False
       , stories = stories
       , tableState = tableState
@@ -156,7 +166,14 @@ update session msg model =
     in
     case msg of
         StoryFilterInput f ->
-            ( ( { model | storyFilter = f, stories = filterStories f cache.stories }
+            ( ( { model | storyFilter = f, stories = filterStories f model.dateFilter cache.stories }
+              , Cmd.none
+              )
+            , session
+            )
+
+        SetDateFilter df ->
+            ( ( { model | dateFilter = df, stories = filterStories model.storyFilter df cache.stories }
               , Cmd.none
               )
             , session
@@ -207,7 +224,7 @@ update session msg model =
                         List.filter (\s -> not s.enabled) model.stories
 
                     else
-                        filterStories model.storyFilter cache.stories
+                        filterStories model.storyFilter model.dateFilter cache.stories
             in
             ( ( { model | showDisabledStoriesOnly = flag, stories = newStories }, Cmd.none ), session )
 
@@ -467,6 +484,33 @@ viewStoriesFilter session m =
     let
         btn ( msg, txt ) =
             Components.btnSmall [ class "mr-1", type_ "button", onClick msg ] [ text txt ]
+
+        epochSeconds =
+            Time.posixToMillis (Session.currentTime session) // 1000
+
+        oneDay =
+            24 * 3600
+
+        oneMonth =
+            30 * oneDay
+
+        onDateSelect value =
+            SetDateFilter <|
+                case value of
+                    "month" ->
+                        After (epochSeconds - oneMonth)
+
+                    "threeMonths" ->
+                        After (epochSeconds - 3 * oneMonth)
+
+                    "sixMonths" ->
+                        After (epochSeconds - 6 * oneMonth)
+
+                    "year" ->
+                        After (epochSeconds - 365 * oneDay)
+
+                    _ ->
+                        AllStories
     in
     div [ class "flex items-center justify-between flex-wrap" ]
         [ div [ class "flex flex-wrap items-center" ]
@@ -478,8 +522,15 @@ viewStoriesFilter session m =
                 , class "mr-2 mb-2"
                 ]
                 []
+            , Form.select [ class "mr-2 mb-2", on "change" (Json.map onDateSelect targetValue) ]
+                [ Html.option [ value "all" ] [ text "All stories" ]
+                , Html.option [ value "month" ] [ text "Stories this month" ]
+                , Html.option [ value "threeMonths" ] [ text "Stories from the last 3 months" ]
+                , Html.option [ value "sixMonths" ] [ text "Stories from the last 6 months" ]
+                , Html.option [ value "year" ] [ text "Stories from the past year" ]
+                ]
             , label [ class "mr-2 mb-2", for "storyfilter" ]
-                [ text (String.fromInt (List.length m.stories) ++ " matching stories ")
+                [ text (String.fromInt (List.length m.stories) ++ " stories ")
                 ]
             ]
         , div [ class "flex items-center mb-2" ]
@@ -528,8 +579,24 @@ viewStoriesTable m =
         [ Table.view tableConfig m.tableState m.stories ]
 
 
-filterStories : String -> List Api.Story -> List Api.Story
-filterStories storyFilter stories =
+filterStories : String -> DateFilter -> List Api.Story -> List Api.Story
+filterStories storyFilter dateFilter stories =
+    filterByDate dateFilter stories
+        |> matchingStories storyFilter
+
+
+filterByDate : DateFilter -> List Api.Story -> List Api.Story
+filterByDate df stories =
+    case df of
+        AllStories ->
+            stories
+
+        After t ->
+            List.filter (\s -> s.createdAt > t) stories
+
+
+matchingStories : String -> List Api.Story -> List Api.Story
+matchingStories storyFilter stories =
     if String.length storyFilter < 3 then
         stories
 

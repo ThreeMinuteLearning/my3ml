@@ -24,6 +24,7 @@ type alias Story =
     , words : List (DictEntry)
     , clarifyWord : String
     , enabled : Bool
+    , createdAt : Int
     }
 
 type alias DictEntry =
@@ -1616,6 +1617,7 @@ decodeStory =
         |> required "words" (list decodeDictEntry)
         |> required "clarifyWord" string
         |> required "enabled" bool
+        |> required "createdAt" int
 
 encodeStory : Story -> Json.Encode.Value
 encodeStory x =
@@ -1631,6 +1633,7 @@ encodeStory x =
         , ( "words", (Json.Encode.list  encodeDictEntry) x.words )
         , ( "clarifyWord", Json.Encode.string x.clarifyWord )
         , ( "enabled", Json.Encode.bool x.enabled )
+        , ( "createdAt", Json.Encode.int x.createdAt )
         ]
 
 decodeDictEntry : Decoder DictEntry

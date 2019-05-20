@@ -51,6 +51,11 @@ type Alert
     | Warning String
 
 
+currentTime : Session -> Time.Posix
+currentTime (Session s) =
+    s.tick
+
+
 getCache : Session -> Cache
 getCache (Session s) =
     s.cache

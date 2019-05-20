@@ -475,7 +475,7 @@ updateSchoolKey = Q.Statement sql encode D.unit False
 -- Stories
 
 selectStorySql :: ByteString
-selectStorySql = "SELECT id, title, img_url, level, qualification, curriculum, tags, content, words, clarify_word, enabled FROM story WHERE not archived"
+selectStorySql = "SELECT id, title, img_url, level, qualification, curriculum, tags, content, words, clarify_word, enabled, created_at FROM story WHERE not archived"
 
 selectAllStories :: Bool -> Statement () [Story]
 selectAllStories includeDisabled =
@@ -505,7 +505,7 @@ storyRow = Story
     <*> dArray dictEntryValue
     <*> dvText
     <*> D.column D.bool
---    <*> D.column D.timestamptz
+    <*> (round . utcTimeToPOSIXSeconds <$> D.column D.timestamptz)
 
 insertStory :: Statement Story StoryId
 insertStory = Q.Statement sql storyEncoder (D.singleRow $ fromIntegral <$> D.column D.int4) True

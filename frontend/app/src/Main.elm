@@ -379,7 +379,7 @@ pageLoaded msg model =
         pageLoadedWithNewSession r toModel =
             handlePageLoadError r <|
                 \( subModel, newSession ) ->
-                    ( { model | session = newSession, pageState = Loaded (toModel subModel) }, Cmd.none )
+                    ( { model | session = newSession, pageState = Loaded (toModel subModel) }, Task.perform Tick Time.now )
     in
     case msg of
         StoryLoaded r ->
