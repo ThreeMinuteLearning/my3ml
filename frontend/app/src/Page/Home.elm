@@ -167,10 +167,10 @@ view : Session -> msg -> Model -> { title : String, content : Html msg }
 view session clearWorkQueue model =
     { title = "Home"
     , content =
-        div [ class "max-w-lg mx-2 md:mx-auto" ]
+        div []
             [ viewIf (isStudent session) (WorkQueue.view (Session.getWorkQueue session) clearWorkQueue)
             , h1 [ class "text-xl font-light my-4" ] [ text (storiesTitle session) ]
-            , StoryTiles.view False Nothing (List.take 25 model.stories)
+            , StoryTiles.view False Nothing (List.take 24 model.stories)
             ]
     }
 

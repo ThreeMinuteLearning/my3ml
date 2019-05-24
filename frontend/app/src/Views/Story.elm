@@ -13,6 +13,7 @@ import Json.Decode as JD
 import Markdown
 import Ports
 import Regex
+import Tailwinds
 
 
 type alias State =
@@ -63,7 +64,7 @@ view mSettings story ( picWidth, windowWidth ) =
                 ( "float-right pl-3 pb-2", "" )
     in
     div [ class "u-fade-in" ]
-        [ h3 [ class "text-center text-white bg-green-dark py-2 mb-3" ] [ text story.title ]
+        [ h3 [ class "text-center text-white bg-green-600 py-2 mb-3" ] [ text story.title ]
         , div [ id "storypic", class imgDivClass ]
             [ img [ class imgClass, onLoadGetWidth GetImgWidth, src ("pix/" ++ story.img) ] []
             ]
@@ -89,14 +90,14 @@ divWidth windowWidth =
             16
 
         responsiveWidth =
-            if windowWidth >= 992 then
-                992
+            if windowWidth >= Tailwinds.breakpoints.lg then
+                Tailwinds.breakpoints.lg
 
             else if windowWidth >= 768 then
-                768
+                Tailwinds.breakpoints.md
 
-            else if windowWidth >= 576 then
-                576
+            else if windowWidth >= Tailwinds.breakpoints.sm then
+                Tailwinds.breakpoints.sm
 
             else
                 windowWidth

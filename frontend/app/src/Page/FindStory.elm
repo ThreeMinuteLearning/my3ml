@@ -21,6 +21,7 @@ import Ports
 import Regex
 import Route
 import Table
+import Tailwinds
 import Task exposing (Task)
 import Time
 import Tuple exposing (first)
@@ -104,7 +105,7 @@ initialModel session { viewport } =
                 ( Table.initialSort "Title", Table )
 
         maxWidth =
-            990
+            Tailwinds.breakpoints.lg
 
         size =
             ( Basics.min maxWidth (round viewport.width), round viewport.height )
@@ -394,7 +395,7 @@ loadMore m =
                 ( m, Cmd.none )
 
             else
-                ( { m | viewType = Tiles (n + (4 * StoryTiles.tilesPerRow (first m.windowSize))) }
+                ( { m | viewType = Tiles (n + StoryTiles.tilesPerPage m.windowSize) }
                 , Ports.isLastEltVisible StoryTiles.divId
                 )
 
@@ -416,10 +417,10 @@ view session m =
     in
     { title = "Find a Story"
     , content =
-        div [ class "max-w-lg mx-auto px-2" ]
+        div [ class "px-2" ]
             [ case m.browser of
                 Nothing ->
-                    div []
+                    div [ class "mb-2" ]
                         [ viewStoriesFilter session m
                         , Form.viewErrorMsgs m.errors
                         , viewUnless (Session.isStudent session) <| viewStoryBasket m cache.selectedStories
@@ -456,12 +457,12 @@ viewBrowserToolbar session s selected =
             Session.getCache session
 
         mkBtn attrs txt =
-            li [] [ a (class "block no-underline bg-transparent hover:bg-blue text-sm md:text-base text-center text-blue-dark font-semibold hover:text-white py-1 px-4 border border-blue hover:border-transparent rounded-full cursor-pointer" :: attrs) [ text txt ] ]
+            li [] [ a (class "block bg-transparent hover:bg-blue-500 text-sm md:text-base text-center text-blue-600 font-semibold hover:text-white py-1 px-4 border border-blue hover:border-transparent rounded-full cursor-pointer" :: attrs) [ text txt ] ]
     in
     nav [ class "w-full mb-4" ]
-        [ ul [ class "list-reset flex flex-wrap justify-between" ]
+        [ ul [ class "flex flex-wrap justify-between" ]
             [ mkBtn [ href "#", onClick Previous ] "Prev"
-            , ul [ class "list-reset flex justify-between" ]
+            , ul [ class "flex justify-between" ]
                 [ viewIf (isEditor session) <| mkBtn [ href (Route.routeToString (Route.Editor s.id)) ] "Edit"
                 , mkBtn [ href "#", onClick CloseBrowser ] "Back to stories"
                 , mkBtn [ href (Route.routeToString (Route.Story s.id)) ] "View"
@@ -698,7 +699,7 @@ viewStoryBasket m stories =
                         ]
     in
     Components.panel [ class "p-4 mb-4 relative" ]
-        [ viewUnless isEmpty (span [ class "text-grey-dark" ] [ closeBtn ClearSelectedStories ])
+        [ viewUnless isEmpty (span [ class "text-gray-600" ] [ closeBtn ClearSelectedStories ])
         , h1 [ class "text-xl font-light mb-2" ] [ text "Story basket" ]
         , div [ id "storybasket" ]
             (if isEmpty then
@@ -720,7 +721,7 @@ viewAnthologies session =
             Session.getCache session
 
         btn msg disable txt =
-            Components.btnBase [ class "text-xs bg-blue py-1 px-2 mr-1", classList [ ( "hover:bg-blue-dark", not disable ), ( "opacity-50 cursor-not-allowed", disable ) ], disabled disable, onClick msg ] [ text txt ]
+            Components.btnBase [ class "text-xs bg-blue-500 py-1 px-2 mr-1", classList [ ( "hover:bg-blue-600", not disable ), ( "opacity-50 cursor-not-allowed", disable ) ], disabled disable, onClick msg ] [ text txt ]
 
         anthologiesWithStories =
             List.map pickStories cache.anthologies
@@ -734,7 +735,7 @@ viewAnthologies session =
         render ( a, astories ) =
             Components.panel [ class "p-4 mb-4" ]
                 [ h1 [ class "text-xl font-light mb-1" ] [ text a.name ]
-                , p [ class "text-sm text-grey-dark mb-1" ] [ text a.description ]
+                , p [ class "text-sm text-gray-600 mb-1" ] [ text a.description ]
                 , div [ class "mb-2" ]
                     [ viewIf (canDelete a)
                         (btn (DeleteAnthology a.id) False "Delete")

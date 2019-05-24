@@ -35,7 +35,7 @@ initialModel =
 view : Model -> Maybe (Attribute (Msg a)) -> Html (Msg a)
 view model regLink =
     div [ class "py-10 px-4 flex justify-center" ]
-        [ div [ class "w-full max-w-sm" ]
+        [ div [ class "w-full max-w-md" ]
             [ Form.viewErrors model.errors
             , if model.otpRequired then
                 viewOtpForm model
@@ -86,7 +86,7 @@ viewForm regLink =
             [ submitButton
             , case regLink of
                 Just ref ->
-                    a [ class "inline-block align-baseline font-bold text-sm text-blue hover:text-blue-darker", ref ]
+                    a [ class "font-bold text-sm text-blue-500 hover:text-blue-700", ref ]
                         [ text "Need an account?" ]
 
                 Nothing ->

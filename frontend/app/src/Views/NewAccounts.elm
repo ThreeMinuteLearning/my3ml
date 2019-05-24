@@ -36,7 +36,7 @@ view print dismiss accounts =
 
         _ ->
             Components.panel [ class "p-4 mb-4 relative" ]
-                [ span [ class "print:none text-grey-dark" ] [ closeBtn dismiss ]
+                [ span [ class "print:none text-gray-600" ] [ closeBtn dismiss ]
                 , h1 [ class "print:none text-xl font-light mb-2" ] [ text "New Accounts Created in this Session" ]
                 , div [ class "p-2" ]
                     [ printButton print "Print list of new accounts"

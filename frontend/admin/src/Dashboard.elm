@@ -144,7 +144,7 @@ viewSchools schools =
                 [ div [ class "flex flex-col bg-white rounded shadow-md flex-1 overflow-x-auto" ]
                     [ div [ class "px-6 py-4" ]
                         [ h1 [ class "text-xl font-bold" ] [ Html.text s.name ]
-                        , p [ class "text-gray-darker text-base" ] [ Html.text (String.fromInt s.numberOfStudents ++ " students.") ]
+                        , p [ class "text-gray-800 text-base" ] [ Html.text (String.fromInt s.numberOfStudents ++ " students.") ]
                         , div [ class "flex flex-col px-1 py-4" ]
                             (List.map viewTeacher s.teachers)
                         ]

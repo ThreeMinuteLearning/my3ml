@@ -20,10 +20,10 @@ alert a txt onClose =
         alertClass =
             case a of
                 Success ->
-                    "bg-green-lightest border border-green-light text-green-dark px-4 py-3 rounded relative"
+                    "bg-green-lightest border border-green-light text-green-600 px-4 py-3 rounded relative"
 
                 Danger ->
-                    "bg-red-lightest border border-red-light text-red-dark px-4 py-3 rounded relative"
+                    "bg-red-lightest border border-red-light text-red-600 px-4 py-3 rounded relative"
     in
     div [ class alertClass, role "alert" ]
         [ span [ class "block" ] [ text txt ]
@@ -32,12 +32,12 @@ alert a txt onClose =
 
 
 closeBtn msg =
-    span [ class "absolute pin-t pin-r px-4 py-3", ariaLabel "close", onClick msg ]
+    span [ class "absolute top-0 right-0 px-4 py-3", ariaLabel "close", onClick msg ]
         [ closeIcon ]
 
 
 closeBtn2 msg =
-    span [ class "absolute pin-t pin-r p-4", onClick msg ]
+    span [ class "absolute top-0 right-0 p-4", onClick msg ]
         [ closeIcon2 ]
 
 
@@ -49,7 +49,7 @@ closeIcon =
 
 
 closeIcon2 =
-    Svg.svg [ Svga.class "h-12 w-12 text-grey-dark hover:text-grey-darker fill-current", role "button", Svga.viewBox "0 0 20 20" ]
+    Svg.svg [ Svga.class "h-12 w-12 text-gray-600 hover:text-gray-700 fill-current", role "button", Svga.viewBox "0 0 20 20" ]
         [ Svg.title [] [ Svg.text "Close" ]
         , Svg.path [ Svga.d "M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" ] []
         ]

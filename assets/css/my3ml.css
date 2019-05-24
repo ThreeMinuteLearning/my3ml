@@ -1,4 +1,4 @@
-@tailwind preflight;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -70,6 +70,16 @@ meter[value="4"]::-moz-meter-bar { background: green; }
 /* Story content styling */
 #storycontent p {
     margin-bottom: 0.75rem;
+}
+
+#storycontent ul {
+    list-style-type: disc;
+    padding-left: theme('padding.8');
+}
+
+#storycontent ol {
+    list-style-type: decimal;
+    padding-left: theme('padding.8');
 }
 
 #printactivities h4 {

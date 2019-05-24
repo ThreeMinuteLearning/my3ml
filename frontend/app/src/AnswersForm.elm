@@ -273,23 +273,23 @@ viewForm model =
             on "change" (Json.map msg targetValue)
 
         submitButton =
-            Html.button [ class "bg-blue hover:bg-blue-dark text-white font-bold py-2 px-4 mt-2 rounded", tabindex 6, disabled model.formSubmitted ] [ text "Submit your answers" ]
+            Html.button [ class "bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 mt-2 rounded", tabindex 6, disabled model.formSubmitted ] [ text "Submit your answers" ]
 
         drwrBtn s evt =
             let
                 activityColour =
                     case evt of
                         Drawer.Connect ->
-                            "bg-blue hover:bg-blue-dark"
+                            "bg-blue-500 hover:bg-blue-600"
 
                         Drawer.Question ->
-                            "bg-red hover:bg-red-dark"
+                            "bg-red-500 hover:bg-red-600"
 
                         Drawer.Summarise ->
-                            "bg-green-dark hover:bg-green-darker"
+                            "bg-green-600 hover:bg-green-600"
 
                         Drawer.Clarify ->
-                            "bg-pink hover:bg-pink-dark"
+                            "bg-pink-500 hover:bg-pink-600"
             in
             button [ class "text-white text-sm py-1 px-2 mr-2 rounded", tabindex -1, class activityColour, onClick (ToggleDrawer evt), type_ "button" ] [ text s ]
     in

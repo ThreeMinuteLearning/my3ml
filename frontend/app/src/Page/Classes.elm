@@ -133,7 +133,7 @@ addClassesDialog : AddClassForm.Model -> Html Msg
 addClassesDialog form =
     Modal.view "Add Class"
         DismissAddClass
-        (div [ class "w-full max-w-md p-4 flex flex-col" ]
+        (div [ class "w-full max-w-xl p-4 flex flex-col" ]
             [ p [ class "mb-2 text-lg" ] [ text "Please enter a name and a description for the new class" ]
             , Html.map AddClassFormMsg (AddClassForm.view form)
             ]

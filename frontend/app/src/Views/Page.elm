@@ -37,7 +37,7 @@ frame isLoading session onAlertClose page { title, content } =
     , body =
         [ div [ id "app" ]
             [ viewHeader page session isLoading
-            , div [ class "container mx-auto" ]
+            , div [ class "container mx-auto px-1" ]
                 [ viewAlerts (Session.getAlerts session) onAlertClose
                 , content
                 ]
@@ -50,7 +50,7 @@ viewHeader : ActivePage -> Session -> Bool -> Html msg
 viewHeader page session isLoading =
     nav [ class "print:none bg-tml-blue px-6 py-2 mb-4" ]
         [ div [ class "container mx-auto flex items-center justify-between flex-wrap" ]
-            [ div [ class "flex items-center flex-no-shrink mr-8" ]
+            [ div [ class "flex items-center flex-shrink-0 mr-8" ]
                 [ img [ class "fill-current", src "/img/logo.png", alt "The Three Minute Learning logo (3ml)" ] []
                 ]
             , input [ id "menu-toggle", type_ "checkbox", class "hidden" ] []
@@ -67,7 +67,7 @@ viewHeader page session isLoading =
 viewAlerts : List ( Alert, Bool ) -> (Alert -> msg) -> Html msg
 viewAlerts alerts onAlertClose =
     viewUnless (List.isEmpty alerts) <|
-        div [ id "alerts", class "max-w-lg mb-2 mx-auto" ]
+        div [ id "alerts", class "mb-2" ]
             (List.map (viewAlert onAlertClose) alerts)
 
 
@@ -142,4 +142,4 @@ menuItems page session =
 
 navbarLink : Bool -> Route -> String -> List (Html msg) -> Html msg
 navbarLink isActive route id_ linkContent =
-    a [ id id_, classList [ ( "no-underline", not isActive ) ], class "block mt-4 md:inline-block md:mt-0 text-teal-lighter hover:text-white mr-4", classList [ ( "border-red", isActive ) ], Route.href route ] linkContent
+    a [ id id_, classList [ ( "underline", isActive ) ], class "block mt-4 md:inline-block md:mt-0 text-teal-200 hover:text-white mr-4", classList [ ( "border-red", isActive ) ], Route.href route ] linkContent

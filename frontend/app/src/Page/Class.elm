@@ -219,7 +219,7 @@ confirmDeleteDialog : Bool -> Html Msg
 confirmDeleteDialog isOwner =
     Modal.view "Delete class"
         DismissDialog
-        (div [ class "w-full max-w-md p-4 flex flex-col" ]
+        (div [ class "w-full max-w-xl p-4 flex flex-col" ]
             [ p [ class "text-lg mb-4" ] [ text "Are you sure you want to delete this class?" ]
             , p [ class "text-lg mb-4" ] [ text "Only the class information will be removed (none of the student accounts will be affected)." ]
             , viewIf (not isOwner) <|

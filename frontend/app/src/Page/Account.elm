@@ -91,7 +91,7 @@ view : Model -> { title : String, content : Html Msg }
 view { settings, answers } =
     { title = "My 3ml"
     , content =
-        div [ class "max-w-md mx-auto" ]
+        div []
             [ viewSettings settings
             , viewUnless (List.isEmpty answers) (h1 [ class "text-2xl font-light mb-2" ] [ text "My story answers" ])
             , Answers.viewWithStories answers

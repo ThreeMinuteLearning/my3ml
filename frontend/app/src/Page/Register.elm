@@ -149,13 +149,13 @@ view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Register with 3ml"
     , content =
-        div [ class "max-w-md mx-auto flex flex-col" ]
-            [ h1 [ class "text-xs-center" ] [ text "Sign up" ]
+        div [ class "max-w-xl mx-auto flex flex-col" ]
+            [ h1 [ class "text-xs-center text-gray-600" ] [ text (heading model.registrationType) ]
             , p [ class "my-2 text-lg leading-normal" ]
                 [ text (blurb model.registrationType)
                 ]
             , p [ class "mb-4" ]
-                [ a [ Route.href Route.Login ]
+                [ a [ Route.href Route.Login, class "text-blue-500 hover:text-blue-700" ]
                     [ text "Have an account already?" ]
                 ]
             , Form.viewErrors model.errors
@@ -180,6 +180,19 @@ view model =
                 viewForm model
             ]
     }
+
+
+heading : Maybe RegistrationType -> String
+heading rt =
+    case rt of
+        Nothing ->
+            "Sign up"
+
+        Just NewSchool ->
+            "Register a new school"
+
+        Just WithCode ->
+            "Register as a teacher in an existing school"
 
 
 blurb : Maybe RegistrationType -> String

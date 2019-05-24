@@ -40,8 +40,8 @@ package: compress
 	rm app.tar.bz2 || true
 	cd assets && tar -cjf ../app.tar.bz2 *.js *.css *.html
 
-assets/app.css: assets/css/** tailwind.js
-	./node_modules/.bin/tailwind build assets/css/my3ml.css -c tailwind.js -o assets/app.css
+assets/app.css: assets/css/** tailwind.config.js
+	./node_modules/.bin/tailwind build assets/css/my3ml.css -c tailwind.config.js -o assets/app.css
 	cat assets/css/spinner.css >> assets/app.css
 
 frontend/shared/src/Api.elm: code-generator/*.hs api/*.hs api/**/*.hs

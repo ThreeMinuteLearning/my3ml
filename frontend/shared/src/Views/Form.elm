@@ -8,7 +8,7 @@ import Tuple exposing (second)
 
 fcStyle : Attribute msg
 fcStyle =
-    class "border shadow border-grey-light bg-white rounded text-grey-darker focus:border-blue"
+    class "border shadow border-gray-light bg-white rounded text-gray-800 focus:border-blue"
 
 
 fcHeightPadding : Attribute msg
@@ -36,7 +36,7 @@ input attrs =
 
 label : List (Attribute msg) -> List (Html msg) -> Html msg
 label attrs =
-    Html.label (class "block text-grey-darker text-sm font-bold" :: attrs)
+    Html.label (class "block text-gray-800 text-sm font-bold" :: attrs)
 
 
 textarea : List (Attribute msg) -> List (Html msg) -> Html msg
@@ -64,4 +64,4 @@ viewErrorMsgs errors =
     else
         errors
             |> List.map (\error -> li [ class "ml-2 mb-1" ] [ text error ])
-            |> ul [ id "error-messages", class "list-reset text-red-dark font-bold py-2 mb-1" ]
+            |> ul [ id "error-messages", class "text-red-600 font-bold py-2 mb-1" ]

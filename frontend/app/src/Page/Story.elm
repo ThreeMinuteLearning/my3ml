@@ -106,7 +106,7 @@ view session m =
     in
     { title = m.story.title
     , content =
-        div [ class "max-w-lg mx-auto px-2" ]
+        div []
             [ viewIf (Session.isTeacher session) (div [ class "print:none mb-2" ] [ printButton PrintWindow "Print this story" ])
             , Html.map StoryViewMsg <| StoryView.view (Session.getSettings session) m.story m.storyView
             , m.dictLookup

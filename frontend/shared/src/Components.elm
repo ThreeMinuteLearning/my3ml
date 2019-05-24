@@ -14,7 +14,7 @@ panel attrs =
 
 link : List (Attribute msg) -> String -> Html msg
 link attrs txt =
-    Html.a (class "text-blue hover:text-blue-dark no-underline" :: attrs) [ text txt ]
+    Html.a (class "text-blue-500 hover:text-blue-600 no-underline" :: attrs) [ text txt ]
 
 
 toolbar : List ( msg, Bool, String ) -> List (Html msg) -> Html msg
@@ -22,7 +22,7 @@ toolbar buttons elts =
     let
         mkBtn ( msg, disable, txt ) =
             btnSmall
-                [ classList [ ( "hover:bg-blue-dark", not disable ), ( "opacity-50 cursor-not-allowed", disable ) ]
+                [ classList [ ( "hover:bg-blue-600", not disable ), ( "opacity-50 cursor-not-allowed", disable ) ]
                 , class "mr-1"
                 , onClick msg
                 , disabled disable
@@ -41,9 +41,9 @@ btnBase attrs =
 
 btn : List (Attribute msg) -> List (Html msg) -> Html msg
 btn attrs =
-    btnBase (class "bg-blue hover:bg-blue-dark py-2 px-3" :: attrs)
+    btnBase (class "bg-blue-500 hover:bg-blue-600 py-2 px-3" :: attrs)
 
 
 btnSmall : List (Attribute msg) -> List (Html msg) -> Html msg
 btnSmall attrs =
-    btnBase (class "bg-blue hover:bg-blue-dark text-sm px-2 py-1" :: attrs)
+    btnBase (class "bg-blue-500 hover:bg-blue-600 text-sm px-2 py-1" :: attrs)

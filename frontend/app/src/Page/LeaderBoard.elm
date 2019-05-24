@@ -30,7 +30,7 @@ view : Model -> { title : String, content : Html msg }
 view model =
     { title = "Leaderboard"
     , content =
-        div [ class "max-w-md mx-auto p-4" ]
+        div []
             [ h1 [ class "text-2xl font-light mb-2" ] [ text "Leaderboard" ]
             , p [ class "mb-6" ]
                 [ text "Scores are re-calculated periodically so it may be a while before you see changes."
@@ -53,7 +53,7 @@ view model =
 
 tableRow : ( Int, Api.LeaderBoardEntry ) -> Html msg
 tableRow ( pos, entry ) =
-    tr [ classList [ ( "bg-yellow", pos == 0 ), ( "bg-grey-light", pos == 1 ), ( "bg-yellow-darker text-white", pos == 2 ) ] ]
+    tr [ classList [ ( "bg-yellow-500", pos == 0 ), ( "bg-gray-400", pos == 1 ), ( "bg-yellow-800 text-white", pos == 2 ) ] ]
         [ td [ class "text-center p-2" ] [ text (String.fromInt (pos + 1)) ]
         , td [ class "text-center p-2" ] [ text entry.name ]
         , td [ class "text-center p-2" ] [ text (String.fromInt entry.score) ]

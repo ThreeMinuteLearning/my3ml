@@ -39,4 +39,4 @@ viewDetails story answer =
 cqsc : String -> List (Html msg) -> Html msg
 cqsc answerType content =
     div [ class "px-6 py-2" ]
-        (h3 [ class "text-base font-bold text-grey-dark" ] [ text answerType ] :: content)
+        (h3 [ class "text-base font-bold text-gray-600" ] [ text answerType ] :: content)

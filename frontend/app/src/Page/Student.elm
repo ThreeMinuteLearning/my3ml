@@ -258,7 +258,7 @@ confirmDeleteDialog : Html Msg
 confirmDeleteDialog =
     Modal.view "Delete Student"
         DismissDialog
-        (div [ class "w-full max-w-md p-4 flex flex-col" ]
+        (div [ class "w-full max-w-xl p-4 flex flex-col" ]
             [ p [ class "text-lg mb-4" ] [ text "Are you sure you want to delete this student account?" ]
             , p [ class "text-lg" ] [ text "It will be marked for deletion and removed automatically at a later date (you can un-delete it if you change your mind)." ]
             , Components.btn [ class "mt-6", onClick ConfirmDelete ] [ text "Delete student" ]
