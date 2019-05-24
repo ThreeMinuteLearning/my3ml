@@ -417,36 +417,34 @@ view session m =
     in
     { title = "Find a Story"
     , content =
-        div [ class "px-2" ]
-            [ case m.browser of
-                Nothing ->
-                    div [ class "mb-2" ]
-                        [ viewStoriesFilter session m
-                        , Form.viewErrorMsgs m.errors
-                        , viewUnless (Session.isStudent session) <| viewStoryBasket m cache.selectedStories
-                        , viewUnless (Session.workQueueHasSpace session)
-                            (p [ class "my-3" ]
-                                [ text "Your work queue is full. Perhaps you should "
-                                , a [ href (Route.routeToString Route.Home) ] [ text "complete some of the stories in it." ]
-                                ]
-                            )
-                        , case m.viewType of
-                            Tiles n ->
-                                StoryTiles.view False (Just BrowseFrom) (List.take n m.stories)
+        case m.browser of
+            Nothing ->
+                div [ class "mb-2" ]
+                    [ viewStoriesFilter session m
+                    , Form.viewErrorMsgs m.errors
+                    , viewUnless (Session.isStudent session) <| viewStoryBasket m cache.selectedStories
+                    , viewUnless (Session.workQueueHasSpace session)
+                        (p [ class "my-3" ]
+                            [ text "Your work queue is full. Perhaps you should "
+                            , a [ href (Route.routeToString Route.Home) ] [ text "complete some of the stories in it." ]
+                            ]
+                        )
+                    , case m.viewType of
+                        Tiles n ->
+                            StoryTiles.view False (Just BrowseFrom) (List.take n m.stories)
 
-                            Table ->
-                                viewStoriesTable m
+                        Table ->
+                            viewStoriesTable m
 
-                            Anthologies ->
-                                viewAnthologies session
-                        ]
+                        Anthologies ->
+                            viewAnthologies session
+                    ]
 
-                Just b ->
-                    div [ class "mb-12" ]
-                        [ viewBrowserToolbar session (Zipper.current b) cache.selectedStories
-                        , Html.map StoryViewMsg <| StoryView.view (Session.getSettings session) (Zipper.current b) m.storyView
-                        ]
-            ]
+            Just b ->
+                div [ class "mb-12" ]
+                    [ viewBrowserToolbar session (Zipper.current b) cache.selectedStories
+                    , Html.map StoryViewMsg <| StoryView.view (Session.getSettings session) (Zipper.current b) m.storyView
+                    ]
     }
 
 
