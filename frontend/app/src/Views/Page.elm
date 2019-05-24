@@ -37,7 +37,7 @@ frame isLoading session onAlertClose page { title, content } =
     , body =
         [ div [ id "app" ]
             [ viewHeader page session isLoading
-            , div [ class "container mx-auto px-1" ]
+            , div [ class "container mx-auto px-2" ]
                 [ viewAlerts (Session.getAlerts session) onAlertClose
                 , content
                 ]
@@ -48,8 +48,8 @@ frame isLoading session onAlertClose page { title, content } =
 
 viewHeader : ActivePage -> Session -> Bool -> Html msg
 viewHeader page session isLoading =
-    nav [ class "print:none bg-tml-blue px-6 py-2 mb-4" ]
-        [ div [ class "container mx-auto flex items-center justify-between flex-wrap" ]
+    nav [ class "print:none bg-tml-blue mb-4" ]
+        [ div [ class "container px-2 py-2 mx-auto flex items-center justify-between flex-wrap" ]
             [ div [ class "flex items-center flex-shrink-0 mr-8" ]
                 [ img [ class "fill-current", src "/img/logo.png", alt "The Three Minute Learning logo (3ml)" ] []
                 ]

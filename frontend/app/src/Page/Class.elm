@@ -145,12 +145,12 @@ view : Session -> Model -> { title : String, content : Html Msg }
 view session model =
     { title = "Class " ++ model.class.name
     , content =
-        div [ class "px-4" ]
-            [ h1 [ class "font-normal mb-2" ] [ text (.name model.class) ]
-            , div [ class "text-lg font-semi-bold mb-1" ] [ text (Maybe.withDefault "" (.description model.class)) ]
+        div []
+            [ h1 [ class "font-normal text-lg mb-2" ] [ text (.name model.class) ]
+            , div [ class "text-sm text-gray-600 font-semi-bold mb-1" ] [ text (Maybe.withDefault "" (.description model.class)) ]
             , viewToolbar model
             , Form.viewErrorMsgs model.errors
-            , h2 [ class "text-lg mt-2" ] [ text "Class members" ]
+            , h2 [ class "text-lg font-light mt-2" ] [ text "Class members" ]
             , if List.isEmpty model.class.students then
                 div [ class "mt-2 text-base" ]
                     [ p [ class "mb-1" ]

@@ -188,11 +188,11 @@ view : Model -> { title : String, content : Html Msg }
 view model =
     { title = "Student"
     , content =
-        div [ class "px-4" ]
-            [ h1 [ class "font-normal" ] [ text (.name model.student) ]
+        div []
+            [ h1 [ class "font-normal text-lg text-gray-700" ] [ text (.name model.student) ]
             , viewToolbar model.userIsAdmin model.student
             , Form.viewErrorMsgs model.errors
-            , h2 [ class "mt-4" ] [ text "Completed Stories" ]
+            , h2 [ class "font-light text-lg text-gray-600 mt-4" ] [ text "Completed Stories" ]
             , Answers.viewWithStories model.answers
             , maybeView changePasswordDialog model.changePasswordForm
             , maybeView changeUsernameDialog model.changeUsernameForm

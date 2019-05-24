@@ -10,7 +10,7 @@ view session =
     { title = "Page Not Found"
     , content =
         main_ [ id "content", class "container", tabindex -1 ]
-            [ h1 [] [ text "Not Found" ]
+            [ h1 [ class "text-xl font-light" ] [ text "Not Found" ]
             , div [ class "row" ]
                 [ text "not found" ]
             ]

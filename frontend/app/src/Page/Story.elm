@@ -132,7 +132,7 @@ viewAnswersForm m =
         Just f ->
             Html.map AnswersFormMsg <|
                 div [ id "activities", class "mt-8" ]
-                    [ h2 [] [ text "Answers" ]
+                    [ h2 [ class "text-lg text-gray-700" ] [ text "Answers" ]
                     , AnswersForm.view f
                     ]
 

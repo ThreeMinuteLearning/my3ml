@@ -1,10 +1,9 @@
 module Page.Errored exposing (PageLoadError(..), pageLoadError, view)
 
-{-| The page that renders when there was an error trying to load another page,
-for example a Page Not Found error.
+{-| The page that renders when there was an error trying to load another page.
 -}
 
-import Html exposing (Html, a, div, h3, img, main_, p, text)
+import Html exposing (..)
 import Html.Attributes exposing (class, id, tabindex)
 import Http
 import Route
@@ -35,19 +34,14 @@ view error =
     { title = "Error loading page"
     , content =
         main_ [ id "content", class "container", tabindex -1 ]
-            (case error of
-                PageLoadError msg ->
-                    [ div [ class "row" ]
-                        [ h3 [] [ text "Error Loading Page" ]
-                        , p [] [ text msg ]
-                        ]
-                    ]
+            [ div [ class "row" ]
+                [ h1 [ class "text-lg font-light" ] [ text "Error Loading Page" ]
+                , case error of
+                    PageLoadError msg ->
+                        p [] [ text msg ]
 
-                AuthenticationRequired ->
-                    [ div [ class "row" ]
-                        [ h3 [] [ text "Login Required" ]
-                        , p [] [ text "It looks like your session may have expired. Please ", a [ Route.href Route.Login ] [ text "log back in." ] ]
-                        ]
-                    ]
-            )
+                    AuthenticationRequired ->
+                        p [] [ text "It looks like your session may have expired. Please ", a [ Route.href Route.Login ] [ text "log back in." ] ]
+                ]
+            ]
     }
