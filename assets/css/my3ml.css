@@ -86,29 +86,13 @@ meter[value="4"]::-moz-meter-bar { background: green; }
     margin-bottom: 6em;
     font-weight: bold;
 }
+
 /* The drawer */
 
 #drawerbuttons button:hover {
     border-radius: 50%;
 }
 
-.connectbutton {
-    background: #FFA830 url(img/connect.png); background-size: cover; border: 5px solid #FFA830;
-}
-
-.questionbutton {
-    background: #EE5E56 url(img/question.png); background-size: cover; border: 5px solid #EE5E56;
-}
-
-.summarisebutton {
-    background: #0A182B url(img/summarise.png); background-size: cover; border: 5px solid #0A182B;
-}
-
-.clarifybutton {
-    background: #607DCB url(img/clarify.png); background-size: cover; border: 5px solid #607DCB;
-}
-
-/* The side drawer */
 #drawer {
     position: fixed;
     top: 0;
@@ -119,10 +103,6 @@ meter[value="4"]::-moz-meter-bar { background: green; }
     color: white;
 }
 
-#drawercontent {
-    padding: 20px;
-}
-
 #toggle-drawer {
     position: absolute;
     opacity: 0;
@@ -130,43 +110,6 @@ meter[value="4"]::-moz-meter-bar { background: green; }
 
 #toggle-drawer:checked ~ #drawer {
     left: 0px;
-}
-
-.panelheader {
-    background-color: white;
-    height: 65px;
-    display: flex;
-    align-items: center;
-    padding-left: 20px;
-}
-
-.closebutton {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-}
-
-#drawer h1 {
-    background-color: white;
-    font-size: 2em;
-    color: black;
-    margin-left: 5px;
-}
-
-.connectpanel {
-    background: #107896;
-}
-
-.questionpanel {
-    background: #9a2617;
-}
-
-.summarisepanel {
-    background: #093145;
-}
-
-.clarifypanel {
-    background: #c2571a;
 }
 
 .dict-lookup {

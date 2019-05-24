@@ -1,6 +1,7 @@
 module Drawer exposing (DrawerType(..), view)
 
-import Html exposing (Html, div, h1, img, input, li, p, text, ul)
+import Bootstrap exposing (closeBtn)
+import Html exposing (..)
 import Html.Attributes exposing (checked, class, href, id, src, type_, width)
 import Html.Events exposing (onCheck, onClick)
 
@@ -39,16 +40,15 @@ view showDrawer toggleDrawer =
 
         mkList is =
             List.map listItem is
-                |> ul [ class "mt-4" ]
+                |> ul [ class "px-2 mt-4" ]
 
         drawerHeader =
-            div [ class "panelheader" ]
-                [ img [ src ("img/" ++ hdrImage), width 25 ] []
-                , h1 []
+            div [ class "pl-5 py-2 bg-white" ]
+                [ h1 [ class "font-normal text-2xl text-gray-800" ]
                     [ text (drawerToString currentDrawer)
                     ]
-                , Html.a [ href "#", class "closebutton", onClick (toggleDrawer currentDrawer) ]
-                    [ img [ src "img/closeblack.png" ] [] ]
+                , span [ class "print:none text-gray-600" ]
+                    [ closeBtn (toggleDrawer currentDrawer) ]
                 ]
 
         ( content, hdrImage, panelStyle ) =
@@ -62,7 +62,7 @@ view showDrawer toggleDrawer =
                             ]
                       ]
                     , "connectblack.png"
-                    , "connectpanel"
+                    , "bg-teal-700"
                     )
 
                 Summarise ->
@@ -77,7 +77,7 @@ view showDrawer toggleDrawer =
                             ]
                       ]
                     , "summariseblack.png"
-                    , "summarisepanel"
+                    , "bg-green-700"
                     )
 
                 Question ->
@@ -95,7 +95,7 @@ view showDrawer toggleDrawer =
                             ]
                       ]
                     , "questionblack.png"
-                    , "questionpanel"
+                    , "bg-red-700"
                     )
 
                 Clarify ->
@@ -107,7 +107,7 @@ view showDrawer toggleDrawer =
                             ]
                       ]
                     , "clarifyblack.png"
-                    , "clarifypanel"
+                    , "bg-pink-700"
                     )
     in
     div []
@@ -120,6 +120,6 @@ view showDrawer toggleDrawer =
             []
         , div [ id "drawer", class panelStyle ]
             [ drawerHeader
-            , div [ id "drawercontent", class "leading-normal" ] content
+            , div [ class "p-2 leading-normal" ] content
             ]
         ]
