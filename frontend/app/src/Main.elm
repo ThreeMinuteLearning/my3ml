@@ -481,7 +481,7 @@ updatePage page msg model =
         ( LoginMsg subMsg, Login subModel ) ->
             let
                 loginRequest username password otp =
-                    Api.postAuthenticate (Api.LoginRequest username password otp)
+                    Api.postAuthenticate (Api.LoginRequest username password otp (Session.userAgent model.session))
 
                 ( ( pageModel, loginCmd ), maybeLoggedIn ) =
                     Login.update subMsg subModel loginRequest

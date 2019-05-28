@@ -1,5 +1,5 @@
-var flags = sessionStorage.session || null;
-var app = Elm.Main.init({flags: flags});
+var session = sessionStorage.session || null;
+var app = Elm.Main.init({flags: {session: session, ua: navigator.userAgent}});
 
 app.ports.getImgWidth.subscribe(function(selector) {
     getWidth(selector, 0, function (result) {

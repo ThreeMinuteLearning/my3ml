@@ -13,6 +13,7 @@ import Util exposing (defaultHttpErrorMsg)
 
 type alias Model =
     { accessToken : Maybe String
+    , ua : String
     , page : Page
     }
 
@@ -28,9 +29,9 @@ type Msg
     | LoginMsg (Login.Msg Api.Login)
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( Model Nothing (Login Login.initialModel), Cmd.none )
+init : String -> ( Model, Cmd Msg )
+init ua =
+    ( Model Nothing ua (Login Login.initialModel), Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -39,7 +40,7 @@ update msg model =
         ( Login subModel, LoginMsg subMsg ) ->
             let
                 loginRequest username password otp =
-                    Api.postAuthenticate (Api.LoginRequest username password otp)
+                    Api.postAuthenticate (Api.LoginRequest username password otp model.ua)
 
                 ( ( pageModel, loginCmd ), maybeLoggedIn ) =
                     Login.update subMsg subModel loginRequest
@@ -104,7 +105,7 @@ subscriptions _ =
     Sub.none
 
 
-main : Program () Model Msg
+main : Program String Model Msg
 main =
     Browser.document
         { init = init

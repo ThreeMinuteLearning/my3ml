@@ -96,6 +96,7 @@ data LoginRequest = LoginRequest
     { username :: Text
     , password :: Text
     , otp :: Maybe Int
+    , ua :: String
     } deriving (Show, Generic, FromJSON)
 
 data Anthology = Anthology

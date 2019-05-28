@@ -101,6 +101,7 @@ type alias LoginRequest =
     { username : String
     , password : String
     , otp : Maybe (Int)
+    , ua : String
     }
 
 type alias LeaderBoardEntry =
@@ -1809,6 +1810,7 @@ decodeLoginRequest =
         |> required "username" string
         |> required "password" string
         |> required "otp" (nullable int)
+        |> required "ua" string
 
 encodeLoginRequest : LoginRequest -> Json.Encode.Value
 encodeLoginRequest x =
@@ -1816,6 +1818,7 @@ encodeLoginRequest x =
         [ ( "username", Json.Encode.string x.username )
         , ( "password", Json.Encode.string x.password )
         , ( "otp", (Maybe.withDefault Json.Encode.null << Maybe.map Json.Encode.int) x.otp )
+        , ( "ua", Json.Encode.string x.ua )
         ]
 
 decodeLeaderBoardEntry : Decoder LeaderBoardEntry

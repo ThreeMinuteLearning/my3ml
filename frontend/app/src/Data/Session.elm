@@ -1,4 +1,4 @@
-module Data.Session exposing (AccessToken, Alert(..), Session, addToWorkQueue, authorization, clearWorkQueue, closeAlert, currentTime, decodeSession, error, findStoryById, getAlerts, getCache, getSettings, getWorkQueue, isEditor, isSchoolAdmin, isStudent, isTeacher, loadAnthologies, loadClasses, loadDictionary, loadStories, loadStudents, loadUserAnswers, logout, newLogin, saveWorkQueue, storeSession, storyCompleted, subjectId, success, tick, updateCache, updateSettings, userLevel, warn, workQueueHasSpace)
+module Data.Session exposing (AccessToken, Alert(..), Session, addToWorkQueue, authorization, clearWorkQueue, closeAlert, currentTime, decodeSession, error, findStoryById, getAlerts, getCache, getSettings, getWorkQueue, isEditor, isSchoolAdmin, isStudent, isTeacher, loadAnthologies, loadClasses, loadDictionary, loadStories, loadStudents, loadUserAnswers, logout, newLogin, saveWorkQueue, storeSession, storyCompleted, subjectId, success, tick, updateCache, updateSettings, userAgent, userLevel, warn, workQueueHasSpace)
 
 import Api
 import Cache exposing (..)
@@ -36,6 +36,7 @@ type Session
         , workQueue : List Api.Story
         , user : Maybe User
         , tick : Time.Posix
+        , ua : String
         }
 
 
@@ -49,6 +50,11 @@ type Alert
     = Success String
     | Error String
     | Warning String
+
+
+userAgent : Session -> String
+userAgent (Session s) =
+    s.ua
 
 
 currentTime : Session -> Time.Posix
@@ -246,7 +252,7 @@ newLogin (Session s) { sub, name, level, token, role, settings } =
         user =
             User name sub userRole level (AccessToken token) userSettings
     in
-    Session { cache = clearCache s.cache, alerts = [], workQueue = [], user = Just user, tick = s.tick }
+    Session { cache = clearCache s.cache, alerts = [], workQueue = [], user = Just user, tick = s.tick, ua = s.ua }
 
 
 loadStories : Session -> Task Http.Error Session
@@ -393,11 +399,23 @@ storeSession (Session session) =
 
 decodeSession : Decode.Value -> Session
 decodeSession json =
-    json
-        |> Decode.decodeValue Decode.string
+    let
+        decoder =
+            Decode.succeed mkSession
+                |> required "ua" Decode.string
+                |> optional "session" Decode.string ""
+
+        mkSession ua session =
+            let
+                user =
+                    Decode.decodeString userDecoder session
+                        |> Result.toMaybe
+            in
+            Session { cache = emptyCache, alerts = [], workQueue = [], user = user, tick = Time.millisToPosix 0, ua = ua }
+    in
+    Decode.decodeValue decoder json
         |> Result.toMaybe
-        |> Maybe.andThen (Decode.decodeString userDecoder >> Result.toMaybe)
-        |> (\u -> Session { cache = emptyCache, alerts = [], workQueue = [], user = u, tick = Time.millisToPosix 0 })
+        |> Maybe.withDefault (mkSession "" "")
 
 
 encodeUser : User -> Encode.Value
