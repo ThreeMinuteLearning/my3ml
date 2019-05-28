@@ -157,4 +157,4 @@ viewSchools schools =
                 , div [ class "px-1 text-l" ] [ Html.text t.email ]
                 ]
     in
-    ul [ class "list-reset flex flex-row w-full py-16 flex-wrap md:m-0 lg:-mx-3" ] (List.map viewSchool schools)
+    ul [ class "flex flex-row w-full py-16 flex-wrap md:m-0 lg:-mx-3" ] (List.map viewSchool schools)
