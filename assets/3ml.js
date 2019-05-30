@@ -112,7 +112,7 @@ var renderStoryContent = function (elt, words) {
             decorateExternalLinks(storyElt);
         }
     };
-    go();
+    window.requestAnimationFrame(go);
 };
 
 function isEltVisible (elt) {
