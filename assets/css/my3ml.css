@@ -68,6 +68,14 @@ meter[value="4"]::-moz-meter-bar { background: green; }
 }
 
 /* Story content styling */
+#storycontent a {
+    color: #4299e1;
+}
+
+#storycontent a:hover {
+    color: #3182ce;
+}
+
 #storycontent p {
     margin-bottom: 0.75rem;
 }
