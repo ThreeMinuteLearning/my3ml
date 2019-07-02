@@ -9,6 +9,7 @@ import Html.Attributes exposing (class, href)
 import List.Extra as List
 import Page.Errored exposing (PageLoadError, pageLoadError)
 import Task exposing (Task)
+import Time
 import Tuple exposing (first, pair)
 import Util exposing (defaultHttpErrorMsg, viewIf, viewUnless)
 import Views.RobotPanel as RobotPanel
@@ -40,10 +41,14 @@ initModel session =
         cache =
             Session.getCache session
 
+        randomStart stories =
+            modBy (List.length stories) (Time.posixToMillis (Session.currentTime session))
+                |> (\i -> List.append (List.drop i stories) (List.take i stories))
+
         model =
             case Session.userLevel session of
                 Just level ->
-                    Model (pickStories cache level) []
+                    Model (pickStories cache level randomStart) []
 
                 _ ->
                     Model cache.stories []
@@ -56,14 +61,14 @@ isBeginner =
     (>) 20 << Dict.size << .answers
 
 
-pickStories : Cache -> Int -> List Api.Story
-pickStories cache level =
+pickStories : Cache -> Int -> (List Api.Story -> List Api.Story) -> List Api.Story
+pickStories cache level mixUp =
     let
         answers =
             cache.answers
 
         stories =
-            List.filter (\s -> s.level < level + 2) cache.stories
+            List.filter (\s -> s.level < level + 2) (mixUp cache.stories)
 
         unansweredStories =
             List.filter (\s -> not (Dict.member s.id answers)) stories
