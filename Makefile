@@ -31,9 +31,9 @@ deep-clean: clean
 .PHONY: compress
 compress: frontend
 	uglifyjs frontend/app/output/app.js --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output=assets/app.js
-	cp assets/app.css tmp.css
-	uglifycss tmp.css > assets/app.css
-	rm tmp.css
+	purgecss --config purgecss.config.js --out .
+	uglifycss app.css > assets/app.css
+	rm app.css
 
 .PHONY: package
 package: compress
@@ -41,7 +41,7 @@ package: compress
 	cd assets && tar -cjf ../app.tar.bz2 *.js *.css *.html
 
 assets/app.css: assets/css/** tailwind.config.js
-	./node_modules/.bin/tailwind build assets/css/my3ml.css -c tailwind.config.js -o assets/app.css
+	tailwind build assets/css/my3ml.css -c tailwind.config.js -o assets/app.css
 	cat assets/css/spinner.css >> assets/app.css
 
 frontend/shared/src/Api.elm: code-generator/*.hs api/*.hs api/**/*.hs
