@@ -191,13 +191,15 @@ registerNewSchool schoolName teacherName email password confirmPassword = do
 
 fillInAndSubmitRegForm codeOrSchoolName teacherName email password confirmPassword = do
     regForm <- findElem (ByTag "form")
-    [i1, i2, i3, i4, i5] <- findElemsFrom regForm (ByTag "input")
-    sendKeys codeOrSchoolName i1
-    sendKeys teacherName i2
-    sendKeys email i3
-    sendKeys password i4
-    sendKeys confirmPassword i5
-    findElemFrom regForm (ByTag "button") >>= click
+    regFormElts <- findElemsFrom regForm (ByTag "input")
+    case regFormElts of
+        [i1, i2, i3, i4, i5] -> do
+            sendKeys codeOrSchoolName i1
+            sendKeys teacherName i2
+            sendKeys email i3
+            sendKeys password i4
+            sendKeys confirmPassword i5
+            findElemFrom regForm (ByTag "button") >>= click
 
 addNewTeacher = do
     goTeacherAdmin
@@ -210,10 +212,12 @@ addNewClass name = do
     findElem (ById "classes-button") >>= click
     findElem (ById "add-class-button") >>= click
     newClassForm <- findElem (ByTag "form")
-    [nameInput, descriptionInput] <- findElemsFrom newClassForm (ByTag "input")
-    sendKeys name nameInput
-    sendKeys (T.concat ["Description for class ", name]) descriptionInput
-    findElemFrom newClassForm (ByTag "button") >>= click
+    classFormElts <- findElemsFrom newClassForm (ByTag "input")
+    case classFormElts of
+        [nameInput, descriptionInput] -> do
+            sendKeys name nameInput
+            sendKeys (T.concat ["Description for class ", name]) descriptionInput
+            findElemFrom newClassForm (ByTag "button") >>= click
 
 registerNewTeacher code teacherName email password confirmPassword = do
     goHome
@@ -230,11 +234,13 @@ login name pass = do
     goHome
     findElem (ById "nav-login") >>= click
     loginForm <- findElem (ByTag "form")
-    [nameInput, passwordInput] <- findElemsFrom loginForm (ByTag "input")
-    sendKeys name nameInput
-    sendKeys pass passwordInput
-    -- submit loginForm
-    findElemFrom loginForm (ByTag "button") >>= click
-    waitUntil 5 (findElem (ById "nav-logout"))
+    loginFormElts <- findElemsFrom loginForm (ByTag "input")
+    case loginFormElts of
+        [nameInput, passwordInput] -> do
+            sendKeys name nameInput
+            sendKeys pass passwordInput
+            -- submit loginForm
+            findElemFrom loginForm (ByTag "button") >>= click
+            waitUntil 5 (findElem (ById "nav-logout"))
 
 logout = findElem (ById "nav-logout") >>= click
