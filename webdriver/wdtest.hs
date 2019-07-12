@@ -106,11 +106,12 @@ smokeTests = do
     -- Activate account (call psql)
     activateNewRegistrations
     -- Log in as registered teacher
-    login "hg@mt.zoo" "gobananasagain"
+    loginFail "hg@mt.zoo" "wrongpassword"
+    loginSucceed "hg@mt.zoo" "gobananasagain"
     -- Create student accounts
     createStudents
     -- Register new teacher in same school and switch to this account
-    -- createSecondTeacherAccountAndLogin
+    createSecondTeacherAccountAndLogin
 
     addNewClass "Breakfast Club"
     -- Create class and add students to it
@@ -137,24 +138,23 @@ smokeTests = do
 createSecondTeacherAccountAndLogin = do
     code <- addNewTeacher
     logout
-    registerNewTeacher code "Assistant Head Gorilla" "ahg@mt.zoo" "gobananasagain" "gobananasagain"
+    registerNewTeacher code "Assistant Head Gorilla" "ahg@mt.zoo" "gobananastoo" "gobananastoo"
 
     -- Attempt login as new teacher (fail - wrong password)
-    login "ahg@mt.zoo" "gobananas"
-    expectFormError "Login failed. Check your username and password"
+    loginFail "ahg@mt.zoo" "wrongpassword"
 
     -- Attempt login again as new teacher (fail - not active)
-    login "ahg@mt.zoo" "gobananasagain"
+    login "ahg@mt.zoo" "gobananastoo"
     expectFormError "Please wait till your account is enabled before signing in"
 
     -- Log in as original teacher
-    login "hg@mt.zoo" "gobananasagain"
+    loginSucceed "hg@mt.zoo" "gobananasagain"
     -- Activate account and logout
     activateTeacherAccount "Assistant Head Gorilla"
     logout
 
     -- Log in as new teacher
-    login "ahg@mt.zoo" "gobananasagain"
+    loginSucceed "ahg@mt.zoo" "gobananastoo"
 
 
 deleteTestData = callCommand "psql my3ml -f delete_monkey_school.sql"
@@ -230,6 +230,15 @@ activateTeacherAccount teacherName = do
     findElem (ById "teachers-button") >>= click
     findElem (ByXPath $ T.concat ["//table/tbody/tr/td[text()='", teacherName, "']/../td/button"]) >>= click
 
+loginFail name pass = do
+    login name pass
+    waitUntil 5 (findElem (ById "error-messages"))
+    expectFormError "Login failed. Check your username and password"
+
+loginSucceed name pass = do
+    login name pass
+    waitUntil 5 (findElem (ById "nav-logout"))
+
 login name pass = do
     goHome
     findElem (ById "nav-login") >>= click
@@ -241,6 +250,5 @@ login name pass = do
             sendKeys pass passwordInput
             -- submit loginForm
             findElemFrom loginForm (ByTag "button") >>= click
-            waitUntil 5 (findElem (ById "nav-logout"))
 
 logout = findElem (ById "nav-logout") >>= click
