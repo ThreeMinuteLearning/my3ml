@@ -110,6 +110,7 @@ smokeTests = do
     loginSucceed "hg@mt.zoo" "gobananasagain"
     -- Create student accounts
     createStudents
+    changeUsernameAndPassword "Monkey 1" "monkey1" "gobananas"
     -- Register new teacher in same school and switch to this account
     createSecondTeacherAccountAndLogin
 
@@ -179,8 +180,33 @@ createStudents = do
     newStudentsTextArea <- findElemFrom newStudentsForm (ByTag "textarea")
     sendKeys "Monkey 1, Monkey 2, Monkey 3, Monkey 4, Monkey 5, Gorilla 1, Gorilla 2" newStudentsTextArea
     submit newStudentsForm
+    waitForDialogToClose goHome
+
+
+waitForDialogToClose action =
     -- Wait until the dialog has closed otherwise it obscures the Home link giving an UnknownError
-    waitUntil 10 (catchFailedCommand UnknownError goHome)
+    waitUntil 10 (catchFailedCommand UnknownError action)
+
+findButton text =
+    findElem (ByXPath (T.concat ["//button[normalize-space() = '" , text, "']"]))
+
+
+changeUsernameAndPassword name newName newPassword = do
+    goTeacherAdmin
+    findElem (ByLinkText name) >>= click
+    findButton "Change password" >>= click
+    passwordInput <- findElem (ByXPath "//input[@placeholder='Password']")
+    passwordConfirmInput <- findElem (ByXPath "//input[@placeholder='Confirm password']")
+    sendKeys newPassword passwordInput
+    sendKeys newPassword passwordConfirmInput
+    findButton "Save new password" >>= click
+    waitForDialogToClose goTeacherAdmin
+    findElem (ByLinkText name) >>= click
+    findButton "Change username" >>= click
+    newUsernameInput <- findElem (ByXPath "//input[@placeholder='New username']")
+    sendKeys newName newUsernameInput
+    findButton "Save new username" >>= click
+    waitForDialogToClose goTeacherAdmin
 
 
 registerNewSchool schoolName teacherName email password confirmPassword = do
