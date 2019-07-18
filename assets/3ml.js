@@ -98,6 +98,7 @@ var renderStoryContent = function (elt, words) {
             var a = links[i];
             if (a.host !== location.host) {
                 a.target = '_blank';
+                a.rel = 'noopener noreferrer';
             }
         }
     };
