@@ -97,7 +97,10 @@ instance DB HasqlDB where
 
     getAccountByUsername = runStatement selectAccountByUsername
 
-    getStories includeDisabled = runStatement (selectAllStories includeDisabled) ()
+    getStories includeDisabled db = do
+        stories <- runStatement (selectAllStories includeDisabled) () db
+        graph <- runStatement selectStoryGraph () db
+        return (StoryData stories graph)
 
     getStory = runStatement selectStoryById
 
@@ -130,8 +133,8 @@ instance DB HasqlDB where
         case anthologyId_ of
             Just id_ -> getAnthologyStories (UUID.toText id_) db
             Nothing -> do
-                stories <- take 100 . reverse . sortOn (id :: Story -> StoryId) <$> getStories False db
-                take 25 <$> liftIO (shuffle stories)
+                StoryData allStories _ <- getStories False db
+                take 25 <$> liftIO (shuffle (take 100 (reverse (sortOn (id :: Story -> StoryId) allStories))))
 
     setStarterStories = runStatement updateStarterStories
 
@@ -473,6 +476,14 @@ updateSchoolKey = Q.Statement sql encode D.unit False
         <> contramap snd evText
 
 -- Stories
+
+selectStoryGraph :: Statement () [GraphEdge]
+selectStoryGraph =
+    Q.Statement "SELECT from_story, to_story, description FROM story_graph" mempty (D.rowList decode) True
+  where
+    decode =
+      GraphEdge <$> (fromIntegral <$> D.column D.int4) <*> (fromIntegral <$> D.column D.int4) <*> dvText
+
 
 selectStorySql :: ByteString
 selectStorySql = "SELECT id, title, img_url, level, qualification, curriculum, tags, content, words, clarify_word, enabled, created_at FROM story WHERE not archived"

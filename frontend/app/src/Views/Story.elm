@@ -13,7 +13,10 @@ import Json.Decode as JD
 import Markdown
 import Ports
 import Regex
+import Route
+import StoryGraph exposing (StoryGraph)
 import Tailwinds
+import Util exposing (viewIf)
 
 
 type alias State =
@@ -49,8 +52,8 @@ update msg ( picWidth, windowWidth ) =
             ( ( picWidth, width ), Cmd.none )
 
 
-view : Maybe Settings -> Story -> State -> Html Msg
-view mSettings story ( picWidth, windowWidth ) =
+view : Maybe Settings -> Story -> StoryGraph -> State -> Html Msg
+view mSettings story graph ( picWidth, windowWidth ) =
     let
         style_ =
             Maybe.map toStyle mSettings
@@ -62,6 +65,18 @@ view mSettings story ( picWidth, windowWidth ) =
 
             else
                 ( "float-right pl-3 pb-2", "" )
+
+        ( incoming, outgoing ) =
+            StoryGraph.storyContext story graph
+
+        viewOutgoingStory ( relatedStory, relation ) =
+            a [ href (Route.routeToString (Route.Story relatedStory.id)) ] [ text relation ]
+
+        viewIncomingStory ( relatedStory, relation ) =
+            a [ href (Route.routeToString (Route.Story relatedStory.id)) ] [ text relatedStory.title ]
+
+        hasRelatedStories =
+            List.length incoming > 0 || List.length outgoing > 0
     in
     div [ class "u-fade-in" ]
         [ h3 [ class "text-center text-white bg-green-600 py-2 mb-3" ] [ text story.title ]
@@ -73,6 +88,17 @@ view mSettings story ( picWidth, windowWidth ) =
             [ p [ class "mb-1" ] [ text (String.join ", " (tagList story)) ]
             , p [] [ text ("Level: " ++ String.fromInt story.level) ]
             ]
+        , viewIf hasRelatedStories
+            (div [ class "hidden-print mt-2" ]
+                [ h3 [ class "text-gray-900 font-semibold" ] [ text "Related Stories" ]
+                , div [ class "flex" ]
+                    [ div [ class "flex flex-col" ]
+                        (List.map viewIncomingStory incoming)
+                    , div [ class "flex flex-col" ]
+                        (List.map viewOutgoingStory outgoing)
+                    ]
+                ]
+            )
         ]
 
 

@@ -47,6 +47,8 @@ specs =
     codecSources = join (map snd sources)
     sources =
         sourceFor (Proxy :: Proxy Story)
+        <> sourceFor (Proxy :: Proxy StoryData)
+        <> sourceFor (Proxy :: Proxy GraphEdge)
         <> sourceFor (Proxy :: Proxy DictEntry)
         <> sourceFor (Proxy :: Proxy School)
         <> sourceFor (Proxy :: Proxy Answer)
@@ -77,6 +79,8 @@ instance (KnownSymbol sym, HasForeignType lang ftype Text, HasForeign lang ftype
             }
 
 deriving instance ElmType Story
+deriving instance ElmType StoryData
+deriving instance ElmType GraphEdge
 deriving instance ElmType DictEntry
 deriving instance ElmType School
 deriving instance ElmType Answer

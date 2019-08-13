@@ -11,6 +11,7 @@ import Html.Attributes exposing (..)
 import Http
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Ports
+import StoryGraph exposing (StoryGraph)
 import Task exposing (Task)
 import Util exposing (defaultHttpErrorMsg, printButton, viewIf)
 import Views.Answers as Answers
@@ -60,7 +61,14 @@ init originalSession slug =
                 Just story ->
                     Task.map2
                         (\answers { viewport } ->
-                            ( Model Nothing story (StoryView.init (round viewport.width)) answers (mkAnswersForm story answers), session )
+                            ( { dictLookup = Nothing
+                              , story = story
+                              , storyView = StoryView.init (round viewport.width)
+                              , answers = answers
+                              , answersForm = mkAnswersForm story answers
+                              }
+                            , session
+                            )
                         )
                         (lookupAnswers session story)
                         Browser.Dom.getViewport
@@ -108,7 +116,7 @@ view session m =
     , content =
         div []
             [ viewIf (Session.isTeacher session) (div [ class "print:none mb-2" ] [ printButton PrintWindow "Print this story" ])
-            , Html.map StoryViewMsg <| StoryView.view (Session.getSettings session) m.story m.storyView
+            , Html.map StoryViewMsg <| StoryView.view (Session.getSettings session) m.story cache.storyGraph m.storyView
             , m.dictLookup
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []

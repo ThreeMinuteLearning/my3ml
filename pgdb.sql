@@ -46,6 +46,12 @@ CREATE TABLE story
     , CONSTRAINT clarify_word_check CHECK (length(clarify_word) > 1 AND (position(lower(clarify_word) in lower(content)) > 0 OR position(lower(clarify_word) in lower(title)) > 0 OR position(' ' in clarify_word) > 0))
     );
 
+CREATE TABLE story_graph
+    ( from_story integer NOT NULL REFERENCES story(id)
+    , to_story integer NOT NULL REFERENCES story(id)
+    , description text
+    );
+
 CREATE TABLE school
     ( id uuid DEFAULT uuid_generate_v4() PRIMARY KEY
     , name text NOT NULL CHECK (length(name) > 0)

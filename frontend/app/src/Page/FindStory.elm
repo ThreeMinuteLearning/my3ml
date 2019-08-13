@@ -443,7 +443,7 @@ view session m =
             Just b ->
                 div [ class "mb-12" ]
                     [ viewBrowserToolbar session (Zipper.current b) cache.selectedStories
-                    , Html.map StoryViewMsg <| StoryView.view (Session.getSettings session) (Zipper.current b) m.storyView
+                    , Html.map StoryViewMsg <| StoryView.view (Session.getSettings session) (Zipper.current b) cache.storyGraph m.storyView
                     ]
     }
 

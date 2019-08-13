@@ -27,6 +27,17 @@ type alias Story =
     , createdAt : Int
     }
 
+type alias StoryData =
+    { stories : List (Story)
+    , graph : List (GraphEdge)
+    }
+
+type alias GraphEdge =
+    { from : Int
+    , to : Int
+    , description : String
+    }
+
 type alias DictEntry =
     { word : String
     , index : Int
@@ -122,7 +133,7 @@ type alias Registration =
 type NoContent
     = NoContent
 
-getStories : String -> Http.Request (List (Story))
+getStories : String -> Http.Request (StoryData)
 getStories header_Authorization =
     Http.request
         { method =
@@ -139,7 +150,7 @@ getStories header_Authorization =
         , body =
             Http.emptyBody
         , expect =
-            Http.expectJson (list decodeStory)
+            Http.expectJson decodeStoryData
         , timeout =
             Nothing
         , withCredentials =
@@ -1635,6 +1646,34 @@ encodeStory x =
         , ( "clarifyWord", Json.Encode.string x.clarifyWord )
         , ( "enabled", Json.Encode.bool x.enabled )
         , ( "createdAt", Json.Encode.int x.createdAt )
+        ]
+
+decodeStoryData : Decoder StoryData
+decodeStoryData =
+    Json.Decode.succeed StoryData
+        |> required "stories" (list decodeStory)
+        |> required "graph" (list decodeGraphEdge)
+
+encodeStoryData : StoryData -> Json.Encode.Value
+encodeStoryData x =
+    Json.Encode.object
+        [ ( "stories", (Json.Encode.list  encodeStory) x.stories )
+        , ( "graph", (Json.Encode.list  encodeGraphEdge) x.graph )
+        ]
+
+decodeGraphEdge : Decoder GraphEdge
+decodeGraphEdge =
+    Json.Decode.succeed GraphEdge
+        |> required "from" int
+        |> required "to" int
+        |> required "description" string
+
+encodeGraphEdge : GraphEdge -> Json.Encode.Value
+encodeGraphEdge x =
+    Json.Encode.object
+        [ ( "from", Json.Encode.int x.from )
+        , ( "to", Json.Encode.int x.to )
+        , ( "description", Json.Encode.string x.description )
         ]
 
 decodeDictEntry : Decoder DictEntry

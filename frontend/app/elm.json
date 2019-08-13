@@ -18,6 +18,8 @@
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
+            "elm-community/graph": "6.0.0",
+            "elm-community/intdict": "3.0.0",
             "elm-community/list-extra": "8.2.0",
             "elm-explorations/markdown": "1.0.0",
             "rtfeldman/elm-validate": "4.0.1",
@@ -25,6 +27,7 @@
             "wernerdegroot/listzipper": "3.1.1"
         },
         "indirect": {
+            "avh4/elm-fifo": "1.0.4",
             "elm/virtual-dom": "1.0.2"
         }
     },

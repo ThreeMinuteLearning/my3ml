@@ -10,6 +10,7 @@ import Json.Decode.Pipeline exposing (..)
 import Json.Encode as Encode
 import List.Extra
 import Ports
+import StoryGraph
 import Task exposing (Task)
 import Time
 import Tuple exposing (second)
@@ -257,7 +258,7 @@ newLogin (Session s) { sub, name, level, token, role, settings } =
 
 loadStories : Session -> Task Http.Error Session
 loadStories session =
-    loadToCache (.stories >> List.isEmpty) Api.getStories (\newStories cache -> { cache | stories = List.reverse (List.sortBy .id newStories) }) session
+    loadToCache (.stories >> List.isEmpty) Api.getStories (\newStories cache -> { cache | stories = List.reverse (List.sortBy .id newStories.stories), storyGraph = StoryGraph.fromStoriesAndConnections newStories.stories newStories.graph }) session
 
 
 populateWorkQueue : Session -> Task e Session

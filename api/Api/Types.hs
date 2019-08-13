@@ -10,7 +10,6 @@
 module Api.Types where
 
 import           Data.Aeson
-import           Data.Time.Clock (UTCTime)
 import           Data.Time.Clock.POSIX (POSIXTime)
 import qualified Data.Map.Strict as Map
 import           Data.ByteString (ByteString)
@@ -35,6 +34,19 @@ data Story = Story
     , enabled :: Bool
     , createdAt :: Int
     } deriving (Show, Generic, ToJSON, FromJSON)
+
+data StoryData = StoryData
+    { stories :: [Story]
+    , graph :: StoryGraph 
+    } deriving (Generic, ToJSON)
+
+data GraphEdge = GraphEdge
+    { from :: StoryId
+    , to :: StoryId
+    , description :: Text
+    } deriving (Generic, ToJSON)
+
+type StoryGraph = [GraphEdge]
 
 data DictEntry = DictEntry
     { word :: Text
@@ -198,7 +210,7 @@ type AccountApi =
 
 type StoriesApi =
     "stories" :> AccessTokenAuth :>
-        (    Get '[JSON] [Story]
+        (    Get '[JSON] StoryData
         :<|> Capture "storyId" StoryId :>
              (    Get '[JSON] Story
              :<|> ReqBody '[JSON] Story :> Post '[JSON] Story

@@ -247,7 +247,8 @@ storyServer token_ =
         case token_ of
             Nothing -> do
                 cfg <- ask
-                liftIO (readMVar (sampleStories cfg))
+                stories <- liftIO (readMVar (sampleStories cfg))
+                return (StoryData stories [])
             Just (EditorScope _) -> runDB (DB.getStories True)
             _ -> runDB (DB.getStories False)
 

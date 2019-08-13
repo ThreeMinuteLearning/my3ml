@@ -33,7 +33,7 @@ class DB db where
 
     getAccountByUsername :: DBFn m => Text -> db -> m (Maybe Account)
 
-    getStories :: DBFn m => Bool -> db -> m [Story]
+    getStories :: DBFn m => Bool -> db -> m StoryData
 
     getStory :: DBFn m => StoryId -> db -> m (Maybe Story)
 
@@ -142,7 +142,9 @@ newUUID :: MonadIO m => m Text
 newUUID = liftIO (toText <$> nextRandom)
 
 instance DB AtomicDB where
-    getStories _ db =  Map.elems <$> withDB db stories
+    getStories _ db = do
+        dbStories <- Map.elems <$> withDB db stories
+        return $ StoryData dbStories []
 
     getStory sid db = Map.lookup sid <$> withDB db stories
 

@@ -13,6 +13,7 @@ import List.Zipper.Infinite as Zipper exposing (Zipper)
 import Page.Errored exposing (PageLoadError(..), pageLoadError)
 import Select
 import Set
+import StoryGraph exposing (StoryGraph)
 import Task exposing (Task)
 import Tuple exposing (pair, second)
 import Util exposing (defaultHttpErrorMsg)
@@ -25,6 +26,7 @@ type alias Model =
     { errors : List String
     , story : Api.Story
     , stories : Zipper Api.Story
+    , storyGraph : StoryGraph
     , storyView : StoryView.State
     , qualificationTags : List String
     , curriculumTags : List String
@@ -71,6 +73,7 @@ init originalSession slug =
                             { errors = []
                             , story = Zipper.current zipper
                             , stories = zipper
+                            , storyGraph = cache.storyGraph
                             , storyView = StoryView.init (round viewport.width)
                             , qualificationTags = makeTags (List.filterMap .qualification cache.stories)
                             , curriculumTags = makeTags (List.filterMap .curriculum cache.stories)
@@ -387,7 +390,7 @@ view model =
                         []
                     ]
                 , div [ class "flex-1 mx-2" ]
-                    [ Html.map StoryViewMsg <| StoryView.view Nothing model.story model.storyView ]
+                    [ Html.map StoryViewMsg <| StoryView.view Nothing model.story model.storyGraph model.storyView ]
                 ]
             ]
     }
