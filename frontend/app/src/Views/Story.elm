@@ -66,7 +66,7 @@ view mSettings story ( picWidth, windowWidth ) =
     div [ class "u-fade-in" ]
         [ h3 [ class "text-center text-white bg-green-600 py-2 mb-3" ] [ text story.title ]
         , div [ id "storypic", class imgDivClass ]
-            [ img [ class imgClass, onLoadGetWidth GetImgWidth, src ("pix/" ++ story.img) ] []
+            [ img [ class imgClass, onLoadGetWidth GetImgWidth, src ("/pix/" ++ story.img) ] []
             ]
         , Markdown.toHtml (id "storycontent" :: class "print:text-sm text-lg leading-normal" :: style_) (storyContent story)
         , div [ class "hidden-print text-sm" ]

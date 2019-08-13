@@ -35,7 +35,7 @@ view useSmallTiles action stories =
 
         styleAttrs s =
             [ class "block shadow w-full h-full p-1"
-            , style "background-image" ("url(thumbs/" ++ s.img ++ ")")
+            , style "background-image" ("url(/thumbs/" ++ s.img ++ ")")
             , style "background-size" "cover"
             , style "background-position" "center"
             , style "box-shadow" "1px 1px 3px rgba(0,0,0,0.3)"
