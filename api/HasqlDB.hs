@@ -129,7 +129,7 @@ instance DB HasqlDB where
     getAnthologyStories = runStatement selectAnthologyStories
 
     getStarterStories db = do
-        anthologyId_ <- runStatement (Q.Statement "SELECT starter_stories FROM config" E.unit (D.singleRow (D.nullableColumn D.uuid)) False) () db
+        anthologyId_ <- runStatement (Q.Statement "SELECT starter_stories FROM config" E.noParams (D.singleRow (D.column (D.nullable D.uuid))) False) () db
         case anthologyId_ of
             Just id_ -> getAnthologyStories (UUID.toText id_) db
             Nothing -> do
@@ -186,10 +186,10 @@ instance DB HasqlDB where
         begin
         S.statement (subjectId_, schoolId_) $
             Q.Statement "UPDATE student SET deleted=now() WHERE id=$1 :: uuid AND school_id = $2 :: uuid AND deleted is null"
-              (contramap fst evSubjectId <> contramap snd evText) D.unit True
+              (contramap fst evSubjectId <> contramap snd evText) D.noResult True
         S.statement subjectId_ $
             Q.Statement "UPDATE login SET locked=true WHERE id=$1 :: uuid"
-              evSubjectId D.unit True
+              evSubjectId D.noResult True
         commit
         S.statement subjectId_ selectStudentBySubjectId
 
@@ -197,10 +197,10 @@ instance DB HasqlDB where
         begin
         S.statement (subjectId_, schoolId_) $
             Q.Statement "UPDATE student SET deleted=null WHERE id=$1 :: uuid AND school_id = $2 :: uuid"
-              (contramap fst evSubjectId <> contramap snd evText) D.unit True
+              (contramap fst evSubjectId <> contramap snd evText) D.noResult True
         S.statement subjectId_ $
             Q.Statement "UPDATE login SET locked=false WHERE id=$1 :: uuid"
-              evSubjectId D.unit True
+              evSubjectId D.noResult True
         commit
 
     setStudentPassword schoolId_ studentId_ password_ =
@@ -228,13 +228,13 @@ instance DB HasqlDB where
 
     generateWords db =
       let
-        query = Q.Statement "SELECT word FROM word_list WHERE length(word) <= 7 ORDER BY random() LIMIT 4" E.unit (D.rowList (D.column D.text)) True
+        query = Q.Statement "SELECT word FROM word_list WHERE length(word) <= 7 ORDER BY random() LIMIT 4" E.noParams (D.rowList (D.column (D.nonNullable D.text))) True
       in
         runSession db (S.statement () query)
 
     generateUsername db = do
-        let q1 = Q.Statement "SELECT name FROM famous_name ORDER BY random() LIMIT 1" E.unit (D.singleRow (D.column D.text)) True
-            q2 = Q.Statement "SELECT replace(username, $1, '') FROM login WHERE username LIKE $1 || '%'" evText (D.rowList (D.column D.text)) True
+        let q1 = Q.Statement "SELECT name FROM famous_name ORDER BY random() LIMIT 1" E.noParams (D.singleRow (D.column (D.nonNullable D.text))) True
+            q2 = Q.Statement "SELECT replace(username, $1, '') FROM login WHERE username LIKE $1 || '%'" evText (D.rowList (D.column (D.nonNullable D.text))) True
         prefix <- runSession db (S.statement () q1)
         suffixes <- map (fromMaybe (0 :: Int) . readMaybe . T.unpack) <$> runSession db (S.statement prefix q2)
         let newName = case suffixes of
@@ -317,10 +317,13 @@ commit :: S.Session ()
 commit = S.sql "commit"
 
 dvText :: D.Row Text
-dvText = D.column D.text
+dvText = D.column (D.nonNullable D.text)
+
+dvNullableText :: D.Row (Maybe Text)
+dvNullableText = D.column (D.nullable D.text)
 
 evText :: E.Params Text
-evText = E.param E.text
+evText = E.param (E.nonNullable E.text)
 
 evSubjectId :: E.Params SubjectId
 evSubjectId = contramap unSubjectId evText
@@ -329,26 +332,35 @@ eTextPair :: E.Params (Text, Text)
 eTextPair = contramap fst evText <> contramap snd evText
 
 evUserType :: E.Params UserType
-evUserType = E.param (contramap userType E.text)
+evUserType = contramap userType evText
 
 dvUUID :: D.Row Text
-dvUUID = UUID.toText <$> D.column D.uuid
+dvUUID = UUID.toText <$> D.column (D.nonNullable D.uuid)
 
 dvSubjectId :: D.Row SubjectId
 dvSubjectId = fmap SubjectId dvUUID
 
+evInt4 :: E.Params Int
+evInt4 = contramap fromIntegral (E.param (E.nonNullable E.int4))
+
+dvInt4 :: D.Row Int
+dvInt4 = fromIntegral <$> D.column (D.nonNullable D.int4)
+
+dvBool :: D.Row Bool
+dvBool = D.column (D.nonNullable D.bool)
+
 dArray :: D.Value a -> D.Row [a]
-dArray v = D.column (D.array (D.dimension replicateM (D.element v)))
+dArray = D.column . D.nonNullable . D.array . D.dimension replicateM . D.element . D.nonNullable
 
 eArray :: Foldable t => E.Value b -> E.Params (t b)
-eArray v = E.param (E.array (E.dimension foldl' (E.element v)))
+eArray = E.param . E.nonNullable . E.array . E.dimension foldl' . E.element . E.nonNullable
 
 
 dictEntryValue :: D.Value DictEntry
-dictEntryValue = D.composite (DictEntry <$> D.field D.text <*> (fromIntegral <$> D.field D.int2))
+dictEntryValue = D.composite (DictEntry <$> D.field (D.nonNullable D.text) <*> (fromIntegral <$> D.field (D.nonNullable D.int2)))
 
 dictEntryTupleValue :: D.Value (Text, Int)
-dictEntryTupleValue = D.composite ((,) <$> D.field D.text <*> (fromIntegral <$> D.field D.int2))
+dictEntryTupleValue = D.composite ((,) <$> D.field (D.nonNullable D.text) <*> (fromIntegral <$> D.field (D.nonNullable D.int2)))
 
 
 userTypeValue :: D.Row UserType
@@ -365,12 +377,12 @@ userTypeValue = -- D.composite (uType <$> D.compositeValue D.text)
 -- User accounts
 
 insertRegistrationCode :: Statement (Text, SchoolId) ()
-insertRegistrationCode = Q.Statement sql eTextPair D.unit False
+insertRegistrationCode = Q.Statement sql eTextPair D.noResult False
   where
     sql = "INSERT INTO registration_code (code, school_id) VALUES ($1, $2 :: uuid)"
 
 getRegistrationCode :: Statement Text (Maybe UUID.UUID)
-getRegistrationCode = Q.Statement sql evText (D.rowMaybe (D.column D.uuid)) False
+getRegistrationCode = Q.Statement sql evText (D.rowMaybe (D.column (D.nonNullable D.uuid))) False
   where
     sql = "DELETE FROM registration_code \
           \ WHERE code = $1 \
@@ -379,7 +391,7 @@ getRegistrationCode = Q.Statement sql evText (D.rowMaybe (D.column D.uuid)) Fals
 
 
 activateTeacherAccount :: Statement (SchoolId, SubjectId) ()
-activateTeacherAccount = Q.Statement sql encode D.unit False
+activateTeacherAccount = Q.Statement sql encode D.noResult False
   where
     encode = contramap fst evText
         <> contramap snd evSubjectId
@@ -406,24 +418,24 @@ selectAccountByUsername = Q.Statement sql evText (D.rowMaybe decode) True
         <$> dvSubjectId
         <*> dvText
         <*> dvText
-        <*> (fmap decodeOtpKey <$> D.nullableColumn D.text)
+        <*> (fmap decodeOtpKey <$> dvNullableText)
         <*> userTypeValue
-        <*> (maybe 10 fromIntegral <$> D.nullableColumn D.int2)
-        <*> D.column D.bool
-        <*> (fmap utcTimeToPOSIXSeconds <$> D.nullableColumn D.timestamptz)
-        <*> D.nullableColumn D.jsonb
+        <*> (maybe 10 fromIntegral <$> D.column (D.nullable D.int2))
+        <*> dvBool
+        <*> (fmap utcTimeToPOSIXSeconds <$> D.column (D.nullable D.timestamptz))
+        <*> D.column (D.nullable D.jsonb)
 
 insertAccount :: Statement (Text, Text, UserType, Bool) UUID.UUID
-insertAccount = Q.Statement sql encode (D.singleRow (D.column D.uuid)) True
+insertAccount = Q.Statement sql encode (D.singleRow (D.column (D.nonNullable D.uuid))) True
   where
     sql = "INSERT INTO login (username, password, user_type, active) VALUES (lower($1), $2, $3 :: user_type, $4) RETURNING id"
-    encode = contrazip4 evText evText evUserType (E.param E.bool)
+    encode = contrazip4 evText evText evUserType (E.param (E.nonNullable E.bool))
 
 updateLastLogin :: Statement SubjectId ()
-updateLastLogin = Q.Statement "UPDATE login SET last_login=now() WHERE id=$1 :: uuid" evSubjectId D.unit True
+updateLastLogin = Q.Statement "UPDATE login SET last_login=now() WHERE id=$1 :: uuid" evSubjectId D.noResult True
 
 updateStudentPassword :: Statement (SchoolId, SubjectId, Text) ()
-updateStudentPassword = Q.Statement sql encode D.unit True
+updateStudentPassword = Q.Statement sql encode D.noResult True
   where
     sql = "UPDATE login SET password = $3 \
           \ WHERE id = (SELECT id from student WHERE id = $2 :: uuid and school_id = $1 :: uuid)"
@@ -432,7 +444,7 @@ updateStudentPassword = Q.Statement sql encode D.unit True
         <> contramap (\(_, _, pwd) -> pwd) evText
 
 updateStudentUsername :: Statement (SchoolId, SubjectId, Text) ()
-updateStudentUsername = Q.Statement sql encode D.unit True
+updateStudentUsername = Q.Statement sql encode D.noResult True
   where
     sql = "UPDATE login SET username = lower($3) \
           \ WHERE id = (SELECT id from student WHERE id = $2 :: uuid and school_id = $1 :: uuid)"
@@ -449,27 +461,27 @@ selectUserKeys = Q.Statement sql evSubjectId (D.rowMaybe userKeysRow) True
         JSON.Success jwk -> jwk
 
     userKeysRow = UserKeys
-        <$> D.column D.bytea
-        <*> (decodePublicKey <$> D.column D.jsonb)
+        <$> D.column (D.nonNullable D.bytea)
+        <*> (decodePublicKey <$> D.column (D.nonNullable D.jsonb))
         <*> dvText
-        <*> (fmap TE.encodeUtf8 <$> D.nullableColumn D.text)
+        <*> (fmap TE.encodeUtf8 <$> dvNullableText)
 
 insertUserKeys :: Statement (UUID.UUID, UserKeys) ()
-insertUserKeys = Q.Statement sql encode D.unit False
+insertUserKeys = Q.Statement sql encode D.noResult False
   where
     sql = "INSERT INTO user_keys (user_id, salt, pub_key, priv_key, school_key) \
           \ VALUES ($1, $2, $3, $4, $5)"
-    encode = contramap fst (E.param E.uuid)
+    encode = contramap fst (E.param (E.nonNullable E.uuid))
         <> contramap snd userKeysEncoder
 
 userKeysEncoder :: E.Params UserKeys
-userKeysEncoder = contramap salt (E.param E.bytea)
-    <> contramap (JSON.toJSON . pubKey) (E.param E.jsonb)
+userKeysEncoder = contramap salt (E.param (E.nonNullable E.bytea))
+    <> contramap (JSON.toJSON . pubKey) (E.param (E.nonNullable E.jsonb))
     <> contramap privKey evText
-    <> contramap (fmap TE.decodeUtf8 . schoolKey) (E.nullableParam E.text)
+    <> contramap (fmap TE.decodeUtf8 . schoolKey) (E.param (E.nullable E.text))
 
 updateSchoolKey :: Statement (SubjectId, Text) ()
-updateSchoolKey = Q.Statement sql encode D.unit False
+updateSchoolKey = Q.Statement sql encode D.noResult False
   where
     sql = "UPDATE user_keys SET school_key=$2 WHERE user_id=$1 :: uuid"
     encode = contramap fst evSubjectId
@@ -482,7 +494,7 @@ selectStoryGraph =
     Q.Statement "SELECT from_story, to_story, description FROM story_graph" mempty (D.rowList decode) True
   where
     decode =
-      GraphEdge <$> (fromIntegral <$> D.column D.int4) <*> (fromIntegral <$> D.column D.int4) <*> dvText
+      GraphEdge <$> dvInt4 <*> dvInt4 <*> dvText
 
 
 selectStorySql :: ByteString
@@ -498,51 +510,48 @@ selectAllStories includeDisabled =
 
 selectStoryById :: Statement StoryId (Maybe Story)
 selectStoryById =
-    Q.Statement (selectStorySql <> " AND id = $1") evStoryId (D.rowMaybe storyRow) True
-  where
-    evStoryId =
-      contramap fromIntegral (E.param E.int4)
+    Q.Statement (selectStorySql <> " AND id = $1") evInt4 (D.rowMaybe storyRow) True
 
 storyRow :: D.Row Story
 storyRow = Story
-    <$> (fromIntegral <$> D.column D.int4)
+    <$> dvInt4
     <*> dvText
     <*> dvText
-    <*> (fromIntegral <$> D.column D.int2)
-    <*> D.nullableColumn D.text
-    <*> D.nullableColumn D.text
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> dvNullableText
+    <*> dvNullableText
     <*> dArray D.text
     <*> dvText
     <*> dArray dictEntryValue
     <*> dvText
-    <*> D.column D.bool
-    <*> (round . utcTimeToPOSIXSeconds <$> D.column D.timestamptz)
+    <*> dvBool
+    <*> (round . utcTimeToPOSIXSeconds <$> D.column (D.nonNullable D.timestamptz))
 
 insertStory :: Statement Story StoryId
-insertStory = Q.Statement sql storyEncoder (D.singleRow $ fromIntegral <$> D.column D.int4) True
+insertStory = Q.Statement sql storyEncoder (D.singleRow dvInt4) True
   where
     sql = "INSERT INTO story (title, img_url, level, qualification, curriculum, tags, content, words, clarify_word) \
                  \VALUES ($2, $3, $4, $5, $6, $7, $8, (array(select word::dict_entry from unnest ($9, $10) as word)), $11) \
                  \RETURNING id"
 
 updateStory_ :: Statement Story ()
-updateStory_ = Q.Statement sql storyEncoder D.unit True
+updateStory_ = Q.Statement sql storyEncoder D.noResult True
   where
     sql = "UPDATE story SET title=$2, img_url=$3, level=$4, qualification=$5, curriculum=$6, tags=$7, content=$8, words=(array(select word::dict_entry from unnest ($9, $10) as word)), clarify_word=$11, enabled=$12 WHERE id=$1"
 
 storyEncoder :: E.Params Story
-storyEncoder = contramap (fromIntegral . (id :: Story -> StoryId)) (E.param E.int4)
+storyEncoder = contramap (id :: Story -> StoryId) evInt4
     <> contramap title evText
     <> contramap img evText
-    <> contramap (fromIntegral . storyLevel) (E.param E.int4)
-    <> contramap qualification (E.nullableParam E.text)
-    <> contramap curriculum (E.nullableParam E.text)
+    <> contramap storyLevel evInt4
+    <> contramap qualification (E.param (E.nullable E.text))
+    <> contramap curriculum (E.param (E.nullable E.text))
     <> contramap tags (eArray E.text)
     <> contramap content evText
     <> contramap (map word . words) (eArray E.text)
     <> contramap (map (fromIntegral . index) . words) (eArray E.int2)
     <> contramap clarifyWord evText
-    <> contramap enabled (E.param E.bool)
+    <> contramap enabled (E.param (E.nonNullable E.bool))
     -- <> contramap date (E.param E.timestamptz)
   where
     storyLevel = level :: Story -> Int
@@ -550,12 +559,12 @@ storyEncoder = contramap (fromIntegral . (id :: Story -> StoryId)) (E.param E.in
 -- School
 
 insertSchool :: Statement (Text, Maybe Text, Maybe Text) UUID.UUID
-insertSchool = Q.Statement sql encode (D.singleRow (D.column D.uuid)) False
+insertSchool = Q.Statement sql encode (D.singleRow (D.column (D.nonNullable D.uuid))) False
   where
     sql = "INSERT INTO school (name, school_key, description) values ($1, $2, $3) RETURNING id"
     encode = contrazip3 evText
-        (E.nullableParam E.text)
-        (E.nullableParam E.text)
+        (E.param (E.nullable E.text))
+        (E.param (E.nullable E.text))
 
 -- Teachers
 
@@ -568,7 +577,7 @@ selectTeacherBySubjectId = Q.Statement sql evSubjectId (D.singleRow teacherRow) 
     sql = selectTeacherSql <> " WHERE id = $1 :: uuid"
 
 selectTeachersBySchool :: Statement SchoolId [(Teacher, Bool)]
-selectTeachersBySchool = Q.Statement sql evText (D.rowList (liftA2 (,) teacherRow (D.column D.bool))) True
+selectTeachersBySchool = Q.Statement sql evText (D.rowList (liftA2 (,) teacherRow dvBool)) True
   where
     sql = "SELECT t.id, t.name, t.bio, t.school_id, a.active \
           \ FROM teacher as t \
@@ -581,14 +590,14 @@ teacherRow :: D.Row Teacher
 teacherRow = Teacher
     <$> dvSubjectId
     <*> dvText
-    <*> D.nullableColumn D.text
+    <*> dvNullableText
     <*> dvUUID
 
 insertTeacher :: Statement (UUID.UUID, Text, UUID.UUID) ()
-insertTeacher = Q.Statement sql encode D.unit False
+insertTeacher = Q.Statement sql encode D.noResult False
   where
     sql = "INSERT INTO teacher (id, name, school_id) VALUES ($1, $2, $3)"
-    encode = contrazip3 (E.param E.uuid) evText (E.param E.uuid)
+    encode = contrazip3 (E.param (E.nonNullable E.uuid)) evText (E.param (E.nonNullable E.uuid))
 
 -- Students
 
@@ -616,31 +625,31 @@ studentRow :: D.Row Student
 studentRow = Student
     <$> dvSubjectId
     <*> dvText
-    <*> D.nullableColumn D.text
-    <*> (fromIntegral <$> D.column D.int2)
+    <*> dvNullableText
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
     <*> dvUUID
-    <*> D.column D.bool
-    <*> (fmap utcTimeToPOSIXSeconds <$> D.nullableColumn D.timestamptz)
+    <*> dvBool
+    <*> (fmap utcTimeToPOSIXSeconds <$> D.column (D.nullable D.timestamptz))
 
 insertStudent :: Statement (Student, SubjectId) ()
-insertStudent = Q.Statement sql encode D.unit True
+insertStudent = Q.Statement sql encode D.noResult True
   where
     sql = "INSERT INTO student (id, name, description, level, school_id) VALUES ($1 :: uuid, $2, $3, $4, $5 :: uuid)"
     encode = contramap snd evSubjectId
         <> contramap ((name :: Student -> Text) . fst) evText
-        <> contramap ((description :: Student -> Maybe Text) . fst) (E.nullableParam E.text)
-        <> contramap ((fromIntegral . (level :: Student -> Int)) . fst) (E.param E.int4)
+        <> contramap ((description :: Student -> Maybe Text) . fst) (E.param (E.nullable E.text))
+        <> contramap ((fromIntegral . (level :: Student -> Int)) . fst) (E.param (E.nonNullable E.int4))
         <> contramap ((schoolId :: Student -> SchoolId) . fst) evText
 
 updateStudent_ :: Statement (Student, SchoolId) ()
-updateStudent_ = Q.Statement sql encode D.unit True
+updateStudent_ = Q.Statement sql encode D.noResult True
   where
     sql = "UPDATE student SET level=$3, hidden=$4 \
           \ WHERE id=$5 :: uuid AND school_id=$6 :: uuid"
     encode = contramap ((name :: Student -> Text) . fst) evText
-        <> contramap ((description :: Student -> Maybe Text) . fst) (E.nullableParam E.text)
-        <> contramap ((fromIntegral . (level :: Student -> Int)) . fst) (E.param E.int4)
-        <> contramap ((hidden :: Student -> Bool) . fst) (E.param E.bool)
+        <> contramap ((description :: Student -> Maybe Text) . fst) (E.param (E.nullable E.text))
+        <> contramap ((fromIntegral . (level :: Student -> Int)) . fst) (E.param (E.nonNullable E.int4))
+        <> contramap ((hidden :: Student -> Bool) . fst) (E.param (E.nonNullable E.bool))
         <> contramap ((id :: Student -> SubjectId) . fst) evSubjectId
         <> contramap snd evText
 
@@ -661,7 +670,7 @@ schoolRow :: D.Row School
 schoolRow = School
     <$> dvUUID
     <*> dvText
-    <*> D.nullableColumn D.text
+    <*> dvNullableText
 
 
 -- Classes
@@ -683,13 +692,13 @@ classRow :: D.Row Class
 classRow = Class
     <$> dvUUID
     <*> dvText
-    <*> D.nullableColumn D.text
+    <*> dvNullableText
     <*> dvUUID
     <*> dvSubjectId
     <*> dArray (SubjectId <$> D.text)
 
 insertClassMembers :: Statement (SchoolId, ClassId, [SubjectId]) ()
-insertClassMembers = Q.Statement sql encode D.unit True
+insertClassMembers = Q.Statement sql encode D.noResult True
   where
     sql = "INSERT INTO student_class (school_id, class_id, student_id) \
           \ SELECT $1 :: uuid, $2 :: uuid, studentId FROM unnest ($3 :: uuid[]) as studentId \
@@ -699,7 +708,7 @@ insertClassMembers = Q.Statement sql encode D.unit True
         <> contramap (\(_, _, sids) -> map unSubjectId sids) (eArray E.text)
 
 deleteClassMembers :: Statement (SchoolId, ClassId, [SubjectId]) ()
-deleteClassMembers = Q.Statement sql encode D.unit True
+deleteClassMembers = Q.Statement sql encode D.noResult True
   where
     sql = "DELETE FROM student_class \
           \ WHERE class_id=$2 :: uuid \
@@ -712,12 +721,12 @@ deleteClassMembers = Q.Statement sql encode D.unit True
 
 
 insertClass :: Statement Class ()
-insertClass = Q.Statement sql encode D.unit True
+insertClass = Q.Statement sql encode D.noResult True
   where
     sql = "INSERT INTO class (id, name, description, school_id, created_by) values ($1 :: uuid, $2, $3, $4 :: uuid, $5 :: uuid)"
     encode = contramap (id :: Class -> ClassId) evText
         <> contramap (name :: Class -> Text) evText
-        <> contramap (description :: Class -> Maybe Text) (E.nullableParam E.text)
+        <> contramap (description :: Class -> Maybe Text) (E.param (E.nullable E.text))
         <> contramap (schoolId :: Class -> SchoolId) evText
         <> contramap (createdBy :: Class -> SubjectId) evSubjectId
 
@@ -731,7 +740,7 @@ deleteClassById = Q.Statement sql eTextPair D.rowsAffected True
 -- Anthologies
 
 selectAnthologiesBySchoolId :: Statement (Maybe SchoolId) [Anthology]
-selectAnthologiesBySchoolId = Q.Statement sql (E.nullableParam E.text) (D.rowList anthologyRow) True
+selectAnthologiesBySchoolId = Q.Statement sql (E.param (E.nullable E.text)) (D.rowList anthologyRow) True
   where
     sql = "SELECT id, name, description, created_by, school_id :: text, stories, hidden \
           \ FROM anthology \
@@ -745,27 +754,27 @@ anthologyRow = Anthology
     <*> dvText
     <*> dvText
     <*> (SubjectId <$> dvUUID)
-    <*> D.nullableColumn D.text
+    <*> dvNullableText
     <*> (map fromIntegral <$> dArray D.int4)
-    <*> D.column D.bool
+    <*> dvBool
 
 anthologyEncoder :: E.Params Anthology
 anthologyEncoder = contramap (id :: Anthology -> AnthologyId) evText
     <> contramap (name :: Anthology -> Text) evText
     <> contramap (description :: Anthology -> Text) evText
     <> contramap (unSubjectId . (createdBy :: Anthology -> SubjectId)) evText
-    <> contramap (schoolId :: Anthology -> Maybe SchoolId) (E.nullableParam E.text)
+    <> contramap (schoolId :: Anthology -> Maybe SchoolId) (E.param (E.nullable E.text))
     <> contramap (map fromIntegral <$> (stories :: Anthology -> [StoryId])) (eArray E.int4)
-    <> contramap (hidden :: Anthology -> Bool) (E.param E.bool)
+    <> contramap (hidden :: Anthology -> Bool) (E.param (E.nonNullable E.bool))
 
 insertAnthology :: Statement Anthology ()
-insertAnthology = Q.Statement sql anthologyEncoder D.unit True
+insertAnthology = Q.Statement sql anthologyEncoder D.noResult True
   where
     sql = "INSERT INTO anthology (id, name, description, created_by, school_id, stories, hidden) \
               \ VALUES ($1 :: uuid, $2, $3, $4 :: uuid, $5 :: uuid, $6, $7)"
 
 updateAnthology_ :: Statement Anthology ()
-updateAnthology_ = Q.Statement sql anthologyEncoder D.unit True
+updateAnthology_ = Q.Statement sql anthologyEncoder D.noResult True
   where
     sql = "UPDATE anthology SET name=$2, stories=$6, hidden=$7 WHERE id=$1 :: uuid"
 
@@ -776,7 +785,7 @@ deleteAnthologyById = Q.Statement sql encode D.rowsAffected True
           \ WHERE id = $1 :: uuid \
           \ AND ($2 is null or school_id = $2 :: uuid)"
     encode = contramap fst evText
-        <> contramap snd (E.nullableParam E.text)
+        <> contramap snd (E.param(E.nullable E.text))
 
 
 selectAnthologyStories :: Statement AnthologyId [Story]
@@ -790,7 +799,7 @@ selectAnthologyStories = Q.Statement sql evText (D.rowList storyRow) True
 
 updateStarterStories :: Statement AnthologyId ()
 updateStarterStories =
-    Q.Statement "UPDATE config SET starter_stories = $1 :: uuid" evText D.unit False
+    Q.Statement "UPDATE config SET starter_stories = $1 :: uuid" evText D.noResult False
 
 -- Word dictionary
 
@@ -800,7 +809,7 @@ selectDictionary = Q.Statement sql mempty decode True
     sql = "SELECT word, index, definition, uses_words FROM dict ORDER BY word, index"
     decode = D.rowList $ do
         word_ <- dvText
-        _ <- D.column D.int2
+        _ <- D.column (D.nonNullable D.int2)
         defn <- dvText
         uses <- dArray dictEntryTupleValue
         return (word_, (defn, uses))
@@ -812,10 +821,10 @@ selectWord = Q.Statement sql evText decode True
           \ FROM dict \
           \ WHERE word = $1 \
           \ ORDER BY index"
-    decode = D.rowList $ D.column D.int2 >> (,) <$> dvText <*> dArray dictEntryTupleValue
+    decode = D.rowList $ D.column (D.nonNullable D.int2) >> (,) <$> dvText <*> dArray dictEntryTupleValue
 
 insertWordDefinition :: Statement (Text, WordDefinition) ()
-insertWordDefinition = Q.Statement sql encoder D.unit True
+insertWordDefinition = Q.Statement sql encoder D.noResult True
   where
     sql = "INSERT INTO dict (word, index, definition, uses_words) \
           \ VALUES ($1, \
@@ -848,12 +857,12 @@ selectAnswersByStory :: Statement (SchoolId, StoryId) [Answer]
 selectAnswersByStory = Q.Statement sql encode (D.rowList answerRow) True
   where
     encode = contramap fst evText
-        <> contramap (fromIntegral . snd) (E.param E.int4)
+        <> contramap (fromIntegral . snd) (E.param (E.nonNullable E.int4))
     sql = selectAnswersSql <> " WHERE school_id = $1 :: uuid AND story_id = $2 ORDER BY created_at DESC"
 
 answerRow :: D.Row Answer
 answerRow = Answer
-    <$> (fromIntegral <$> D.column D.int4)
+    <$> dvInt4
     <*> dvSubjectId
     <*> dvText
     <*> dvText
@@ -861,11 +870,11 @@ answerRow = Answer
     <*> dvText
 
 insertAnswer :: Statement (Answer, SchoolId) ()
-insertAnswer = Q.Statement sql encode D.unit True
+insertAnswer = Q.Statement sql encode D.noResult True
   where
     sql = "INSERT INTO story_answer (story_id, student_id, school_id, connect, question, summarise, clarify) \
           \ VALUES ($1, $2 :: uuid, $3 :: uuid, $4, $5, $6, $7)"
-    encode = contramap (fromIntegral . (storyId :: Answer -> Int) . fst) (E.param E.int4)
+    encode = contramap (fromIntegral . (storyId :: Answer -> Int) . fst) (E.param (E.nonNullable E.int4))
         <> contramap ((studentId :: Answer -> SubjectId) . fst) evSubjectId
         <> contramap snd evText
         <> contramap (connect . fst) evText
@@ -880,19 +889,19 @@ selectLeaderboardBySchoolId = Q.Statement sql evText (D.rowList decode) True
   where
     sql = "SELECT position, name, student_id, score FROM leaderboard WHERE school_id=$1 :: uuid"
     decode = LeaderBoardEntry
-        <$> (fromIntegral <$> D.column D.int4)
+        <$> dvInt4
         <*> dvText
         <*> dvSubjectId
-        <*> (fromIntegral <$> D.column D.int4)
+        <*> dvInt4
 
 -- Account settings
 updateAccountSettings_ :: Statement (SubjectId, JSON.Value) ()
-updateAccountSettings_ = Q.Statement sql encode D.unit True
+updateAccountSettings_ = Q.Statement sql encode D.noResult True
   where
     sql = "UPDATE login SET settings=$2 where id = $1 :: uuid"
     encode = contramap fst evSubjectId
-        <> contramap snd (E.param E.jsonb)
+        <> contramap snd (E.param (E.nonNullable E.jsonb))
 
 -- Admin
 selectDashboard :: Statement () JSON.Value
-selectDashboard = Q.Statement "SELECT dashboard()" E.unit (D.singleRow (D.column D.json)) True
+selectDashboard = Q.Statement "SELECT dashboard()" E.noParams (D.singleRow (D.column (D.nonNullable D.json))) True

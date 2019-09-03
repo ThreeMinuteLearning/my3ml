@@ -46,7 +46,7 @@ import           Jose.Jwk
 import qualified Jose.Jwe as Jwe
 import           Jose.Internal.Crypto (keyWrap, keyUnwrap)
 import           Prelude hiding (id, words)
-import           Servant ((:<|>) ((:<|>)), ServerT, ServantErr(..), Handler, NoContent(..), err400, err401, err403, err409, err404, err500, errBody)
+import           Servant ((:<|>) ((:<|>)), ServerT, ServerError(..), Handler, NoContent(..), err400, err401, err403, err409, err404, err500, errBody)
 
 import           Api.Auth (AccessScope(..), TenantKey(..), mkAccessToken, scopeSubjectId)
 import           Api.Types hiding (AccessToken)
@@ -151,7 +151,7 @@ loginServer authReq = do
         just (pbeKey, sk)
 
     -- 462 is an arbitrarily chosen code to tell our client an OTP is required for the user
-    err462 = ServantErr
+    err462 = ServerError
         { errHTTPCode = 462
         , errReasonPhrase = "OTP Auth Required"
         , errBody = ""
@@ -544,7 +544,7 @@ adminServer _ = throwAll err403
 
 -- ThrowAll idea taken from servant-auth
 class ThrowAll a where
-    throwAll :: ServantErr -> a
+    throwAll :: ServerError -> a
 
 instance (ThrowAll a, ThrowAll b) => ThrowAll (a :<|> b) where
     throwAll e = throwAll e :<|> throwAll e
@@ -552,5 +552,5 @@ instance (ThrowAll a, ThrowAll b) => ThrowAll (a :<|> b) where
 instance {-# OVERLAPS #-} ThrowAll b => ThrowAll (a -> b) where
     throwAll e = const $ throwAll e
 
-instance {-# OVERLAPPABLE #-} (MonadError ServantErr m) => ThrowAll (m a) where
+instance {-# OVERLAPPABLE #-} (MonadError ServerError m) => ThrowAll (m a) where
     throwAll = throwError
