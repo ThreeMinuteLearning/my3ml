@@ -24,7 +24,7 @@ view useSmallTiles action stories =
                     [ href (Route.routeToString (Route.Story s.id)) ]
 
                 Just doThis ->
-                    [ onClick (doThis s.id), href "" ]
+                    [ onClick (doThis s.id), href "#" ]
 
         tileClass =
             if useSmallTiles then

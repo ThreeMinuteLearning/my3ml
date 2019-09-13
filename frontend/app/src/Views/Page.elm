@@ -103,30 +103,30 @@ menuToggleButton =
 menuItems : ActivePage -> Session -> List (Html msg)
 menuItems page session =
     let
-        home =
-            navbarLink (page == Home) Route.Home "nav-home" [ text "Home" ]
+        home txt =
+            navbarLink (page == Home) Route.Home "nav-home" txt
 
         findStory =
-            navbarLink (page == FindStory) Route.FindStory "nav-find-story" [ text "Find a story" ]
+            navbarLink (page == FindStory) Route.FindStory "nav-find-story" "Find a story"
 
         my3ml =
-            navbarLink (page == Account) Route.Account "nav-account" [ text "My3ml" ]
+            navbarLink (page == Account) Route.Account "nav-account" "My3ml"
 
         leaderboard =
-            navbarLink (page == LeaderBoard) Route.LeaderBoard "nav-leaderboard" [ text "Leaderboard" ]
+            navbarLink (page == LeaderBoard) Route.LeaderBoard "nav-leaderboard" "Leaderboard"
 
         logout =
-            navbarLink False Route.Logout "nav-logout" [ text "Sign out" ]
+            navbarLink False Route.Logout "nav-logout" "Sign out"
     in
     if Session.isStudent session then
-        [ home, findStory, my3ml, leaderboard, logout ]
+        [ home "My dashboard", findStory, my3ml, leaderboard, logout ]
 
     else if Session.isEditor session then
-        [ home, findStory, my3ml, logout ]
+        [ home "Home", findStory, my3ml, logout ]
 
     else if Session.isTeacher session then
-        [ home
-        , navbarLink (page == Teacher) (Route.Teacher Route.Students) "nav-teacher-admin" [ text "Admin" ]
+        [ a [ id "nav-home", href "/", target "_blank", navLinkClass ] [ text "Home" ]
+        , navbarLink (page == Teacher) (Route.Teacher Route.Students) "nav-teacher-admin" "Admin"
         , findStory
         , my3ml
         , leaderboard
@@ -134,12 +134,17 @@ menuItems page session =
         ]
 
     else
-        [ home
-        , navbarLink (page == Login) Route.Login "nav-login" [ text "Sign in" ]
-        , navbarLink (page == Register) Route.Register "nav-register" [ text "Sign up" ]
+        [ a [ id "nav-home", href "/", navLinkClass ] [ text "Home" ]
+        , navbarLink (page == Login) Route.Login "nav-login" "Sign in"
+        , navbarLink (page == Register) Route.Register "nav-register" "Sign up"
         ]
 
 
-navbarLink : Bool -> Route -> String -> List (Html msg) -> Html msg
+navLinkClass : Attribute msg
+navLinkClass =
+    class "block mt-4 md:inline-block md:mt-0 text-teal-200 hover:text-white mr-4"
+
+
+navbarLink : Bool -> Route -> String -> String -> Html msg
 navbarLink isActive route id_ linkContent =
-    a [ id id_, classList [ ( "underline", isActive ) ], class "block mt-4 md:inline-block md:mt-0 text-teal-200 hover:text-white mr-4", classList [ ( "border-red", isActive ) ], Route.href route ] linkContent
+    a [ id id_, navLinkClass, classList [ ( "underline", isActive ), ( "border-red", isActive ) ], Route.href route ] [ text linkContent ]

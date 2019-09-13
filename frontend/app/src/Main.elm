@@ -284,7 +284,7 @@ changeRouteTo maybeRoute model =
                     Session.logout session
             in
             ( { model | session = s }
-            , Cmd.batch [ storeSession s, Route.modifyUrl model.navKey Route.Home ]
+            , Cmd.batch [ storeSession s, Route.modifyUrl model.navKey Route.Login ]
             )
 
         Just Route.FindStory ->
@@ -325,7 +325,12 @@ update msg model =
                 Browser.Internal url ->
                     case url.fragment of
                         Nothing ->
-                            ( model, Cmd.none )
+                            -- Special case where we want to navigate away from the app to the static site
+                            if url.path == "/" then
+                                ( model, Nav.load "/" )
+
+                            else
+                                ( model, Cmd.none )
 
                         Just "" ->
                             ( model, Cmd.none )
