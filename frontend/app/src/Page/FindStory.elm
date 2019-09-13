@@ -608,11 +608,15 @@ matchingStories storyFilter stories =
             tagMatch tags =
                 List.Extra.find (Regex.contains r) tags /= Nothing
 
-            qualMatch q =
+            matchMaybe q =
                 Maybe.map (Regex.contains r) q == Just True
 
             match story =
-                Regex.contains r story.title || qualMatch story.qualification || tagMatch story.tags || Regex.contains r story.content
+                Regex.contains r story.title
+                    || matchMaybe story.qualification
+                    || matchMaybe story.curriculum
+                    || tagMatch story.tags
+                    || Regex.contains r story.content
         in
         List.filter match stories
 
