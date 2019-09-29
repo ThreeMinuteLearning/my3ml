@@ -120,8 +120,8 @@ CREATE TABLE dict
     );
 
 CREATE TABLE story_answer
-    ( story_id integer NOT NULL REFERENCES story
-    , student_id uuid NOT NULL REFERENCES student
+    ( story_id integer NOT NULL REFERENCES story ON DELETE CASCADE
+    , student_id uuid NOT NULL REFERENCES student ON DELETE CASCADE
     , school_id uuid NOT NULL REFERENCES school ON DELETE CASCADE
     , connect text NOT NULL
     , question text NOT NULL
@@ -336,3 +336,25 @@ FROM (
   GROUP BY s.id
 ) AS t
 WHERE count = 0;
+
+CREATE OR REPLACE FUNCTION delete_inactive_schools() RETURNS void AS $$
+DECLARE
+  inactive_school_id UUID;
+  row_count integer;
+BEGIN
+  FOR inactive_school_id IN SELECT ID FROM inactive_schools_view LOOP
+    RAISE INFO 'Deleting school %', inactive_school_id;
+
+    DELETE FROM login WHERE id IN (SELECT id FROM teacher WHERE school_id = inactive_school_id);
+    GET DIAGNOSTICS row_count = ROW_COUNT;
+    RAISE INFO 'Deleted % teachers', row_count;
+
+    DELETE FROM login WHERE id IN (SELECT id FROM student WHERE school_id = inactive_school_id);
+    GET DIAGNOSTICS row_count = ROW_COUNT;
+    RAISE INFO 'Deleted % students', row_count;
+
+    DELETE FROM school WHERE id = inactive_school_id;
+
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
