@@ -115,16 +115,6 @@ decodeTeacher =
         |> required "last_login" (nullable epochTimeDecoder)
 
 
-w : Float
-w =
-    990
-
-
-h : Float
-h =
-    504
-
-
 view : Stats -> { title : String, content : Html msg }
 view { storyActivityDaily, storyActivityMonthly, sampleTime, schools } =
     { title = "Admin Dashboard"
