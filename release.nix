@@ -12,6 +12,7 @@ let
     elm-export = self.callPackage ./elm-export.nix {};
     servant-elm = self.callPackage ./servant-elm.nix {};
     text-builder = dontCheck super.text-builder;
+    hasql-pool = dontCheck super.hasql-pool;
   });
 in
   {
