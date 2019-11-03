@@ -8,23 +8,23 @@
     "dependencies": {
         "direct": {
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",
-            "billstclair/elm-sortable-table": "1.1.3",
-            "elm/browser": "1.0.1",
+            "billstclair/elm-sortable-table": "1.2.0",
+            "elm/browser": "1.0.2",
             "elm/core": "1.0.2",
             "elm/html": "1.0.0",
             "elm/http": "1.0.0",
-            "elm/json": "1.0.0",
+            "elm/json": "1.1.3",
             "elm/regex": "1.0.0",
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
             "elm-community/graph": "6.0.0",
             "elm-community/intdict": "3.0.0",
-            "elm-community/list-extra": "8.2.0",
+            "elm-community/list-extra": "8.2.2",
             "elm-explorations/markdown": "1.0.0",
             "rtfeldman/elm-validate": "4.0.1",
             "sporto/elm-select": "3.1.2",
-            "wernerdegroot/listzipper": "3.1.1"
+            "wernerdegroot/listzipper": "4.0.0"
         },
         "indirect": {
             "avh4/elm-fifo": "1.0.4",
@@ -33,8 +33,6 @@
     },
     "test-dependencies": {
         "direct": {},
-        "indirect": {
-            "rtfeldman/elm-hex": "1.0.0"
-        }
+        "indirect": {}
     }
 }
