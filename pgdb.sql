@@ -214,7 +214,7 @@ $$
   ), story_activity_by_school AS (
     SELECT school_name, stories, dt as date FROM story_activity sa INNER JOIN schools_with_data swd ON sa.school_id = swd.school_id
   )
-  SELECT json_agg(t) FROM story_activity_by_school t
+  SELECT coalesce(json_agg(t), '[]'::json) FROM story_activity_by_school t
 $$ LANGUAGE sql;
 
 
@@ -242,7 +242,7 @@ $$
     GROUP BY sc.name, s.title
     ORDER BY sc.name, students DESC
   )
-  SELECT json_agg(t) FROM story_activity t
+  SELECT coalesce(json_agg(t), '[]'::json) FROM story_activity t
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION school_data()
