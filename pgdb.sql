@@ -207,6 +207,7 @@ $$
         ON sa.school_id = s.id
         AND sa.created_at >= d.dt
         AND sa.created_at < d.dt + (1 || granularity)::interval
+    WHERE s.name NOT LIKE 'Test%'
     GROUP BY s.id, s.name, d.dt
     ORDER BY s.id, s.name, d.dt
   ), schools_with_data AS (
@@ -237,7 +238,8 @@ $$
     ON sc.id = sa.school_id
     INNER JOIN story s
     ON s.id = sa.story_id
-    WHERE s.id IN (SELECT story_id FROM top_stories)
+    WHERE sc.name NOT LIKE 'Test%'
+    AND s.id IN (SELECT story_id FROM top_stories)
     AND (now() - sa.created_at < period)
     GROUP BY sc.name, s.title
     ORDER BY sc.name, students DESC
@@ -272,6 +274,7 @@ $$
     FROM teachers_per_school t
     INNER JOIN student_counts sc
     ON t.school_id = sc.school_id
+    WHERE sc.school_name NOT LIKE 'Test%'
   ) tmp
 $$ LANGUAGE SQL;
 
