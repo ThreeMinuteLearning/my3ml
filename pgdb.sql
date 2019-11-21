@@ -340,14 +340,18 @@ WHERE count = 0;
 CREATE OR REPLACE FUNCTION delete_inactive_schools() RETURNS void AS $$
 DECLARE
   inactive_school_id UUID;
+  inactive_teacher_id UUID;
   row_count integer;
 BEGIN
   FOR inactive_school_id IN SELECT ID FROM inactive_schools_view LOOP
     RAISE INFO 'Deleting school %', inactive_school_id;
 
-    DELETE FROM login WHERE id IN (SELECT id FROM teacher WHERE school_id = inactive_school_id);
-    GET DIAGNOSTICS row_count = ROW_COUNT;
-    RAISE INFO 'Deleted % teachers', row_count;
+    FOR inactive_teacher_id IN (SELECT id FROM teacher WHERE school_id = inactive_school_id) LOOP
+      DELETE FROM anthology WHERE created_by = inactive_teacher_id;
+      DELETE FROM login WHERE id = inactive_teacher_id;
+      RAISE INFO 'Deleted teacher %', inactive_teacher_id;
+    END LOOP;
+
 
     DELETE FROM login WHERE id IN (SELECT id FROM student WHERE school_id = inactive_school_id);
     GET DIAGNOSTICS row_count = ROW_COUNT;
