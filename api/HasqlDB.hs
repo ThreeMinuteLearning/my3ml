@@ -839,7 +839,7 @@ insertWordDefinition = Q.Statement sql encoder D.noResult True
 -- Answers
 
 selectAnswersSql :: ByteString
-selectAnswersSql = "SELECT story_id, student_id, connect, question, summarise, clarify FROM story_answer"
+selectAnswersSql = "SELECT story_id, student_id, connect, question, summarise, clarify, created_at FROM story_answer"
 
 selectAnswersBySchool :: Statement SchoolId [Answer]
 selectAnswersBySchool = Q.Statement sql evText (D.rowList answerRow) True
@@ -868,6 +868,7 @@ answerRow = Answer
     <*> dvText
     <*> dvText
     <*> dvText
+    <*> (round . utcTimeToPOSIXSeconds <$> D.column (D.nonNullable D.timestamptz))
 
 insertAnswer :: Statement (Answer, SchoolId) ()
 insertAnswer = Q.Statement sql encode D.noResult True

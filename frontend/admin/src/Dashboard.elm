@@ -10,6 +10,7 @@ import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import List.Extra as List
 import Time exposing (posixToMillis)
 import Tuple exposing (pair)
+import Util exposing (posixToString)
 import VegaLite exposing (..)
 import Views.Form as Form
 
@@ -205,56 +206,6 @@ viewSchools schools =
                 ]
     in
     ul [ class "flex flex-row w-full py-10 flex-wrap md:m-0 lg:-mx-3" ] (List.map viewSchool schools)
-
-
-posixToString : Time.Posix -> String
-posixToString t =
-    let
-        day =
-            String.fromInt (Time.toDay Time.utc t)
-
-        year =
-            String.fromInt (Time.toYear Time.utc t)
-
-        month =
-            case Time.toMonth Time.utc t of
-                Time.Jan ->
-                    "Jan"
-
-                Time.Feb ->
-                    "Feb"
-
-                Time.Mar ->
-                    "Mar"
-
-                Time.Apr ->
-                    "Apr"
-
-                Time.May ->
-                    "May"
-
-                Time.Jun ->
-                    "Jun"
-
-                Time.Jul ->
-                    "Jul"
-
-                Time.Aug ->
-                    "Aug"
-
-                Time.Sep ->
-                    "Sep"
-
-                Time.Oct ->
-                    "Oct"
-
-                Time.Nov ->
-                    "Nov"
-
-                Time.Dec ->
-                    "Dec"
-    in
-    day ++ " " ++ month ++ " " ++ year
 
 
 viewSortSelect : SortSchools -> (SortSchools -> msg) -> Html msg

@@ -1,4 +1,4 @@
-module Util exposing (appendErrors, defaultHttpErrorMsg, maybeView, printButton, viewIf, viewUnless)
+module Util exposing (appendErrors, defaultHttpErrorMsg, maybeView, posixToString, printButton, viewIf, viewUnless)
 
 import Components
 import Html exposing (..)
@@ -6,6 +6,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Decode
+import Time exposing (Month(..))
 
 
 viewIf : Bool -> Html msg -> Html msg
@@ -67,3 +68,53 @@ defaultHttpErrorMsg err =
 
         Http.BadUrl _ ->
             "Couldn't send the request because the URL was wrong (shouldn't happen :-/)"
+
+
+posixToString : Time.Posix -> String
+posixToString t =
+    let
+        day =
+            String.fromInt (Time.toDay Time.utc t)
+
+        year =
+            String.fromInt (Time.toYear Time.utc t)
+
+        month =
+            case Time.toMonth Time.utc t of
+                Jan ->
+                    "Jan"
+
+                Feb ->
+                    "Feb"
+
+                Mar ->
+                    "Mar"
+
+                Apr ->
+                    "Apr"
+
+                May ->
+                    "May"
+
+                Jun ->
+                    "Jun"
+
+                Jul ->
+                    "Jul"
+
+                Aug ->
+                    "Aug"
+
+                Sep ->
+                    "Sep"
+
+                Oct ->
+                    "Oct"
+
+                Nov ->
+                    "Nov"
+
+                Dec ->
+                    "Dec"
+    in
+    day ++ " " ++ month ++ " " ++ year

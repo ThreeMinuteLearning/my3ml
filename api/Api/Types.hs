@@ -85,6 +85,7 @@ data Answer = Answer
     , question :: Text
     , summarise :: Text
     , clarify :: Text
+    , createdAt :: Int
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 data Teacher = Teacher

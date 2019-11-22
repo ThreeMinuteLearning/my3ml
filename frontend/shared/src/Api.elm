@@ -56,6 +56,7 @@ type alias Answer =
     , question : String
     , summarise : String
     , clarify : String
+    , createdAt : Int
     }
 
 type alias Class =
@@ -1713,6 +1714,7 @@ decodeAnswer =
         |> required "question" string
         |> required "summarise" string
         |> required "clarify" string
+        |> required "createdAt" int
 
 encodeAnswer : Answer -> Json.Encode.Value
 encodeAnswer x =
@@ -1723,6 +1725,7 @@ encodeAnswer x =
         , ( "question", Json.Encode.string x.question )
         , ( "summarise", Json.Encode.string x.summarise )
         , ( "clarify", Json.Encode.string x.clarify )
+        , ( "createdAt", Json.Encode.int x.createdAt )
         ]
 
 decodeClass : Decoder Class

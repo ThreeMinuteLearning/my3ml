@@ -131,7 +131,7 @@ submitAnswers : Session -> Model -> Cmd Msg
 submitAnswers session model =
     let
         answer =
-            Api.Answer (.id model.story) "" model.connection model.question model.summary model.clarification
+            Api.Answer (.id model.story) "" model.connection model.question model.summary model.clarification -1
     in
     Api.postSchoolAnswers (authorization session) answer
         |> Http.send SubmitAnswersResponse
