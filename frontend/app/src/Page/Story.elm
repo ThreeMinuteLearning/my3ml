@@ -50,7 +50,7 @@ init originalSession slug =
             Maybe.andThen (createFormIfUnanswered story answers) user
 
         createFormIfUnanswered story answers subId =
-            if List.any (\a -> a.studentId == subId) answers then
+            if Session.isTeacher originalSession || List.any (\a -> a.studentId == subId) answers then
                 Nothing
 
             else
