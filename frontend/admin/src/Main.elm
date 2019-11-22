@@ -27,6 +27,7 @@ type Page
 type Msg
     = StatsLoaded (Result Http.Error Value)
     | LoginMsg (Login.Msg Api.Login)
+    | SortSchoolsBy Dashboard.SortSchools
 
 
 init : String -> ( Model, Cmd Msg )
@@ -54,6 +55,9 @@ update msg model =
                             ( Stats Nothing, loadStats (.token u) )
             in
             ( { model | accessToken = Maybe.map .token maybeLoggedIn, page = newPage }, newCmd )
+
+        ( Stats s, SortSchoolsBy sortBy ) ->
+            ( { model | page = Stats (Maybe.map (Dashboard.sortSchools sortBy) s) }, Cmd.none )
 
         ( Stats _, StatsLoaded (Ok json) ) ->
             case Decode.decodeValue Dashboard.decodeStats json of
@@ -88,7 +92,7 @@ view m =
     frame <|
         case m.page of
             Stats (Just s) ->
-                Dashboard.view s
+                Dashboard.view SortSchoolsBy s
 
             Stats Nothing ->
                 { title = "Loading Dashboard", content = text "Loading dashboard ..." }

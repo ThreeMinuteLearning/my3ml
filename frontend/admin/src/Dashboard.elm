@@ -1,15 +1,17 @@
-port module Dashboard exposing (Stats, decodeStats, elmToVega, vegaSpec, view)
+port module Dashboard exposing (SortSchools(..), Stats, decodeStats, elmToVega, sortSchools, vegaSpec, view)
 
 import Color exposing (Color)
 import Dict exposing (Dict)
 import Html exposing (..)
-import Html.Attributes exposing (class, id, style)
+import Html.Attributes exposing (class, id, selected, style)
+import Html.Events exposing (on, targetValue)
 import Json.Decode as Json exposing (Decoder, float, int, list, nullable, string, value)
-import Json.Decode.Pipeline exposing (optional, required)
+import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import List.Extra as List
-import Time exposing (Month(..))
+import Time exposing (posixToMillis)
 import Tuple exposing (pair)
 import VegaLite exposing (..)
+import Views.Form as Form
 
 
 type alias Teacher =
@@ -35,7 +37,15 @@ type alias Stats =
     , storyPopularityAllTime : Json.Value
     , schools : List School
     , sampleTime : Time.Posix
+    , schoolsSortedBy : SortSchools
     }
+
+
+type SortSchools
+    = ByStudentCount
+    | ByName
+    | ByLastLogin
+    | ByRegistrationDate
 
 
 port elmToVega : Spec -> Cmd msg
@@ -95,6 +105,7 @@ decodeStats =
         |> required "story_popularity" value
         |> required "schools" (Json.map (List.sortBy (\s -> -1 * s.numberOfStudents)) (list decodeSchoolData))
         |> required "sample_time" (Json.map ((*) 1000 >> Time.millisToPosix) int)
+        |> hardcoded ByStudentCount
 
 
 decodeSchoolData : Decoder School
@@ -115,12 +126,42 @@ decodeTeacher =
         |> required "last_login" (nullable epochTimeDecoder)
 
 
-view : Stats -> { title : String, content : Html msg }
-view { storyActivityDaily, storyActivityMonthly, sampleTime, schools } =
+sortSchools : SortSchools -> Stats -> Stats
+sortSchools sortBy stats =
+    let
+        sorted =
+            case sortBy of
+                ByStudentCount ->
+                    List.sortBy (\s -> -1 * s.numberOfStudents) stats.schools
+
+                ByName ->
+                    List.sortBy .name stats.schools
+
+                ByLastLogin ->
+                    List.sortBy (\s -> -1 * lastTeacherLogin s) stats.schools
+
+                ByRegistrationDate ->
+                    List.sortBy ((*) -1 << posixToMillis << .createdAt) stats.schools
+    in
+    { stats | schools = sorted, schoolsSortedBy = sortBy }
+
+
+lastTeacherLogin : School -> Int
+lastTeacherLogin s =
+    List.maximum (List.filterMap (\t -> Maybe.map posixToMillis t.lastLogin) s.teachers)
+        |> Maybe.withDefault 0
+
+
+view : (SortSchools -> msg) -> Stats -> { title : String, content : Html msg }
+view toSortMsg { storyActivityDaily, storyActivityMonthly, sampleTime, schools, schoolsSortedBy } =
     { title = "Admin Dashboard"
     , content =
         div [ class "container mx-auto" ]
             [ div [ id "vis" ] []
+            , div [ class "flex mt-3" ]
+                [ label [ class "mr-2" ] [ Html.text "Sort schools by" ]
+                , viewSortSelect schoolsSortedBy toSortMsg
+                ]
             , viewSchools schools
             ]
     }
@@ -129,13 +170,29 @@ view { storyActivityDaily, storyActivityMonthly, sampleTime, schools } =
 viewSchools : List School -> Html msg
 viewSchools schools =
     let
+        lastLogin s =
+            case lastTeacherLogin s of
+                0 ->
+                    "Never logged in."
+
+                t ->
+                    "Last login: " ++ posixToString (Time.millisToPosix t)
+
         viewSchool s =
             li [ class "flex flex-col px-3 mb-6 w-full md:w-1/2 lg:w-1/3" ]
                 [ div [ class "flex flex-col bg-white rounded shadow-md flex-1 overflow-x-auto" ]
                     [ div [ class "px-6 py-4" ]
                         [ h1 [ class "text-xl font-bold" ] [ Html.text s.name ]
-                        , p [ class "text-gray-800 text-base" ] [ Html.text (String.fromInt s.numberOfStudents ++ " students.") ]
-                        , div [ class "flex flex-col px-1 py-4" ]
+                        , p [ class "text-gray-800 text-base" ]
+                            [ Html.text (String.fromInt s.numberOfStudents ++ " students.")
+                            ]
+                        , p [ class "text-gray-800 text-sm" ]
+                            [ Html.text ("Registered: " ++ posixToString s.createdAt)
+                            ]
+                        , p [ class "text-gray-800 text-sm" ]
+                            [ Html.text (lastLogin s)
+                            ]
+                        , div [ class "flex flex-col px-1 py-3" ]
                             (List.map viewTeacher s.teachers)
                         ]
                     ]
@@ -147,4 +204,99 @@ viewSchools schools =
                 , div [ class "px-1 text-l" ] [ Html.text t.email ]
                 ]
     in
-    ul [ class "flex flex-row w-full py-16 flex-wrap md:m-0 lg:-mx-3" ] (List.map viewSchool schools)
+    ul [ class "flex flex-row w-full py-10 flex-wrap md:m-0 lg:-mx-3" ] (List.map viewSchool schools)
+
+
+posixToString : Time.Posix -> String
+posixToString t =
+    let
+        day =
+            String.fromInt (Time.toDay Time.utc t)
+
+        year =
+            String.fromInt (Time.toYear Time.utc t)
+
+        month =
+            case Time.toMonth Time.utc t of
+                Time.Jan ->
+                    "Jan"
+
+                Time.Feb ->
+                    "Feb"
+
+                Time.Mar ->
+                    "Mar"
+
+                Time.Apr ->
+                    "Apr"
+
+                Time.May ->
+                    "May"
+
+                Time.Jun ->
+                    "Jun"
+
+                Time.Jul ->
+                    "Jul"
+
+                Time.Aug ->
+                    "Aug"
+
+                Time.Sep ->
+                    "Sep"
+
+                Time.Oct ->
+                    "Oct"
+
+                Time.Nov ->
+                    "Nov"
+
+                Time.Dec ->
+                    "Dec"
+    in
+    day ++ " " ++ month ++ " " ++ year
+
+
+viewSortSelect : SortSchools -> (SortSchools -> msg) -> Html msg
+viewSortSelect currentSelection mkMsg =
+    let
+        onSelect value =
+            mkMsg <|
+                case value of
+                    "StudentCount" ->
+                        ByStudentCount
+
+                    "LastLogin" ->
+                        ByLastLogin
+
+                    "Name" ->
+                        ByName
+
+                    "RegistrationDate" ->
+                        ByRegistrationDate
+
+                    _ ->
+                        ByStudentCount
+    in
+    Form.select [ on "change" (Json.map onSelect targetValue) ]
+        [ Html.option
+            [ Html.Attributes.selected (currentSelection == ByStudentCount)
+            , Html.Attributes.value "StudentCount"
+            ]
+            [ Html.text "Number of students" ]
+        , Html.option
+            [ Html.Attributes.selected (currentSelection == ByName)
+            , Html.Attributes.value "Name"
+            ]
+            [ Html.text "School name" ]
+        , Html.option
+            [ Html.Attributes.selected (currentSelection == ByLastLogin)
+            , Html.Attributes.value "LastLogin"
+            ]
+            [ Html.text "Last teacher login" ]
+        , Html.option
+            [ Html.Attributes.selected (currentSelection == ByRegistrationDate)
+            , Html.Attributes.value "RegistrationDate"
+            ]
+            [ Html.text "Registration date" ]
+        ]
