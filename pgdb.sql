@@ -325,11 +325,11 @@ WITH student_logins AS (
   INNER JOIN student_logins
   ON student_logins.id = teacher_logins.id
 )
-SELECT id
+SELECT id,last_login
 FROM school_logins
 WHERE (now() - last_login > '1 year')
 UNION
-SELECT id
+SELECT id,null
 FROM (
   SELECT s.id, count(student.id)
   FROM school s
@@ -340,28 +340,34 @@ FROM (
 ) AS t
 WHERE count = 0;
 
-CREATE OR REPLACE FUNCTION delete_inactive_schools() RETURNS void AS $$
+CREATE OR REPLACE FUNCTION delete_school(id_to_delete uuid) RETURNS void AS $$
 DECLARE
-  inactive_school_id UUID;
   inactive_teacher_id UUID;
   row_count integer;
 BEGIN
-  FOR inactive_school_id IN SELECT ID FROM inactive_schools_view LOOP
-    RAISE INFO 'Deleting school %', inactive_school_id;
-
-    FOR inactive_teacher_id IN (SELECT id FROM teacher WHERE school_id = inactive_school_id) LOOP
+    RAISE INFO 'Deleting school %', id_to_delete;
+    FOR inactive_teacher_id IN (SELECT id FROM teacher WHERE school_id = id_to_delete) LOOP
       DELETE FROM anthology WHERE created_by = inactive_teacher_id;
       DELETE FROM login WHERE id = inactive_teacher_id;
       RAISE INFO 'Deleted teacher %', inactive_teacher_id;
     END LOOP;
 
+    DELETE FROM registration_code WHERE school_id = id_to_delete;
 
-    DELETE FROM login WHERE id IN (SELECT id FROM student WHERE school_id = inactive_school_id);
+    DELETE FROM login WHERE id IN (SELECT id FROM student WHERE school_id = id_to_delete);
     GET DIAGNOSTICS row_count = ROW_COUNT;
     RAISE INFO 'Deleted % students', row_count;
 
-    DELETE FROM school WHERE id = inactive_school_id;
+    DELETE FROM school WHERE id = id_to_delete;
+END
+$$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION delete_inactive_schools() RETURNS void AS $$
+DECLARE
+  inactive_school_id UUID;
+BEGIN
+  FOR inactive_school_id IN SELECT ID FROM inactive_schools_view LOOP
+    PERFORM delete_school(inactive_school_id);
   END LOOP;
 END;
 $$ LANGUAGE plpgsql;
