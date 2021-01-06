@@ -37,7 +37,7 @@ data Story = Story
 
 data StoryData = StoryData
     { stories :: [Story]
-    , graph :: StoryGraph 
+    , graph :: StoryGraph
     } deriving (Generic, ToJSON)
 
 data GraphEdge = GraphEdge
@@ -263,10 +263,10 @@ type StudentsApi =
         :<|> Capture "studentId" SubjectId :>
              (    Get '[JSON] Student
              :<|> ReqBody '[JSON] Student :> Post '[JSON] Student
-             :<|> "password" :> ReqBody '[JSON] Text :> PostNoContent '[JSON] NoContent
-             :<|> "username" :> ReqBody '[JSON] Text :> PostNoContent '[JSON] NoContent
+             :<|> "password" :> ReqBody '[JSON] Text :> PostNoContent
+             :<|> "username" :> ReqBody '[JSON] Text :> PostNoContent
              :<|> Delete '[JSON] Student
-             :<|> "undelete" :> PostNoContent '[JSON] NoContent
+             :<|> "undelete" :> PostNoContent
              )
         :<|> ReqBody '[JSON] (Int, [Text]) :> Post '[JSON] [(Student, (Text, Text))]
         )
@@ -296,7 +296,7 @@ type AnthologiesApi =
         (    Get '[JSON] [Anthology]
         :<|> ReqBody '[JSON] Anthology :> Post '[JSON] Anthology
         :<|> Capture "anthologyId" AnthologyId :>
-            (    "starter_stories" :> PostNoContent '[JSON] NoContent
+            (    "starter_stories" :> PostNoContent
             :<|> ReqBody '[JSON] Anthology :> Post '[JSON] Anthology
             :<|> Delete '[JSON] AnthologyId
             )
