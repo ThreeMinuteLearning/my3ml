@@ -251,7 +251,7 @@ CREATE OR REPLACE FUNCTION school_data()
   RETURNS json AS
 $$
   WITH teachers AS (
-    SELECT s.id AS school_id, json_build_object('name', t.name, 'email', l.username, 'last_login', to_epoch(l.last_login), 'created_at', to_epoch(l.created_at)) AS teacher_data
+    SELECT s.id AS school_id, json_build_object('name', t.name, 'email', l.username, 'admin', l.user_type='SchoolAdmin', 'last_login', to_epoch(l.last_login), 'created_at', to_epoch(l.created_at)) AS teacher_data
     FROM login l
     INNER JOIN teacher t
     ON t.id = l.id

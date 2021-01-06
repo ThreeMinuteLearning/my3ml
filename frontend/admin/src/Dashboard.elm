@@ -5,7 +5,7 @@ import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (class, id, selected, style)
 import Html.Events exposing (on, targetValue)
-import Json.Decode as Json exposing (Decoder, float, int, list, nullable, string, value)
+import Json.Decode as Json exposing (Decoder, bool, float, int, list, nullable, string, value)
 import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import List.Extra as List
 import Time exposing (posixToMillis)
@@ -18,6 +18,7 @@ import Views.Form as Form
 type alias Teacher =
     { name : String
     , email : String
+    , admin : Bool
     , createdAt : Time.Posix
     , lastLogin : Maybe Time.Posix
     }
@@ -123,6 +124,7 @@ decodeTeacher =
     Json.succeed Teacher
         |> required "name" string
         |> required "email" string
+        |> required "admin" bool
         |> required "created_at" epochTimeDecoder
         |> required "last_login" (nullable epochTimeDecoder)
 
@@ -177,7 +179,7 @@ viewSchools schools =
                     "Never logged in."
 
                 t ->
-                    "Last login: " ++ posixToString (Time.millisToPosix t)
+                    "Last teacher login: " ++ posixToString (Time.millisToPosix t)
 
         viewSchool s =
             li [ class "flex flex-col px-3 mb-6 w-full md:w-1/2 lg:w-1/3" ]
@@ -201,7 +203,9 @@ viewSchools schools =
 
         viewTeacher t =
             div [ class "flex flex-col py-2" ]
-                [ div [ class "px-1 text-l font-semibold" ] [ Html.text t.name ]
+                [ div [ class "px-1 text-l font-semibold" ]
+                    [ Html.text (t.name ++ if t.admin then " (admin)" else "")
+                    ]
                 , div [ class "px-1 text-l" ] [ Html.text t.email ]
                 ]
     in
