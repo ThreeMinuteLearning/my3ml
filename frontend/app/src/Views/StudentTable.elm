@@ -7,7 +7,8 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onCheck)
 import Route
 import Table
-import Tuple exposing (first, second)
+import Time exposing (Month(..))
+import Tuple exposing (second)
 
 
 init : Table.State
@@ -46,6 +47,13 @@ config setState onSelectStudent =
             Table.HtmlDetails []
                 [ link (Route.href (Route.Teacher (Route.Student student.id))) student.name
                 ]
+
+        createdAtColumn =
+            Table.customColumn
+                { name = "Created On"
+                , viewData = \( _, student ) -> posixToDate ( Time.millisToPosix (round (student.createdAt * 1000) ))
+                , sorter = Table.increasingOrDecreasingBy (\(_, s) -> s.createdAt)
+                }
     in
     Table.customConfig
         { toId = .id << second
@@ -54,6 +62,7 @@ config setState onSelectStudent =
             [ checkboxColumn
             , nameColumn
             , Table.intColumn "Level" (.level << second)
+            , createdAtColumn
             , Table.stringColumn "Hidden"
                 (\( _, s ) ->
                     if s.hidden then
@@ -74,3 +83,24 @@ config setState onSelectStudent =
             ]
         , customizations = Bootstrap.tableCustomizations
         }
+
+posixToDate : Time.Posix -> String
+posixToDate t =
+    let
+        year = String.fromInt (Time.toYear Time.utc t)
+        month = case Time.toMonth Time.utc t of
+            Jan -> "01"
+            Feb -> "02"
+            Mar -> "03"
+            Apr -> "04"
+            May -> "05"
+            Jun -> "06"
+            Jul -> "07"
+            Aug -> "08"
+            Sep -> "09"
+            Oct -> "10"
+            Nov -> "11"
+            Dec -> "12"
+        day = String.fromInt (Time.toDay Time.utc t)
+    in
+    year ++ "-" ++ month ++ "-" ++ day

@@ -90,6 +90,7 @@ type alias Student =
     , schoolId : String
     , hidden : Bool
     , deleted : Maybe (Float)
+    , createdAt : Float
     }
 
 type alias Teacher =
@@ -1793,6 +1794,7 @@ decodeStudent =
         |> required "schoolId" string
         |> required "hidden" bool
         |> required "deleted" (nullable float)
+        |> required "createdAt" float
 
 encodeStudent : Student -> Json.Encode.Value
 encodeStudent x =
@@ -1804,6 +1806,7 @@ encodeStudent x =
         , ( "schoolId", Json.Encode.string x.schoolId )
         , ( "hidden", Json.Encode.bool x.hidden )
         , ( "deleted", (Maybe.withDefault Json.Encode.null << Maybe.map Json.Encode.float) x.deleted )
+        , ( "createdAt", Json.Encode.float x.createdAt )
         ]
 
 decodeTeacher : Decoder Teacher

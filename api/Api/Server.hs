@@ -14,14 +14,12 @@ module Api.Server
     ) where
 import           Control.Concurrent
 import           Control.Error
-import           Control.Monad (unless)
 import           Control.Monad.Except (MonadError, throwError)
-import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Logger
 import           Control.Monad.Reader
 import           Crypto.Cipher.AES
 import           Crypto.Cipher.Types
-import           Crypto.KDF.Argon2 (Options(..), defaultOptions, hash)
+import           Crypto.KDF.Argon2 (hash)
 import           Crypto.Error
 import qualified Crypto.OTP as OTP
 import           Crypto.Random (getRandomBytes)
@@ -31,9 +29,7 @@ import           Data.ByteArray (ScrubbedBytes)
 import           Data.ByteArray.Encoding
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
-import           Data.Maybe (isNothing)
-import           Data.Monoid ((<>))
-import           Data.List (scanl', last, uncons)
+import           Data.List (scanl', uncons)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Text.Encoding (encodeUtf8, decodeUtf8)

@@ -26,7 +26,7 @@ import           Data.Monoid
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import           Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
+import           Data.Time.Clock.POSIX (getPOSIXTime, utcTimeToPOSIXSeconds)
 import qualified Data.UUID as UUID
 import           GHC.Stack (prettySrcLoc)
 import           GHC.Stack.Types (HasCallStack, CallStack, getCallStack)
@@ -172,7 +172,8 @@ instance DB HasqlDB where
     createStudent (nm, lvl, schoolId_) (username, password) db = runSession db $ do
         begin
         subId <- SubjectId . UUID.toText <$> S.statement (username, password, student, True) insertAccount
-        let s = Student subId nm Nothing lvl schoolId_ False Nothing
+        createdAt <- liftIO getPOSIXTime
+        let s = Student subId nm Nothing lvl schoolId_ False Nothing createdAt
         S.statement (s, subId) insertStudent
         commit
         S.statement subId selectStudentBySubjectId
@@ -602,7 +603,7 @@ insertTeacher = Q.Statement sql encode D.noResult False
 -- Students
 
 selectStudentSql :: ByteString
-selectStudentSql = "SELECT id, name, description, level, school_id, hidden, deleted FROM student"
+selectStudentSql = "SELECT id, name, description, level, school_id, hidden, deleted, created_at FROM student"
 
 selectStudentsBySchool :: Statement SchoolId [Student]
 selectStudentsBySchool = Q.Statement sql evText (D.rowList studentRow) True
@@ -630,6 +631,7 @@ studentRow = Student
     <*> dvUUID
     <*> dvBool
     <*> (fmap utcTimeToPOSIXSeconds <$> D.column (D.nullable D.timestamptz))
+    <*> (utcTimeToPOSIXSeconds <$> D.column (D.nonNullable D.timestamptz))
 
 insertStudent :: Statement (Student, SubjectId) ()
 insertStudent = Q.Statement sql encode D.noResult True

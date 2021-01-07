@@ -103,6 +103,7 @@ data Student = Student
     , schoolId :: SchoolId
     , hidden :: Bool
     , deleted :: Maybe POSIXTime
+    , createdAt :: POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 data LoginRequest = LoginRequest
