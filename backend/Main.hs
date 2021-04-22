@@ -18,7 +18,6 @@ import qualified Data.Aeson as A
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import           Data.Maybe (fromMaybe)
-import           Data.Monoid ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           Jose.Jwa
@@ -31,10 +30,9 @@ import           Servant.Server.Experimental.Auth (AuthHandler)
 import           System.Environment (getEnvironment)
 import           System.IO.Error
 
-import           Api.Auth
+import           Api.Auth (AccessScope, authServerContext)
 import           Api.Server (HandlerT, Config(..))
 import qualified Api.Server as Api
-import           Api.Auth (authServerContext)
 import           Api.Types (Api)
 import           DB (DB, getStarterStories)
 import           HasqlDB (mkDB, DBException(..))

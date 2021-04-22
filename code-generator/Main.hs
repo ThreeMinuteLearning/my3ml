@@ -12,7 +12,6 @@
 module Main where
 
 import           Control.Monad (join)
-import           Data.Monoid ((<>))
 import           Data.Proxy (Proxy (Proxy))
 import           Data.Text (Text)
 import           Data.Time.Clock (NominalDiffTime)
