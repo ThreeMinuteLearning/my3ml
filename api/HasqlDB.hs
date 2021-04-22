@@ -56,7 +56,7 @@ instance DB HasqlDB where
                 begin
                 schoolId_ <- S.statement (schoolName, TE.decodeUtf8 <$> schoolKey, Nothing) insertSchool
 
-                subId <- S.statement (email, password, schoolAdmin, False) insertAccount
+                subId <- S.statement (email, password, schoolAdmin, True) insertAccount
                 S.statement (subId, userKeys) insertUserKeys
                 S.statement (subId, teacherName, schoolId_) insertTeacher
                 commit
