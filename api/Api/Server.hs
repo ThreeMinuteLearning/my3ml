@@ -19,7 +19,7 @@ import           Control.Monad.Logger
 import           Control.Monad.Reader
 import           Crypto.Cipher.AES
 import           Crypto.Cipher.Types
-import           Crypto.KDF.Argon2 (hash)
+import           Crypto.KDF.Argon2 (hash, Variant(..))
 import           Crypto.Error
 import qualified Crypto.OTP as OTP
 import           Crypto.Random (getRandomBytes)
@@ -180,7 +180,7 @@ loginServer authReq = do
             "Editor" -> return (EditorScope subId, "Anonymous")
             "Admin" -> pure (AdminScope subId, uName)
             x -> error ("Unexpected user type " ++ show x)
-        jwk <- fmap tokenKey ask
+        jwk <- asks tokenKey
         token_ <- mkAccessToken jwk scope
         return (token_, nm)
 
@@ -209,7 +209,7 @@ accountServer token_ =
             Nothing -> Just <$> newSchoolKey pbeKey
 
         let userKeys = UserKeys salt kPub (decodeUtf8 ekPr) (fst <$> schoolKeys)
-        result <- runDB $ DB.registerNewAccount (r { password = hashedPassword } ) userKeys (join (fmap snd schoolKeys))
+        result <- runDB $ DB.registerNewAccount (r { password = hashedPassword } ) userKeys (snd =<< schoolKeys)
         case result of
             Just _ -> return NoContent
             Nothing -> throwError err403
@@ -217,7 +217,7 @@ accountServer token_ =
     newSchoolKey :: ScrubbedBytes -> HandlerT db (B.ByteString, Maybe B.ByteString)
     newSchoolKey pbeKey = do
         bytes <- liftIO (getRandomBytes 32)
-        rootKey_ <- fmap rootKey ask
+        rootKey_ <- asks rootKey
         backupKey <- case rootKey_ of
             Nothing -> return Nothing
             Just k -> fmap Just $ liftIO $ encryptSchoolKeyWithRsaKey bytes k
@@ -229,7 +229,7 @@ accountServer token_ =
             runDB $ DB.createRegistrationCode schoolId_
         _ -> throwError err403
 
-    passwordOptions = defaultOptions { iterations = 3, parallelism = 1, memory = 4096}
+    passwordOptions = defaultOptions { iterations = 4, parallelism = 3, memory = 8192, variant = Argon2id }
 
 storyServer :: DB db => ApiServer StoriesApi db
 storyServer token_ =
@@ -313,7 +313,7 @@ setStarterStories aid = do
     logInfoN $ "Setting starter stories to anthology: " <> aid
     stories_ <- runDB (DB.getAnthologyStories aid)
     runDB (DB.setStarterStories aid)
-    mvar <- sampleStories <$> ask
+    mvar <- asks sampleStories
     liftIO $ takeMVar mvar >> putMVar mvar stories_
     return NoContent
 
@@ -389,7 +389,7 @@ studentsServer scp@(TeacherScope _ _ (TenantKey key) _) schoolId_ = getStudents 
 
     getStudent studId = do
         s <- runDB $ DB.getStudent schoolId_ studId
-        maybe (throwError err404) return (fmap decryptStudent s)
+        maybe (throwError err404) (return . decryptStudent) s
 
     changePassword studId password_ = do
         logInfoN $ "Setting password for student: " <> unSubjectId studId
@@ -445,17 +445,17 @@ studentsServer scp@(TeacherScope _ _ (TenantKey key) _) schoolId_ = getStudents 
         logInfoN $ "Creating new student account for: " <> nm
         uname <- runDB DB.generateUsername
         logInfoN $ "Generated username is: " <> uname
-        pass <- generatePassword 15
+        pass <- generatePassword 10
         hashedPassword <- encodePassword pass
         eName <- liftIO $ encrypt nm
 
         stdnt <- runDB $ DB.createStudent (eName, level_, schoolId_) (uname, hashedPassword)
-        -- Name will be encrypted, so just substitute the orignal name here
+        -- Name will be encrypted, so just substitute the original name here
         return (stdnt { name = nm } :: Student, (uname, pass))
 
     encodePassword p = fmap decodeUtf8 $ liftIO $ hashPassword passwordOptions (encodeUtf8 p)
 
-    passwordOptions = defaultOptions { iterations = 3, parallelism = 1, memory = 4096}
+    passwordOptions = defaultOptions { iterations = 1, parallelism = 1, memory = 4096, variant = Argon2id }
 
     encryptStudent s@Student{..} = do
         eName <- liftIO $ encrypt name
