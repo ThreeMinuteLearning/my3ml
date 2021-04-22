@@ -13,12 +13,19 @@ import Validate exposing (..)
 import Views.Form as Form
 
 
+type State
+    = Init
+    | Loading
+    | Success
+
+
 type alias Model =
     { errors : List Error
     , username : String
     , password : String
     , otp : Maybe String
     , otpRequired : Bool
+    , state : State
     }
 
 
@@ -29,6 +36,7 @@ initialModel =
     , password = ""
     , otp = Nothing
     , otpRequired = False
+    , state = Init
     }
 
 
@@ -41,7 +49,7 @@ view model regLink =
                 viewOtpForm model
 
               else
-                viewForm regLink
+                viewForm (model.state == Loading) regLink
             ]
         ]
 
@@ -51,13 +59,13 @@ form_ formId =
     Html.form [ id formId, class "bg-white shadow-md rounded px-8 pt-6 pb-8 sm:p-16 mb-4", onSubmit SubmitForm ]
 
 
-submitButton : Html msg
-submitButton =
-    Components.btn [ type_ "submit", tabindex 3 ] [ text "Sign in" ]
+submitButton : Bool -> Html msg
+submitButton isDisabled =
+    Components.btn [ type_ "submit", tabindex 3, disabled isDisabled ] [ text "Sign in" ]
 
 
-viewForm : Maybe (Attribute (Msg a)) -> Html (Msg a)
-viewForm regLink =
+viewForm : Bool -> Maybe (Attribute (Msg a)) -> Html (Msg a)
+viewForm isDisabled regLink =
     form_ "login-form"
         [ div [ class "mb-4" ]
             [ Form.label [ class "mb-2", for "username" ] [ text "Username" ]
@@ -65,6 +73,7 @@ viewForm regLink =
                 [ id "username"
                 , class "w-full"
                 , name "username"
+                , disabled isDisabled
                 , placeholder "Username or email"
                 , tabindex 1
                 , onInput SetUsername
@@ -76,6 +85,8 @@ viewForm regLink =
             , Form.password
                 [ id "password"
                 , class "w-full"
+                , name "password"
+                , disabled isDisabled
                 , placeholder "Password"
                 , tabindex 2
                 , onInput SetPassword
@@ -83,7 +94,7 @@ viewForm regLink =
                 []
             ]
         , div [ class "flex items-center justify-between" ]
-            [ submitButton
+            [ submitButton isDisabled
             , case regLink of
                 Just ref ->
                     a [ class "font-bold text-sm text-blue-500 hover:text-blue-700", ref ]
@@ -101,13 +112,14 @@ viewOtpForm model =
         [ Form.input
             [ id "otp-code"
             , name "otp-code"
+            , disabled (model.state == Loading)
             , value (Maybe.withDefault "" model.otp)
             , placeholder "One-time password code"
             , tabindex 1
             , onInput SetOTP
             ]
             []
-        , submitButton
+        , submitButton (model.state == Loading)
         ]
 
 
@@ -128,11 +140,15 @@ update msg model loginRequest =
                     ( ( { model | errors = errors }, Cmd.none ), Nothing )
 
                 _ ->
-                    ( ( { model | errors = [] }
-                      , Http.send LoginCompleted (loginRequest (String.trim model.username) model.password (Maybe.andThen String.toInt model.otp))
-                      )
-                    , Nothing
-                    )
+                    if model.state == Init then
+                        ( ( { model | state = Loading, errors = [] }
+                          , Http.send LoginCompleted (loginRequest (String.trim model.username) model.password (Maybe.andThen String.toInt model.otp))
+                          )
+                        , Nothing
+                        )
+
+                    else
+                        ( ( model, Cmd.none ), Nothing )
 
         SetUsername username ->
             ( ( { model | username = username }, Cmd.none ), Nothing )
@@ -155,7 +171,7 @@ update msg model loginRequest =
                     loginError "The login server is a bit busy. Please try again" model
 
                 462 ->
-                    ( ( { model | otpRequired = True }, Cmd.none ), Nothing )
+                    ( ( { model | state = Init, otpRequired = True }, Cmd.none ), Nothing )
 
                 _ ->
                     loginError (defaultHttpErrorMsg error) model
@@ -164,12 +180,12 @@ update msg model loginRequest =
             loginError (defaultHttpErrorMsg error) model
 
         LoginCompleted (Ok user) ->
-            ( ( model, Cmd.none ), Just user )
+            ( ( { model | state = Success }, Cmd.none ), Just user )
 
 
 loginError : String -> Model -> ( ( Model, Cmd (Msg a) ), Maybe a )
 loginError errorMsg model =
-    ( ( { model | errors = [ ( Form, errorMsg ) ], otp = Nothing, otpRequired = False }, Cmd.none ), Nothing )
+    ( ( { model | errors = [ ( Form, errorMsg ) ], state = Init, otp = Nothing, otpRequired = False }, Cmd.none ), Nothing )
 
 
 type Field
