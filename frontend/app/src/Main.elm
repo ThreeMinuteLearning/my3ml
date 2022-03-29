@@ -550,9 +550,6 @@ pageSubscriptions page =
         Story _ ->
             Sub.map StoryMsg Story.subscriptions
 
-        Register _ ->
-            Sub.map RegisterMsg Register.subscriptions
-
         Editor subModel ->
             Sub.map EditorMsg (Editor.subscriptions subModel)
 

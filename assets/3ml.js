@@ -19,11 +19,6 @@ app.ports.storeSession.subscribe(function(session) {
     sessionStorage.session = session;
 });
 
-app.ports.checkPassword.subscribe(function(password) {
-    var report = zxcvbn(password);
-    app.ports.passwordChecked.send(report);
-});
-
 app.ports.isLastEltVisible.subscribe(function(id) {
     window.requestAnimationFrame(function() {
         var parent = document.getElementById(id);

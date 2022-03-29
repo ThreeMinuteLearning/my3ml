@@ -1,7 +1,6 @@
-port module Ports exposing (checkPassword, dictLookup, getImgWidth, imgWidth, isLastEltVisible, lastEltVisible, passwordChecked, postProcessStory, printWindow, scroll, storeSession)
+port module Ports exposing (dictLookup, getImgWidth, imgWidth, isLastEltVisible, lastEltVisible, postProcessStory, printWindow, scroll, storeSession)
 
 import Api exposing (DictEntry)
-import Json.Encode as Json
 
 
 port getImgWidth : String -> Cmd msg
@@ -20,12 +19,6 @@ port dictLookup : (( String, Int ) -> msg) -> Sub msg
 
 
 port storeSession : Maybe String -> Cmd msg
-
-
-port checkPassword : String -> Cmd msg
-
-
-port passwordChecked : (Json.Value -> msg) -> Sub msg
 
 
 port isLastEltVisible : String -> Cmd msg

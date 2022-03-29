@@ -1,19 +1,17 @@
-module Page.Register exposing (Model, Msg, init, subscriptions, update, view)
+module Page.Register exposing (Model, Msg, init, update, view)
 
 import Api
 import Components
-import Data.Session as Session exposing (Session, authorization)
+import Data.Session exposing (Session, authorization)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
-import Json.Decode as Decode exposing (Decoder, decodeString, decodeValue, field, string)
-import Ports
 import Route
-import Util exposing (defaultHttpErrorMsg, viewIf)
-import Validate exposing (Validator, fromErrors, ifBlank, ifInvalidEmail, ifNothing, validate)
+import SHA1
+import Util exposing (defaultHttpErrorMsg)
+import Validate exposing (Validator, fromErrors, ifBlank, ifInvalidEmail, validate)
 import Views.Form as Form
-import Zxcvbn as Zxcvbn exposing (Zxcvbn, decodeZxcvbn)
 
 
 type alias Model =
@@ -26,12 +24,19 @@ type alias Model =
     , password : String
     , confirmPassword : String
     , status : Status
-    , zxcvbn : Maybe Zxcvbn
     }
+
+
+type PwnedCount
+    = Zero
+    | One
+    | Pwned Int
+    | Error
 
 
 type Status
     = NotSent
+    | AwaitingPwnedResponse
     | AwaitingResponse
     | Completed
 
@@ -50,8 +55,8 @@ type Msg
     | SetTeacherName String
     | SetPassword String
     | SetConfirmPassword String
-    | PasswordCheck Decode.Value
     | RegisterResponse (Result Http.Error Api.NoContent)
+    | PwnedResults (Result Http.Error String)
 
 
 init : Model
@@ -65,13 +70,7 @@ init =
     , password = ""
     , confirmPassword = ""
     , status = NotSent
-    , zxcvbn = Nothing
     }
-
-
-subscriptions : Sub Msg
-subscriptions =
-    Ports.passwordChecked PasswordCheck
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg )
@@ -83,10 +82,7 @@ update session msg model =
                     ( { model | errors = errors }, Cmd.none )
 
                 _ ->
-                    ( { model | status = AwaitingResponse, errors = [] }
-                    , Api.postAccountRegister (authorization session) (Api.Registration model.email model.code model.schoolName model.teacherName model.password)
-                        |> Http.send RegisterResponse
-                    )
+                    ( { model | status = AwaitingPwnedResponse, errors = [] }, getPwnedMatches model.password )
 
         SetEmail email ->
             ( { model | email = email }, Cmd.none )
@@ -101,11 +97,7 @@ update session msg model =
             ( { model | teacherName = name }, Cmd.none )
 
         SetPassword password ->
-            if String.length password < 4 then
-                ( { model | password = password, zxcvbn = Nothing }, Cmd.none )
-
-            else
-                ( { model | password = password }, Ports.checkPassword password )
+            ( { model | password = password }, Cmd.none )
 
         SetConfirmPassword password ->
             ( { model | confirmPassword = password }, Cmd.none )
@@ -136,13 +128,30 @@ update session msg model =
         RegisterResponse (Ok _) ->
             ( { model | status = Completed }, Cmd.none )
 
-        PasswordCheck json ->
-            case decodeValue decodeZxcvbn json of
-                Ok zxcvbn ->
-                    ( { model | zxcvbn = Just zxcvbn }, Cmd.none )
+        PwnedResults (Err _) ->
+            sendForm model session
 
-                Err e ->
-                    ( { model | errors = [ ( Form, "There was an error checking the password strength" ) ] }, Cmd.none )
+        PwnedResults (Ok matches) ->
+            let
+                pwnedCount =
+                    pwnedCountFromResponse model.password matches
+
+                errors =
+                    validatePwned pwnedCount
+            in
+            if errors == [] then
+                sendForm model session
+
+            else
+                ( { model | errors = errors, status = NotSent }, Cmd.none )
+
+
+sendForm : Model -> Session -> ( Model, Cmd Msg )
+sendForm model session =
+    ( { model | status = AwaitingResponse, errors = [] }
+    , Api.postAccountRegister (authorization session) (Api.Registration model.email model.code model.schoolName model.teacherName model.password)
+        |> Http.send RegisterResponse
+    )
 
 
 view : Model -> { title : String, content : Html Msg }
@@ -271,9 +280,6 @@ viewForm model =
             , type_ "password"
             ]
             []
-        , meter [ id "password-strength-meter", class "mb-2", Html.Attributes.max "4", value (passwordScore model) ] []
-        , p [ id "password-strength-warning", class "text-sm" ] [ text (passwordWarning model) ]
-        , passwordSuggestions model
         , Form.password
             [ class "my-2"
             , placeholder "Confirm Password"
@@ -284,36 +290,6 @@ viewForm model =
         , Components.btn [ class "mt-1", disabled (model.status /= NotSent) ]
             [ text "Sign up" ]
         ]
-
-
-passwordScore : Model -> String
-passwordScore model =
-    Maybe.map .score model.zxcvbn
-        |> Maybe.map String.fromInt
-        |> Maybe.withDefault "0"
-
-
-passwordWarning : Model -> String
-passwordWarning model =
-    Maybe.map .feedback model.zxcvbn
-        |> Maybe.map .warning
-        |> Maybe.withDefault ""
-
-
-passwordSuggestions : Model -> Html msg
-passwordSuggestions model =
-    let
-        formatSuggestion s =
-            li [] [ text s ]
-    in
-    case model.zxcvbn of
-        Nothing ->
-            text ""
-
-        Just z ->
-            div [ id "password-strength-suggestions", class "text-sm mt-2" ]
-                [ ul [] (List.map formatSuggestion z.feedback.suggestions)
-                ]
 
 
 
@@ -343,7 +319,7 @@ validator =
 
 
 validatePassword : Model -> List Error
-validatePassword { password, confirmPassword, zxcvbn } =
+validatePassword { password, confirmPassword } =
     case password of
         "" ->
             [ ( Password, "password can't be blank" ) ]
@@ -356,18 +332,57 @@ validatePassword { password, confirmPassword, zxcvbn } =
                 [ ( Password, "password must be at least 8 characters" ) ]
 
             else
-                validateZxcvbn password zxcvbn
+                []
 
 
-validateZxcvbn : String -> Maybe Zxcvbn -> List Error
-validateZxcvbn password zxcvbn =
-    case zxcvbn of
-        Nothing ->
+validatePwned : PwnedCount -> List Error
+validatePwned pwned =
+    case pwned of
+        Zero ->
             []
 
-        Just z ->
-            if z.password == password && z.score < 3 then
-                [ ( Password, "password is too weak" ) ]
+        One ->
+            [ ( Password, "Insecure password (found in a compromised database)!" ) ]
 
-            else
-                []
+        Pwned n ->
+            [ ( Password, "Insecure password (found " ++ String.fromInt n ++ " times in compromised databases)!" ) ]
+
+        Error ->
+            []
+
+
+sha1 : String -> String
+sha1 s =
+    SHA1.fromString s
+        |> SHA1.toHex
+        |> String.toUpper
+
+
+pwnedCountFromResponse : String -> String -> PwnedCount
+pwnedCountFromResponse password response =
+    let
+        suffix =
+            sha1 password |> String.dropLeft 5
+
+        match =
+            String.lines response
+                |> List.filter (String.startsWith suffix)
+                |> List.head
+                |> Maybe.map (String.dropLeft 36)
+                |> Maybe.andThen String.toInt
+    in
+    case match of
+        Nothing ->
+            Zero
+
+        Just 1 ->
+            One
+
+        Just count ->
+            Pwned count
+
+
+getPwnedMatches : String -> Cmd Msg
+getPwnedMatches password =
+    Http.send PwnedResults <|
+        Http.getString ("https://api.pwnedpasswords.com/range/" ++ String.left 5 (sha1 password))

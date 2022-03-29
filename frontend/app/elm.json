@@ -8,6 +8,7 @@
     "dependencies": {
         "direct": {
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",
+            "TSFoster/elm-sha1": "2.1.1",
             "billstclair/elm-sortable-table": "1.2.0",
             "elm/browser": "1.0.2",
             "elm/core": "1.0.2",
@@ -28,7 +29,10 @@
         },
         "indirect": {
             "avh4/elm-fifo": "1.0.4",
-            "elm/virtual-dom": "1.0.2"
+            "danfishgold/base64-bytes": "1.1.0",
+            "elm/bytes": "1.0.8",
+            "elm/virtual-dom": "1.0.2",
+            "rtfeldman/elm-hex": "1.0.0"
         }
     },
     "test-dependencies": {
